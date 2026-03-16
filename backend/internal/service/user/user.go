@@ -1,13 +1,13 @@
 package user
 
 import (
-	"social-network/internal/repository/user"
+	"social-network/internal/models"
 )
 
 type UserService struct {
-	repo *user.UserRepository
+	repo models.UserRepo
 }
 
-func NewUserService(repo *user.UserRepository) *UserService {
+func NewUserService(repo models.UserRepo) *UserService {
 	return &UserService{repo: repo}
 }

@@ -2,11 +2,12 @@ package repository
 
 import (
 	"database/sql"
+	"social-network/internal/models"
 	"social-network/internal/repository/user"
 )
 
 type Repository struct {
-	User *user.UserRepository
+	User models.UserRepo
 }
 
 func NewRepo(db *sql.DB) *Repository {

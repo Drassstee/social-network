@@ -13,3 +13,12 @@ type User struct {
 	Nickname  string
 	Bio       string
 }
+
+type UserService interface {
+}
+
+type UserRepo interface {
+}
+
+type UserHandler interface {
+}
