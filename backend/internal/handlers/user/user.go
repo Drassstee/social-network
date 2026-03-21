@@ -25,7 +25,7 @@ func notImplemented(w http.ResponseWriter) {
 	_ = json.NewEncoder(w).Encode(errJSON{Error: "not implemented"})
 }
 
-// Заглушки до реализации коллегой (авторизация / профиль).
+// Stubs until auth/profile is implemented by teammate.
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	notImplemented(w)
