@@ -16,6 +16,9 @@ func ConnectDB(dbPath string) (*sql.DB, error) {
 	if err = db.Ping(); err != nil {
 		return nil, err
 	}
+	if _, err = db.Exec("PRAGMA foreign_keys = ON"); err != nil {
+		return nil, err
+	}
 	log.Println("Connection established")
 	return db, nil
 }
