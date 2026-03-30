@@ -14,6 +14,7 @@ func SetupRoutes(h *handlers.Handler) *http.ServeMux {
 	apimux.HandleFunc("POST /logout", h.User.Logout)
 	apimux.HandleFunc("GET /users/{id}", h.User.GetProfile)
 	apimux.HandleFunc("GET /posts", h.Post.GetPosts)
+	apimux.HandleFunc("POST /posts", h.Post.CreatePost)
 	mux.Handle("/api/v1", http.StripPrefix("api/v1", apimux))
 
 	return mux
