@@ -1,17 +1,18 @@
 package service
 
-import (
-	"social-network/internal/models"
-	"social-network/internal/repository"
-	"social-network/internal/service/user"
-)
+import "social-network/internal/service/user"
 
-type Service struct {
-	User models.UserService
+type Repository interface {
+	user.SessionRepo
+	user.UserRepo
 }
 
-func NewService(repo *repository.Repository) *Service {
+type Service struct {
+	*user.UserService
+}
+
+func NewService(r Repository) *Service {
 	return &Service{
-		User: user.NewUserService(repo.User),
+		UserService: user.NewUserService(r),
 	}
 }

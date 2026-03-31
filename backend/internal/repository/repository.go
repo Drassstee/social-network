@@ -2,16 +2,22 @@ package repository
 
 import (
 	"database/sql"
-	"social-network/internal/models"
+
+	"social-network/internal/repository/follow"
+	"social-network/internal/repository/session"
 	"social-network/internal/repository/user"
 )
 
 type Repository struct {
-	User models.UserRepo
+	user.UserRepo
+	session.SessionRepo
+	follow.FollowRepo
 }
 
 func NewRepo(db *sql.DB) *Repository {
 	return &Repository{
-		User: user.NewUserRepository(db),
+		UserRepo:    *user.NewUserRepo(db),
+		SessionRepo: *session.NewSessionRepo(db),
+		FollowRepo:  *follow.NewSessionRepo(db),
 	}
 }
