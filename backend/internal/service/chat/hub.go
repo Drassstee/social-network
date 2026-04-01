@@ -5,8 +5,8 @@ package websocket
 import (
 	"context"
 	"encoding/json"
-	"forum/internal/notifications"
 	"log"
+	"social-network/internal/notifications"
 	"sync"
 	"time"
 )

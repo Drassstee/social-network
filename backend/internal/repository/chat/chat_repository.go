@@ -5,7 +5,7 @@ package websocket
 import (
 	"context"
 	"database/sql"
-	"forum/internal/models"
+	"social-network/internal/models"
 )
 
 //--------------------------------------------------------------------------------------|

@@ -5,10 +5,10 @@ package websocket
 import (
 	"context"
 	"errors"
-	"forum/internal/models"
-	"forum/internal/web"
 	"io"
 	"net/http"
+	"social-network/internal/models"
+	"social-network/internal/web"
 )
 
 //--------------------------------------------------------------------------------------|
