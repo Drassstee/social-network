@@ -1,3 +1,7 @@
+package models
+
+import "time"
+
 // Message represents a chat message between users.
 type Message struct {
 	ID         int       `db:"id" json:"id"`

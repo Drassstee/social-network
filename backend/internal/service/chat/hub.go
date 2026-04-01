@@ -1,12 +1,11 @@
 // Package websocket provides real-time communication capabilities using WebSockets,
 // including chat, notifications, and user status tracking.
-package websocket
+package service
 
 import (
 	"context"
 	"encoding/json"
 	"log"
-	"social-network/internal/notifications"
 	"sync"
 	"time"
 )
@@ -35,23 +34,21 @@ type Hub struct {
 
 	mu sync.RWMutex
 
-	ChatRepo          ChatRepository
-	NotificationsRepo notifications.Repository
-	UserRepo          UserRepository
+	ChatRepo ChatRepository
+	UserRepo UserRepository
 }
 
 //--------------------------------------------------------------------------------------|
 
 // NewHub creates a new instance of the Hub.
-func NewHub(chatRepo ChatRepository, notificationsRepo notifications.Repository, userRepo UserRepository) *Hub {
+func NewHub(chatRepo ChatRepository, userRepo UserRepository) *Hub {
 	return &Hub{
-		broadcast:         make(chan []byte),
-		register:          make(chan *Client),
-		unregister:        make(chan *Client),
-		clients:           make(map[int]*Client),
-		ChatRepo:          chatRepo,
-		NotificationsRepo: notificationsRepo,
-		UserRepo:          userRepo,
+		broadcast:  make(chan []byte),
+		register:   make(chan *Client),
+		unregister: make(chan *Client),
+		clients:    make(map[int]*Client),
+		ChatRepo:   chatRepo,
+		UserRepo:   userRepo,
 	}
 }
 
