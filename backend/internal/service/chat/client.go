@@ -1,6 +1,6 @@
-// Package websocket provides real-time communication capabilities using WebSockets,
-// including chat, notifications, and user status tracking.
-package websocket
+// Package chatsvc provides real-time WebSocket communication for chat,
+// notifications, and user status tracking.
+package chatsvc
 
 import (
 	"encoding/json"

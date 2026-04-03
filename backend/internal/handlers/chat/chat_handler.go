@@ -1,6 +1,5 @@
-// Package websocket provides real-time communication capabilities using WebSockets,
-// including chat, notifications, and user status tracking.
-package websocket
+// Package chat provides HTTP handlers for chat messaging and online user status.
+package chat
 
 import (
 	"context"
@@ -8,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"social-network/internal/models"
+	chatsvc "social-network/internal/service/chat"
 	"social-network/internal/web"
 )
 
@@ -15,10 +15,20 @@ import (
 
 // ChatHandler handles HTTP requests for chat messages and online users.
 type ChatHandler struct {
-	Repo     ChatRepository
-	Hub      *Hub
-	UserRepo UserRepository
+	Repo     models.ChatRepo
+	Hub      *chatsvc.Hub
+	UserRepo models.UserRepo
 	Uploader ImageUploader
+}
+
+// NewChatHandler creates a new instance of the chat handler.
+func NewChatHandler(repo models.ChatRepo, hub *chatsvc.Hub, userRepo models.UserRepo, uploader ImageUploader) *ChatHandler {
+	return &ChatHandler{
+		Repo:     repo,
+		Hub:      hub,
+		UserRepo: userRepo,
+		Uploader: uploader,
+	}
 }
 
 //--------------------------------------------------------------------------------------|
@@ -32,11 +42,7 @@ type ImageUploader interface {
 
 //--------------------------------------------------------------------------------------|
 
-// UserRepository defines the interface for fetching user information.
-type UserRepository interface {
-	// GetByID retrieves a user by their unique ID.
-	GetByID(ctx context.Context, id int) (*models.User, error)
-}
+// UserRepository has been replaced by models.UserRepo
 
 //--------------------------------------------------------------------------------------|
 
@@ -92,23 +98,23 @@ func (h *ChatHandler) GetMessages(w http.ResponseWriter, r *http.Request, identi
 func (h *ChatHandler) GetOnlineUsers(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	onlineIDs := h.Hub.GetOnlineUsers()
 
-	// Fetch user information for each online user
+	users, err := h.UserRepo.GetByIDs(r.Context(), onlineIDs)
+	if err != nil {
+		return err
+	}
+
+	// Transform models.User to the simplified OnlineUser struct for API response
 	type OnlineUser struct {
 		ID       int    `json:"id"`
 		Username string `json:"username"`
 	}
 
-	onlineUsers := make([]OnlineUser, 0, len(onlineIDs))
-	for _, userID := range onlineIDs {
-		user, err := h.UserRepo.GetByID(r.Context(), userID)
-		if err != nil {
-			// Skip users that can't be found
-			continue
+	onlineUsers := make([]OnlineUser, len(users))
+	for i, u := range users {
+		onlineUsers[i] = OnlineUser{
+			ID:       u.ID,
+			Username: u.Username,
 		}
-		onlineUsers = append(onlineUsers, OnlineUser{
-			ID:       user.ID,
-			Username: user.Username,
-		})
 	}
 
 	web.JSONResponse(w, http.StatusOK, onlineUsers)

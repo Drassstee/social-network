@@ -1,11 +1,14 @@
-// Package websocket provides real-time communication capabilities using WebSockets,
-// including chat, notifications, and user status tracking.
-package service
+// Package chatsvc provides real-time WebSocket communication for chat,
+// notifications, and user status tracking.
+package chatsvc
 
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
+	"social-network/internal/models"
+	"social-network/internal/utils"
 	"sync"
 	"time"
 )
@@ -34,21 +37,29 @@ type Hub struct {
 
 	mu sync.RWMutex
 
-	ChatRepo ChatRepository
-	UserRepo UserRepository
+	ChatRepo  ChatRepository
+	UserRepo  UserRepository
+	GroupRepo models.GroupRepo
+
+	// Optimization: Cache online group memberships and usernames
+	userCache    *utils.Cache
+	groupMembers map[int]map[int]bool // groupID -> set of userIDs
 }
 
 //--------------------------------------------------------------------------------------|
 
 // NewHub creates a new instance of the Hub.
-func NewHub(chatRepo ChatRepository, userRepo UserRepository) *Hub {
+func NewHub(chatRepo ChatRepository, userRepo UserRepository, groupRepo models.GroupRepo) *Hub {
 	return &Hub{
-		broadcast:  make(chan []byte),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		clients:    make(map[int]*Client),
-		ChatRepo:   chatRepo,
-		UserRepo:   userRepo,
+		broadcast:    make(chan []byte),
+		register:     make(chan *Client),
+		unregister:   make(chan *Client),
+		clients:      make(map[int]*Client),
+		ChatRepo:     chatRepo,
+		UserRepo:     userRepo,
+		GroupRepo:    groupRepo,
+		userCache:    utils.NewCache(),
+		groupMembers: make(map[int]map[int]bool),
 	}
 }
 
@@ -80,6 +91,11 @@ func (h *Hub) Run(ctx context.Context) {
 			// Register a new client connection
 			h.mu.Lock()
 			h.clients[client.UserID] = client
+
+			// Optimization: Pre-load group memberships for faster broadcasting
+			// We do this in a goroutine to avoid blocking the hub loop
+			go h.updateClientGroupMemberships(client.UserID, true)
+
 			h.mu.Unlock()
 			// Notify others that this user is now online
 			h.broadcastStatusUpdate(client.UserID, true)
@@ -90,6 +106,10 @@ func (h *Hub) Run(ctx context.Context) {
 			if _, ok := h.clients[client.UserID]; ok {
 				delete(h.clients, client.UserID)
 				close(client.send)
+
+				// Optimization: Remove user from group tracking
+				h.updateClientGroupMembershipsLocked(client.UserID, false)
+
 				h.mu.Unlock()
 				// Notify others that this user is now offline
 				h.broadcastStatusUpdate(client.UserID, false)
@@ -117,6 +137,8 @@ func (h *Hub) handleInbound(message []byte) {
 	switch wsMsg.Type {
 	case "private_message":
 		h.handlePrivateMessage(wsMsg)
+	case "group_message":
+		h.handleGroupMessage(wsMsg)
 	case "typing":
 		h.handleTypingIndicator(wsMsg, true)
 	case "stop_typing":
@@ -155,6 +177,99 @@ func (h *Hub) handlePrivateMessage(wsMsg wsMessage) {
 
 //--------------------------------------------------------------------------------------|
 
+func (h *Hub) handleGroupMessage(wsMsg wsMessage) {
+	var data struct {
+		GroupID  int     `json:"group_id"`
+		Body     string  `json:"body"`
+		ImageURL *string `json:"image_url"`
+	}
+	if err := json.Unmarshal(wsMsg.Data, &data); err != nil {
+		log.Printf("HandleGroupMessage unmarshal error: %v", err)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+
+	// 1. Verify membership
+	isMember, err := h.GroupRepo.IsMember(ctx, data.GroupID, wsMsg.Sender)
+	if err != nil || !isMember {
+		log.Printf("Unauthorized group message attempt from %d to group %d", wsMsg.Sender, data.GroupID)
+		return
+	}
+
+	// 2. Save message
+	msg := &models.GroupMessage{
+		GroupID:  data.GroupID,
+		SenderID: wsMsg.Sender,
+		Body:     data.Body,
+		ImageURL: data.ImageURL,
+	}
+	if err := h.GroupRepo.SaveGroupMessage(ctx, msg); err != nil {
+		log.Printf("Failed to save group message: %v", err)
+		return
+	}
+
+	// 3. Broadcast to online members using in-memory tracking
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	if members, ok := h.groupMembers[data.GroupID]; ok {
+		for userID := range members {
+			h.sendToUser(userID, "group_message", msg)
+		}
+	}
+}
+
+//--------------------------------------------------------------------------------------|
+
+func (h *Hub) updateClientGroupMemberships(userID int, join bool) {
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+
+	groupIDs, err := h.GroupRepo.GetMemberGroupIDs(ctx, userID)
+	if err != nil {
+		log.Printf("Failed to fetch group IDs for user %d: %v", userID, err)
+		return
+	}
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.updateClientGroupMembershipsLocked(userID, join, groupIDs...)
+}
+
+func (h *Hub) updateClientGroupMembershipsLocked(userID int, join bool, groupIDs ...int) {
+	if len(groupIDs) == 0 && !join {
+		// If unregistering and we don't have groupIDs, we have to find which groups this user was in.
+		// For simplicity, we can just iterate over all groups in the map.
+		for gID, members := range h.groupMembers {
+			delete(members, userID)
+			if len(members) == 0 {
+				delete(h.groupMembers, gID)
+			}
+		}
+		return
+	}
+
+	for _, gID := range groupIDs {
+		if join {
+			if h.groupMembers[gID] == nil {
+				h.groupMembers[gID] = make(map[int]bool)
+			}
+			h.groupMembers[gID][userID] = true
+		} else {
+			if members, ok := h.groupMembers[gID]; ok {
+				delete(members, userID)
+				if len(members) == 0 {
+					delete(h.groupMembers, gID)
+				}
+			}
+		}
+	}
+}
+
+//--------------------------------------------------------------------------------------|
+
 func (h *Hub) handleTypingIndicator(wsMsg wsMessage, isTyping bool) {
 	var data struct {
 		ReceiverID int    `json:"receiver_id"`
@@ -184,14 +299,18 @@ func (h *Hub) handleTypingIndicator(wsMsg wsMessage, isTyping bool) {
 //--------------------------------------------------------------------------------------|
 
 func (h *Hub) broadcastStatusUpdate(userID int, online bool) {
-	// Fetch username for the user
+	// Fetch username for the user (using cache if available)
 	username := ""
-	if h.UserRepo != nil {
+	cacheKey := fmt.Sprintf("u:%d", userID)
+	if val, found := h.userCache.Get(cacheKey); found {
+		username = val.(string)
+	} else if h.UserRepo != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 		defer cancel()
 		user, err := h.UserRepo.GetByID(ctx, userID)
 		if err == nil && user != nil {
 			username = user.Username
+			h.userCache.Set(cacheKey, username, 1*time.Hour)
 		}
 	}
 

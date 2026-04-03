@@ -6,7 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"forum/internal/models"
+	"social-network/internal/models"
 	"time"
 
 	"github.com/google/uuid"

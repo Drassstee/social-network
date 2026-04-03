@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"social-network/db/sqlite"
@@ -8,6 +9,8 @@ import (
 	"social-network/internal/handlers"
 	"social-network/internal/repository"
 	"social-network/internal/service"
+	chatsvc "social-network/internal/service/chat"
+	"social-network/internal/utils"
 )
 
 func main() {
@@ -22,9 +25,24 @@ func main() {
 		log.Fatal("Migrations failed: ", err)
 	}
 	rep := repository.NewRepo(db)
-	serv := service.NewService(rep)
-	hdr := handlers.NewHandler(serv)
+
+	// Initialize WebSocket Hub
+	hub := chatsvc.NewHub(rep.Chat, rep.User, rep.Group)
+	go hub.Run(context.Background())
+
+	serv := service.NewService(rep, hub)
+
+	// Initialize Uploader
+	uploadDir := "./uploads"
+	uploadURL := "/api/v1/uploads"
+	uploader := utils.NewLocalImageUploader(uploadDir, uploadURL)
+
+	hdr := handlers.NewHandler(serv, hub, rep.User, rep.Chat, uploader)
 	mux := config.SetupRoutes(hdr)
+
+	// Serve uploaded images
+	mux.Handle(uploadURL+"/", http.StripPrefix(uploadURL, http.FileServer(http.Dir(uploadDir))))
+
 	port := ":8080"
 	log.Println("Starting server on ", port)
 	if err := http.ListenAndServe(port, mux); err != nil {

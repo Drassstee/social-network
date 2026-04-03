@@ -1,6 +1,5 @@
-// Package websocket provides real-time communication capabilities using WebSockets,
-// including chat, notifications, and user status tracking.
-package websocket
+// Package chatrepo provides database persistence for chat messages.
+package chatrepo
 
 import (
 	"context"
@@ -10,21 +9,29 @@ import (
 
 //--------------------------------------------------------------------------------------|
 
-// ChatRepository defines the interface for persisting and retrieving chat messages.
-type ChatRepository interface {
-	// SaveMessage stores a new chat message in the database.
-	SaveMessage(ctx context.Context, senderID, receiverID int, body string, imageURL *string) (*models.Message, error)
-	// GetMessages retrieves the chat history between two users, ordered by date.
-	GetMessages(ctx context.Context, user1ID, user2ID, limit, offset int) ([]models.Message, error)
+type dbQuerier interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
 type sqlChatRepository struct {
-	db *sql.DB
+	db dbQuerier
 }
 
 // NewChatRepository creates a new instance of the chat repository.
-func NewChatRepository(db *sql.DB) ChatRepository {
+func NewChatRepository(db *sql.DB) models.ChatRepo {
 	return &sqlChatRepository{db: db}
+}
+
+func (r *sqlChatRepository) WithTx(tx any) models.ChatRepo {
+	if tx == nil {
+		return r
+	}
+	if t, ok := tx.(*sql.Tx); ok {
+		return &sqlChatRepository{db: t}
+	}
+	return r
 }
 
 //--------------------------------------------------------------------------------------|
