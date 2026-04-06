@@ -1,5 +1,3 @@
-// Package grouprepo provides database persistence for groups,
-// memberships, invitations, join requests, events, and group messages.
 package grouprepo
 
 import (

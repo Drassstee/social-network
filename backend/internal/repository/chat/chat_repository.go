@@ -1,4 +1,3 @@
-// Package chatrepo provides database persistence for chat messages.
 package chatrepo
 
 import (
@@ -20,8 +19,6 @@ type dbQuerier interface {
 type sqlChatRepository struct {
 	db dbQuerier
 }
-
-//--------------------------------------------------------------------------------------|
 
 // NewChatRepository creates a new instance of the chat repository.
 func NewChatRepository(db *sql.DB) models.ChatRepo {

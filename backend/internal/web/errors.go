@@ -1,11 +1,10 @@
-// Package web provides centralized error handling and consistent error response formatting.
 package web
 
 import (
 	"database/sql"
 	"errors"
-	"social-network/internal/models"
 	"net/http"
+	"social-network/internal/models"
 )
 
 //--------------------------------------------------------------------------------------|

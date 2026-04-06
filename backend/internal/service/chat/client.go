@@ -1,5 +1,3 @@
-// Package chatsvc provides real-time WebSocket communication for chat,
-// notifications, and user status tracking.
 package chatsvc
 
 import (

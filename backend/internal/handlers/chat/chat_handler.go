@@ -1,4 +1,3 @@
-// Package chat provides HTTP handlers for chat messaging and online user status.
 package chat
 
 import (

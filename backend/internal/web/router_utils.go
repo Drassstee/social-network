@@ -1,4 +1,3 @@
-// Package web provides utilities for parsing parameters and IDs from URL paths and queries.
 package web
 
 import (

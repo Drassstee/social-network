@@ -1,4 +1,3 @@
-// Package web provides HTTP constants and configuration defaults for the web layer.
 package web
 
 //--------------------------------------------------------------------------------------|

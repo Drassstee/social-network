@@ -1,5 +1,3 @@
-// Package sessions provides database-backed session management
-// with automatic expiration and cleanup.
 package sessions
 
 import (

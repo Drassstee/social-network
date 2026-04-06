@@ -1,4 +1,3 @@
-// Package groupsvc contains the business logic for group management.
 package groupsvc
 
 import (

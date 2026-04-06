@@ -1,11 +1,10 @@
-// Package web provides HTTP decorators for cross-cutting concerns like identity injection.
 package web
 
 import (
 	"errors"
-	"social-network/internal/models"
 	"net/http"
 	"path/filepath"
+	"social-network/internal/models"
 )
 
 //--------------------------------------------------------------------------------------|

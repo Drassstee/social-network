@@ -1,16 +1,14 @@
-// Package web provides HTTP utilities including template rendering,
-// error handling, image upload processing, and request parsing.
 package web
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"social-network/internal/models"
-	"social-network/internal/utils"
 	"log"
 	"net/http"
 	"path/filepath"
+	"social-network/internal/models"
+	"social-network/internal/utils"
 	"strings"
 )
 

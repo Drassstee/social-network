@@ -1,5 +1,3 @@
-// Package utils provides common helper functions and utilities used across the application,
-// including caching, database transaction management, and environment variable handling.
 package utils
 
 import (

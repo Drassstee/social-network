@@ -1,4 +1,3 @@
-// Package chatsvc defines the dependency interfaces used by the Hub.
 package chatsvc
 
 import (
