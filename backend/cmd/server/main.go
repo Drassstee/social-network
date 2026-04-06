@@ -13,6 +13,8 @@ import (
 	"social-network/internal/utils"
 )
 
+//--------------------------------------------------------------------------------------|
+
 func main() {
 	dbPath := "social_network.db"
 	db, err := sqlite.ConnectDB(dbPath)
