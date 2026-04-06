@@ -24,12 +24,16 @@ type DBSessionStorage struct {
 	db *sql.DB
 }
 
+//--------------------------------------------------------------------------------------|
+
 // SessionManager handles the high-level logic for creating, retrieving, and
 // deleting user sessions with a configurable Time-To-Live (TTL).
 type SessionManager struct {
 	storage *DBSessionStorage
 	ttl     time.Duration
 }
+
+//--------------------------------------------------------------------------------------|
 
 // NewSessionManager creates a new SessionManager with the provided database
 // connection and session duration. If ttl is 0, DefaultSessionTTL is used.
@@ -50,11 +54,15 @@ func (sm *SessionManager) CreateSession(ctx context.Context, userID int) (*model
 	return sm.storage.CreateSession(ctx, userID, sm.ttl)
 }
 
+//--------------------------------------------------------------------------------------|
+
 // GetSession retrieves an active session by its ID. It returns an error if the
 // session is expired or does not exist.
 func (sm *SessionManager) GetSession(ctx context.Context, id string) (*models.Session, error) {
 	return sm.storage.GetSession(ctx, id)
 }
+
+//--------------------------------------------------------------------------------------|
 
 // DeleteSession invalidates/removes the session identified by the given ID.
 func (sm *SessionManager) DeleteSession(ctx context.Context, id string) error {

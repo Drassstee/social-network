@@ -7,6 +7,8 @@ import (
 	"social-network/internal/models"
 )
 
+//--------------------------------------------------------------------------------------|
+
 // sqlRepository implements models.NotificationRepo.
 type dbQuerier interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
@@ -14,14 +16,20 @@ type dbQuerier interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
+//--------------------------------------------------------------------------------------|
+
 type sqlRepository struct {
 	db dbQuerier
 }
+
+//--------------------------------------------------------------------------------------|
 
 // NewRepository creates a new instance of the notifications repository.
 func NewRepository(db *sql.DB) models.NotificationRepo {
 	return &sqlRepository{db: db}
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (r *sqlRepository) WithTx(tx any) models.NotificationRepo {
 	if tx == nil {

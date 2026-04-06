@@ -17,6 +17,8 @@ type GroupHandler struct {
 	Service models.GroupService
 }
 
+//--------------------------------------------------------------------------------------|
+
 // NewGroupHandler creates a new GroupHandler.
 func NewGroupHandler(svc models.GroupService) *GroupHandler {
 	return &GroupHandler{Service: svc}
@@ -49,6 +51,8 @@ func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request, ident
 	return nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 // GetGroup handles GET /api/groups/{id}.
 func (h *GroupHandler) GetGroup(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	groupID, err := web.ExtractIDFromPath(r.URL.Path, 2) // /api/groups/{id}
@@ -64,6 +68,8 @@ func (h *GroupHandler) GetGroup(w http.ResponseWriter, r *http.Request, identity
 	web.JSONResponse(w, http.StatusOK, group)
 	return nil
 }
+
+//--------------------------------------------------------------------------------------|
 
 // ListGroups handles GET /api/groups.
 func (h *GroupHandler) ListGroups(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
@@ -97,6 +103,8 @@ func (h *GroupHandler) GetMembers(w http.ResponseWriter, r *http.Request, identi
 	web.JSONResponse(w, http.StatusOK, members)
 	return nil
 }
+
+//--------------------------------------------------------------------------------------|
 
 // LeaveGroup handles POST /api/groups/{id}/leave.
 func (h *GroupHandler) LeaveGroup(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
@@ -147,6 +155,8 @@ func (h *GroupHandler) InviteUser(w http.ResponseWriter, r *http.Request, identi
 	return nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 // GetPendingInvitations handles GET /api/groups/invitations.
 func (h *GroupHandler) GetPendingInvitations(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	if identity == nil {
@@ -161,6 +171,8 @@ func (h *GroupHandler) GetPendingInvitations(w http.ResponseWriter, r *http.Requ
 	web.JSONResponse(w, http.StatusOK, invitations)
 	return nil
 }
+
+//--------------------------------------------------------------------------------------|
 
 // RespondToInvitation handles POST /api/groups/invitations/{id}/respond.
 func (h *GroupHandler) RespondToInvitation(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
@@ -211,6 +223,8 @@ func (h *GroupHandler) RequestJoin(w http.ResponseWriter, r *http.Request, ident
 	return nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 // GetPendingJoinRequests handles GET /api/groups/{id}/requests.
 func (h *GroupHandler) GetPendingJoinRequests(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	if identity == nil {
@@ -230,6 +244,8 @@ func (h *GroupHandler) GetPendingJoinRequests(w http.ResponseWriter, r *http.Req
 	web.JSONResponse(w, http.StatusOK, requests)
 	return nil
 }
+
+//--------------------------------------------------------------------------------------|
 
 // RespondToJoinRequest handles POST /api/groups/requests/{id}/respond.
 func (h *GroupHandler) RespondToJoinRequest(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
@@ -302,6 +318,8 @@ func (h *GroupHandler) CreateEvent(w http.ResponseWriter, r *http.Request, ident
 	return nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 // GetGroupEvents handles GET /api/groups/{id}/events.
 func (h *GroupHandler) GetGroupEvents(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	groupID, err := web.ExtractIDFromPath(r.URL.Path, 2)
@@ -317,6 +335,8 @@ func (h *GroupHandler) GetGroupEvents(w http.ResponseWriter, r *http.Request, id
 	web.JSONResponse(w, http.StatusOK, events)
 	return nil
 }
+
+//--------------------------------------------------------------------------------------|
 
 // RespondToEvent handles POST /api/groups/events/{id}/respond.
 func (h *GroupHandler) RespondToEvent(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {

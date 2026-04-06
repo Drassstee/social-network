@@ -9,11 +9,15 @@ import (
 	"time"
 )
 
+//--------------------------------------------------------------------------------------|
+
 // LocalImageUploader implements handles local file storage for images.
 type LocalImageUploader struct {
 	BaseDir string
 	BaseURL string
 }
+
+//--------------------------------------------------------------------------------------|
 
 // NewLocalImageUploader creates a new LocalImageUploader.
 func NewLocalImageUploader(baseDir, baseURL string) *LocalImageUploader {
@@ -26,6 +30,8 @@ func NewLocalImageUploader(baseDir, baseURL string) *LocalImageUploader {
 		BaseURL: baseURL,
 	}
 }
+
+//--------------------------------------------------------------------------------------|
 
 // UploadImage saves the content to local storage and returns the relative URL.
 func (u *LocalImageUploader) UploadImage(ctx context.Context, userID int, filename string, content io.Reader) (string, error) {

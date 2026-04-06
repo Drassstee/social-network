@@ -8,20 +8,28 @@ import (
 	"social-network/internal/models"
 )
 
+//--------------------------------------------------------------------------------------|
+
 type dbQuerier interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
+//--------------------------------------------------------------------------------------|
+
 type sqlGroupRepository struct {
 	db dbQuerier
 }
+
+//--------------------------------------------------------------------------------------|
 
 // NewGroupRepository creates a new SQL-backed group repository.
 func NewGroupRepository(db *sql.DB) models.GroupRepo {
 	return &sqlGroupRepository{db: db}
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (r *sqlGroupRepository) WithTx(tx any) models.GroupRepo {
 	if tx == nil {
@@ -44,6 +52,8 @@ func (r *sqlGroupRepository) CreateGroup(ctx context.Context, group *models.Grou
 	).Scan(&group.ID, &group.CreatedAt)
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (r *sqlGroupRepository) GetGroupByID(ctx context.Context, id int) (*models.Group, error) {
 	var g models.Group
 	err := r.db.QueryRowContext(ctx,
@@ -54,6 +64,8 @@ func (r *sqlGroupRepository) GetGroupByID(ctx context.Context, id int) (*models.
 	}
 	return &g, nil
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (r *sqlGroupRepository) ListGroups(ctx context.Context, limit, offset int) ([]models.Group, error) {
 	rows, err := r.db.QueryContext(ctx,
@@ -86,11 +98,15 @@ func (r *sqlGroupRepository) AddMember(ctx context.Context, groupID, userID int,
 	return err
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (r *sqlGroupRepository) RemoveMember(ctx context.Context, groupID, userID int) error {
 	_, err := r.db.ExecContext(ctx,
 		`DELETE FROM group_members WHERE group_id = ? AND user_id = ?`, groupID, userID)
 	return err
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (r *sqlGroupRepository) GetMembers(ctx context.Context, groupID int) ([]models.GroupMember, error) {
 	rows, err := r.db.QueryContext(ctx,
@@ -115,6 +131,8 @@ func (r *sqlGroupRepository) GetMembers(ctx context.Context, groupID int) ([]mod
 	return members, nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (r *sqlGroupRepository) IsMember(ctx context.Context, groupID, userID int) (bool, error) {
 	var count int
 	err := r.db.QueryRowContext(ctx,
@@ -122,6 +140,8 @@ func (r *sqlGroupRepository) IsMember(ctx context.Context, groupID, userID int) 
 		groupID, userID).Scan(&count)
 	return count > 0, err
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (r *sqlGroupRepository) GetMemberGroupIDs(ctx context.Context, userID int) ([]int, error) {
 	rows, err := r.db.QueryContext(ctx,
@@ -153,6 +173,8 @@ func (r *sqlGroupRepository) CreateInvitation(ctx context.Context, inv *models.G
 	).Scan(&inv.ID, &inv.CreatedAt)
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (r *sqlGroupRepository) GetInvitationByID(ctx context.Context, id int) (*models.GroupInvitation, error) {
 	var inv models.GroupInvitation
 	err := r.db.QueryRowContext(ctx,
@@ -169,6 +191,8 @@ func (r *sqlGroupRepository) GetInvitationByID(ctx context.Context, id int) (*mo
 	}
 	return &inv, nil
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (r *sqlGroupRepository) GetPendingInvitations(ctx context.Context, userID int) ([]models.GroupInvitation, error) {
 	rows, err := r.db.QueryContext(ctx,
@@ -196,6 +220,8 @@ func (r *sqlGroupRepository) GetPendingInvitations(ctx context.Context, userID i
 	return invitations, nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (r *sqlGroupRepository) UpdateInvitationStatus(ctx context.Context, id int, status string) error {
 	_, err := r.db.ExecContext(ctx,
 		`UPDATE group_invitations SET status = ? WHERE id = ?`, status, id)
@@ -213,6 +239,8 @@ func (r *sqlGroupRepository) CreateJoinRequest(ctx context.Context, req *models.
 	).Scan(&req.ID, &req.CreatedAt)
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (r *sqlGroupRepository) GetJoinRequestByID(ctx context.Context, id int) (*models.GroupJoinRequest, error) {
 	var req models.GroupJoinRequest
 	err := r.db.QueryRowContext(ctx,
@@ -226,6 +254,8 @@ func (r *sqlGroupRepository) GetJoinRequestByID(ctx context.Context, id int) (*m
 	}
 	return &req, nil
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (r *sqlGroupRepository) GetPendingJoinRequests(ctx context.Context, groupID int) ([]models.GroupJoinRequest, error) {
 	rows, err := r.db.QueryContext(ctx,
@@ -250,6 +280,8 @@ func (r *sqlGroupRepository) GetPendingJoinRequests(ctx context.Context, groupID
 	return requests, nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (r *sqlGroupRepository) UpdateJoinRequestStatus(ctx context.Context, id int, status string) error {
 	_, err := r.db.ExecContext(ctx,
 		`UPDATE group_join_requests SET status = ? WHERE id = ?`, status, id)
@@ -268,6 +300,8 @@ func (r *sqlGroupRepository) CreateEvent(ctx context.Context, event *models.Grou
 	).Scan(&event.ID, &event.CreatedAt)
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (r *sqlGroupRepository) GetEventByID(ctx context.Context, id int) (*models.GroupEvent, error) {
 	var e models.GroupEvent
 	err := r.db.QueryRowContext(ctx,
@@ -285,6 +319,8 @@ func (r *sqlGroupRepository) GetEventByID(ctx context.Context, id int) (*models.
 	}
 	return &e, nil
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (r *sqlGroupRepository) GetGroupEvents(ctx context.Context, groupID int) ([]models.GroupEvent, error) {
 	rows, err := r.db.QueryContext(ctx,
@@ -313,6 +349,8 @@ func (r *sqlGroupRepository) GetGroupEvents(ctx context.Context, groupID int) ([
 	return events, nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (r *sqlGroupRepository) RespondToEvent(ctx context.Context, resp *models.GroupEventResponse) error {
 	_, err := r.db.ExecContext(ctx,
 		`INSERT INTO group_event_responses (event_id, user_id, response) VALUES (?, ?, ?)
@@ -320,6 +358,8 @@ func (r *sqlGroupRepository) RespondToEvent(ctx context.Context, resp *models.Gr
 		resp.EventID, resp.UserID, resp.Response)
 	return err
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (r *sqlGroupRepository) GetEventResponses(ctx context.Context, eventID int) ([]models.GroupEventResponse, error) {
 	rows, err := r.db.QueryContext(ctx,
@@ -354,6 +394,8 @@ func (r *sqlGroupRepository) SaveGroupMessage(ctx context.Context, msg *models.G
 		msg.GroupID, msg.SenderID, msg.Body, msg.ImageURL,
 	).Scan(&msg.ID, &msg.CreatedAt)
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (r *sqlGroupRepository) GetGroupMessages(ctx context.Context, groupID, limit, offset int) ([]models.GroupMessage, error) {
 	rows, err := r.db.QueryContext(ctx,

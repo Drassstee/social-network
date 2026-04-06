@@ -15,6 +15,8 @@ type CacheItem struct {
 	Expiration int64
 }
 
+//--------------------------------------------------------------------------------------|
+
 // Cache is a simple in-memory key-value store with TTL.
 type Cache struct {
 	items map[string]CacheItem

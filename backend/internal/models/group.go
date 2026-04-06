@@ -148,6 +148,8 @@ type GroupRepo interface {
 	GetGroupMessages(ctx context.Context, groupID, limit, offset int) ([]GroupMessage, error)
 }
 
+//--------------------------------------------------------------------------------------|
+
 // GroupService separates groups business logic from transport.
 type GroupService interface {
 	CreateGroup(ctx context.Context, creatorID int, title, description string) (*Group, error)

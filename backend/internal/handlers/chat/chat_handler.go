@@ -21,6 +21,8 @@ type ChatHandler struct {
 	Uploader ImageUploader
 }
 
+//--------------------------------------------------------------------------------------|
+
 // NewChatHandler creates a new instance of the chat handler.
 func NewChatHandler(repo models.ChatRepo, hub *chatsvc.Hub, userRepo models.UserRepo, uploader ImageUploader) *ChatHandler {
 	return &ChatHandler{
@@ -39,10 +41,6 @@ func NewChatHandler(repo models.ChatRepo, hub *chatsvc.Hub, userRepo models.User
 type ImageUploader interface {
 	UploadImage(ctx context.Context, userID int, filename string, content io.Reader) (string, error)
 }
-
-//--------------------------------------------------------------------------------------|
-
-// UserRepository has been replaced by models.UserRepo
 
 //--------------------------------------------------------------------------------------|
 

@@ -30,6 +30,8 @@ func GetIdentity(ctx context.Context) *UserIdentity {
 	return identity
 }
 
+//--------------------------------------------------------------------------------------|
+
 // WithIdentity returns a new context carrying the given UserIdentity.
 func WithIdentity(ctx context.Context, identity *UserIdentity) context.Context {
 	return context.WithValue(ctx, UserKey, identity)

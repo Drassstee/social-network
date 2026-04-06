@@ -1,5 +1,3 @@
-// Package chatsvc provides real-time WebSocket communication for chat,
-// notifications, and user status tracking.
 package chatsvc
 
 import (
@@ -23,17 +21,10 @@ const (
 
 // Hub maintains the set of active clients and broadcasts messages to the clients.
 type Hub struct {
-	// Registered clients by UserID.
-	clients map[int]*Client
-
-	// Inbound messages from the clients.
-	broadcast chan []byte
-
-	// Register requests from the clients.
-	register chan *Client
-
-	// Unregister requests from clients.
-	unregister chan *Client
+	clients    map[int]*Client // Registered clients by UserID.
+	broadcast  chan []byte     // Inbound messages from the clients.
+	register   chan *Client    // Register requests from the clients.
+	unregister chan *Client    // Unregister requests from clients.
 
 	mu sync.RWMutex
 
@@ -237,6 +228,8 @@ func (h *Hub) updateClientGroupMemberships(userID int, join bool) {
 	defer h.mu.Unlock()
 	h.updateClientGroupMembershipsLocked(userID, join, groupIDs...)
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (h *Hub) updateClientGroupMembershipsLocked(userID int, join bool, groupIDs ...int) {
 	if len(groupIDs) == 0 && !join {

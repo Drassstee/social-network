@@ -6,17 +6,23 @@ import (
 	"social-network/internal/models"
 )
 
+//--------------------------------------------------------------------------------------|
+
 // Signaller defines the interface for sending real-time signals to users (e.g., via WebSocket).
 type Signaller interface {
 	// SendToUser sends the provided data to a specific user.
 	SendToUser(userID int, data []byte)
 }
 
+//--------------------------------------------------------------------------------------|
+
 // Service implements models.NotificationService.
 type Service struct {
 	repo models.NotificationRepo
 	hub  Signaller
 }
+
+//--------------------------------------------------------------------------------------|
 
 // NewService creates a new notifications service.
 func NewService(repo models.NotificationRepo, hub Signaller) *Service {
@@ -49,17 +55,25 @@ func (s *Service) Notify(ctx context.Context, userID, actorID int, actorUsername
 	}
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (s *Service) GetNotifications(ctx context.Context, userID, limit, offset int) ([]models.Notification, error) {
 	return s.repo.GetUserNotifications(ctx, userID, limit, offset)
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (s *Service) GetUnreadCount(ctx context.Context, userID int) (int, error) {
 	return s.repo.GetUnreadCount(ctx, userID)
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (s *Service) MarkAsRead(ctx context.Context, notificationID, userID int) error {
 	return s.repo.MarkAsRead(ctx, notificationID, userID)
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (s *Service) MarkAllAsRead(ctx context.Context, userID int) error {
 	return s.repo.MarkAllAsRead(ctx, userID)

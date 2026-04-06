@@ -19,6 +19,8 @@ type GroupService struct {
 	DB           *sql.DB
 }
 
+//--------------------------------------------------------------------------------------|
+
 // NewGroupService creates a new GroupService.
 func NewGroupService(repo models.GroupRepo, notif models.NotificationService, userRepo models.UserRepo, db *sql.DB) *GroupService {
 	return &GroupService{Repo: repo, NotifService: notif, UserRepo: userRepo, DB: db}
@@ -54,6 +56,8 @@ func (s *GroupService) CreateGroup(ctx context.Context, creatorID int, title, de
 	return group, err
 }
 
+//--------------------------------------------------------------------------------------|
+
 // GetGroup returns a group by ID.
 func (s *GroupService) GetGroup(ctx context.Context, id int) (*models.Group, error) {
 	group, err := s.Repo.GetGroupByID(ctx, id)
@@ -62,6 +66,8 @@ func (s *GroupService) GetGroup(ctx context.Context, id int) (*models.Group, err
 	}
 	return group, err
 }
+
+//--------------------------------------------------------------------------------------|
 
 // ListGroups returns a paginated list of groups.
 func (s *GroupService) ListGroups(ctx context.Context, limit, offset int) ([]models.Group, error) {
@@ -76,6 +82,8 @@ func (s *GroupService) ListGroups(ctx context.Context, limit, offset int) ([]mod
 func (s *GroupService) GetMembers(ctx context.Context, groupID int) ([]models.GroupMember, error) {
 	return s.Repo.GetMembers(ctx, groupID)
 }
+
+//--------------------------------------------------------------------------------------|
 
 // LeaveGroup removes a user from a group. Creators cannot leave their own group.
 func (s *GroupService) LeaveGroup(ctx context.Context, groupID, userID int) error {
@@ -126,10 +134,14 @@ func (s *GroupService) InviteUser(ctx context.Context, groupID, inviterID, invit
 	return nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 // GetPendingInvitations returns all pending invitations for a user.
 func (s *GroupService) GetPendingInvitations(ctx context.Context, userID int) ([]models.GroupInvitation, error) {
 	return s.Repo.GetPendingInvitations(ctx, userID)
 }
+
+//--------------------------------------------------------------------------------------|
 
 // RespondToInvitation processes an accept/decline response to a group invitation.
 func (s *GroupService) RespondToInvitation(ctx context.Context, invitationID, userID int, accept bool) error {
@@ -195,6 +207,8 @@ func (s *GroupService) RequestJoin(ctx context.Context, groupID, userID int) err
 	return nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 // GetPendingJoinRequests returns all pending join requests for a group.
 func (s *GroupService) GetPendingJoinRequests(ctx context.Context, groupID, requestingUserID int) ([]models.GroupJoinRequest, error) {
 	group, err := s.GetGroup(ctx, groupID)
@@ -206,6 +220,8 @@ func (s *GroupService) GetPendingJoinRequests(ctx context.Context, groupID, requ
 	}
 	return s.Repo.GetPendingJoinRequests(ctx, groupID)
 }
+
+//--------------------------------------------------------------------------------------|
 
 // RespondToJoinRequest processes a join request (creator-only action).
 func (s *GroupService) RespondToJoinRequest(ctx context.Context, requestID, creatorID int, accept bool) error {
@@ -277,10 +293,14 @@ func (s *GroupService) CreateEvent(ctx context.Context, event *models.GroupEvent
 	return s.Repo.CreateEvent(ctx, event)
 }
 
+//--------------------------------------------------------------------------------------|
+
 // GetGroupEvents returns all events for a group.
 func (s *GroupService) GetGroupEvents(ctx context.Context, groupID int) ([]models.GroupEvent, error) {
 	return s.Repo.GetGroupEvents(ctx, groupID)
 }
+
+//--------------------------------------------------------------------------------------|
 
 // RespondToEvent records a going/not_going RSVP. Only members can respond.
 func (s *GroupService) RespondToEvent(ctx context.Context, eventID, userID int, response string) error {
@@ -310,6 +330,8 @@ func (s *GroupService) RespondToEvent(ctx context.Context, eventID, userID int, 
 		Response: response,
 	})
 }
+
+//--------------------------------------------------------------------------------------|
 
 // GetEventResponses returns all RSVP responses for an event.
 func (s *GroupService) GetEventResponses(ctx context.Context, eventID int) ([]models.GroupEventResponse, error) {
@@ -343,10 +365,14 @@ func (s *GroupService) SendGroupMessage(ctx context.Context, groupID, senderID i
 	return msg, nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 // GetGroupMessages returns paginated messages for a group.
 func (s *GroupService) GetGroupMessages(ctx context.Context, groupID, limit, offset int) ([]models.GroupMessage, error) {
 	return s.Repo.GetGroupMessages(ctx, groupID, limit, offset)
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (s *GroupService) notify(userID, actorID int, targetType string, targetID int, notifType string) {
 	go func() {

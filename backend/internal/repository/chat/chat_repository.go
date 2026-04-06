@@ -15,14 +15,20 @@ type dbQuerier interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
+//--------------------------------------------------------------------------------------|
+
 type sqlChatRepository struct {
 	db dbQuerier
 }
+
+//--------------------------------------------------------------------------------------|
 
 // NewChatRepository creates a new instance of the chat repository.
 func NewChatRepository(db *sql.DB) models.ChatRepo {
 	return &sqlChatRepository{db: db}
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (r *sqlChatRepository) WithTx(tx any) models.ChatRepo {
 	if tx == nil {

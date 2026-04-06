@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+//--------------------------------------------------------------------------------------|
+
 // Notification represents a system alert for a user.
 type Notification struct {
 	ID               int       `json:"id"`
@@ -20,6 +22,8 @@ type Notification struct {
 	CreatedAt        time.Time `json:"created_at"`
 }
 
+//--------------------------------------------------------------------------------------|
+
 // NotificationRepo defines the interface for notification persistence.
 type NotificationRepo interface {
 	WithTx(tx any) NotificationRepo
@@ -29,6 +33,8 @@ type NotificationRepo interface {
 	MarkAsRead(ctx context.Context, notificationID, userID int) error
 	MarkAllAsRead(ctx context.Context, userID int) error
 }
+
+//--------------------------------------------------------------------------------------|
 
 // NotificationService defines the interface for high-level notification management.
 type NotificationService interface {

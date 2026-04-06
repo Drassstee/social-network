@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+//--------------------------------------------------------------------------------------|
+
 // Message represents a chat message between users.
 type Message struct {
 	ID         int       `db:"id" json:"id"`
@@ -24,6 +26,8 @@ type ChatRepo interface {
 	SaveMessage(ctx context.Context, senderID, receiverID int, body string, imageURL *string) (*Message, error)
 	GetMessages(ctx context.Context, user1ID, user2ID, limit, offset int) ([]Message, error)
 }
+
+//--------------------------------------------------------------------------------------|
 
 // ChatService defines the 1:1 chat business logic.
 type ChatService interface {
