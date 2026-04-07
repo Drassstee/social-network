@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS followers (
+CREATE TABLE IF NOT EXISTS follows (
     follower_id INTEGER NOT NULL,
     following_id INTEGER NOT NULL,
     status TEXT NOT NULL DEFAULT 'pending',

@@ -6,70 +6,30 @@ import (
 	"net/http"
 
 	"social-network/internal/models"
-	"social-network/internal/models/user"
+	"social-network/internal/models/follow"
 	"social-network/internal/utils"
 )
 
 // --------------------------------------------------------------------|
 
-func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) Follow(w http.ResponseWriter, r *http.Request) {
 	userID, ok := utils.GetUserIDByContext(r)
 	if !ok {
-		msg := map[string]string{"error": "unauthorized"}
+		msg := map[string]string{"error": "unauthorization"}
 		utils.RespondJSON(w, http.StatusUnauthorized, msg)
 		return
 	}
 
-	targetID, err := utils.GetIDByURL(r, "id")
+	var data follow.Follow
+	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
 		msg := map[string]string{"error": err.Error()}
 		utils.RespondJSON(w, http.StatusBadRequest, msg)
 		return
 	}
+	data.FollowerID = userID
 
-	u, err := h.Users.GetProfile(userID, targetID)
-	if err != nil {
-		if errors.Is(err, models.ErrInvalidData) {
-			msg := map[string]string{"error": err.Error()}
-			utils.RespondJSON(w, http.StatusBadRequest, msg)
-			return
-		} else if errors.Is(err, models.ErrNotFound) {
-			msg := map[string]string{"error": err.Error()}
-			utils.RespondJSON(w, http.StatusNotFound, msg)
-			return
-		} else if errors.Is(err, models.ErrUserPrivate) {
-			msg := map[string]string{"error": err.Error()}
-			utils.RespondJSON(w, http.StatusForbidden, msg)
-			return
-		}
-
-		utils.RespondJSON(w, http.StatusInternalServerError, errInternalServer)
-		return
-	}
-
-	utils.RespondJSON(w, http.StatusOK, u)
-}
-
-// --------------------------------------------------------------------|
-
-func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
-	id, ok := utils.GetUserIDByContext(r)
-	if !ok {
-		msg := map[string]string{"error": "unauthorized"}
-		utils.RespondJSON(w, http.StatusUnauthorized, msg)
-		return
-	}
-
-	var u user.User
-	err := json.NewDecoder(r.Body).Decode(&u)
-	if err != nil {
-		msg := map[string]string{"error": err.Error()}
-		utils.RespondJSON(w, http.StatusBadRequest, msg)
-		return
-	}
-	u.ID = id
-
-	err = h.Users.UpdateProfile(&u)
+	status, err := h.Users.Follow(data)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidData) {
 			msg := map[string]string{"error": err.Error()}
@@ -85,5 +45,41 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.RespondJSON(w, http.StatusOK, u)
+	utils.RespondJSON(w, http.StatusOK, map[string]string{"status": status})
 }
+
+// --------------------------------------------------------------------|
+
+func (h *UserHandler) Unfollow(w http.ResponseWriter, r *http.Request) {
+	userID, ok := utils.GetUserIDByContext(r)
+	if !ok {
+		msg := map[string]string{"error": "unauthorization"}
+		utils.RespondJSON(w, http.StatusUnauthorized, msg)
+		return
+	}
+
+	var data follow.Follow
+	err := json.NewDecoder(r.Body).Decode(&data)
+	if err != nil {
+		msg := map[string]string{"error": err.Error()}
+		utils.RespondJSON(w, http.StatusBadRequest, msg)
+		return
+	}
+	data.FollowerID = userID
+
+	err = h.Users.Unfollow(data)
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidData) {
+			msg := map[string]string{"error": err.Error()}
+			utils.RespondJSON(w, http.StatusBadRequest, msg)
+			return
+		}
+
+		utils.RespondJSON(w, http.StatusInternalServerError, errInternalServer)
+		return
+	}
+
+	utils.RespondJSON(w, http.StatusOK, map[string]string{"status": "unfollow"})
+}
+
+// --------------------------------------------------------------------|

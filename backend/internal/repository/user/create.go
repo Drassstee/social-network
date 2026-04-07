@@ -2,7 +2,9 @@ package user
 
 import (
 	"errors"
+	"fmt"
 
+	"social-network/internal/models"
 	"social-network/internal/models/user"
 
 	"github.com/mattn/go-sqlite3"
@@ -26,7 +28,7 @@ func (r *UserRepo) CreateUser(u *user.User) (int64, error) {
 	if err != nil {
 		var sqliteErr sqlite3.Error
 		if errors.As(err, &sqliteErr) && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
-			return 0, user.ErrExists
+			return 0, fmt.Errorf("%w: email already exists", models.ErrConflict)
 		}
 		return 0, err
 	}

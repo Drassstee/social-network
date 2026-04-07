@@ -1,6 +1,7 @@
 package user
 
 import (
+	"fmt"
 	"net/mail"
 	"strings"
 	"time"
@@ -13,25 +14,24 @@ const Key contextKey = "user_id"
 // --------------------------------------------------------------------|
 
 type User struct {
-	ID          int64     `json:"id"`
-	Email       string    `json:"email"`
-	FirstName   string    `json:"first_name"`
-	LastName    string    `json:"last_name"`
-	Password    string    `json:"-"`
-	DOB         time.Time `json:"-"`
-	DOBStr      string    `json:"dob"`
-	Avatar      string    `json:"avatar"`
-	Nickname    string    `json:"nickname"`
-	AboutMe     string    `json:"about_me"`
-	ProfileType string    `json:"profile_type"`
+	ID          int64      `json:"id"`
+	Email       string     `json:"email,omitempty"`
+	FirstName   string     `json:"first_name"`
+	LastName    string     `json:"last_name"`
+	Password    string     `json:"password,omitempty"`
+	DOB         *time.Time `json:"dob,omitempty"`
+	Avatar      string     `json:"avatar,omitempty"`
+	Nickname    string     `json:"nickname,omitempty"`
+	AboutMe     string     `json:"about_me,omitempty"`
+	ProfileType string     `json:"profile_type,omitempty"`
 }
 
 type UserData struct {
-	ID        int64     `json:"id"`
-	FirstName string    `json:"first_name"`
-	LastName  string    `json:"last_name"`
-	UUID      string    `json:"-"`
-	ExpiresAt time.Time `json:"expires_at"`
+	ID        int64      `json:"id"`
+	FirstName string     `json:"first_name"`
+	LastName  string     `json:"last_name"`
+	UUID      string     `json:"-"`
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 }
 
 // --------------------------------------------------------------------|
@@ -43,25 +43,22 @@ func (u *User) ValidateData() error {
 
 	_, err := mail.ParseAddress(u.Email)
 	if err != nil {
-		return ErrIncorrectEmail
-	}
-
-	const layout = time.DateOnly
-
-	t, err := time.Parse(layout, u.DOBStr)
-	if err != nil {
-		return ErrInvalidFormatDate
+		return fmt.Errorf("incorrect email")
 	}
 
 	now := time.Now()
 
-	if t.After(now) {
-		return ErrInvalidBirthDate
+	if u.DOB.IsZero() {
+		return fmt.Errorf("invalid birth date")
+	}
+
+	if u.DOB.After(now) {
+		return fmt.Errorf("invalid birth date")
 	}
 
 	minDate := now.AddDate(-122, 0, 0)
-	if t.Before(minDate) {
-		return ErrInvalidBirthDate
+	if u.DOB.Before(minDate) {
+		return fmt.Errorf("invalid birth date")
 	}
 	return nil
 }
@@ -70,13 +67,13 @@ func (u *User) ValidateData() error {
 
 func (u *User) isEmpty() error {
 	if len(strings.TrimSpace(u.Email)) == 0 {
-		return ErrEmailEmpty
+		return fmt.Errorf("email is empty")
 	}
 	if len(strings.TrimSpace(u.FirstName)) == 0 {
-		return ErrFirstNameEmpty
+		return fmt.Errorf("first name is empty")
 	}
 	if len(strings.TrimSpace(u.LastName)) == 0 {
-		return ErrLastNameEmpty
+		return fmt.Errorf("last name is empty")
 	}
 	return nil
 }
