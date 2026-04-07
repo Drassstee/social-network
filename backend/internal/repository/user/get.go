@@ -9,12 +9,12 @@ import (
 )
 
 func (r *UserRepo) GetByID(id int64) (*user.User, error) {
-	query := `SELECT id, email, first_name, last_name, date_of_birth, avatar, nickname, about_me, profile_type
+	query := `SELECT id, email, first_name, last_name, date_of_birth, nickname, about_me, profile_type
 			FROM users
 			WHERE id = ?`
 
 	var u user.User
-	err := r.db.QueryRow(query, id).Scan(&u.ID, &u.Email, &u.FirstName, &u.LastName, &u.DOB, &u.Avatar, &u.Nickname, &u.AboutMe, &u.ProfileType)
+	err := r.db.QueryRow(query, id).Scan(&u.ID, &u.Email, &u.FirstName, &u.LastName, &u.DOB, &u.Nickname, &u.AboutMe, &u.ProfileType)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("%w: user not found", models.ErrNotFound)
@@ -49,8 +49,15 @@ func (r *UserRepo) GetProfileType(id int64) (string, error) {
 
 	var ptype string
 	err := r.db.QueryRow(query, id).Scan(&ptype)
-	if err != nil {
-		return "", err
-	}
-	return ptype, nil
+	return ptype, err
+}
+
+// --------------------------------------------------------------------|
+
+func (r *UserRepo) GetAvatarURL(id int64) (string, error) {
+	query := `SELECT avatar_url FROM users WHERE id = ?`
+
+	var url string
+	err := r.db.QueryRow(query, id).Scan(&url)
+	return url, err
 }

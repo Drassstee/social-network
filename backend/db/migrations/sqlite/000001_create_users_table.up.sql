@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
     last_name TEXT NOT NULL,
     password TEXT NOT NULL,
     date_of_birth DATE NOT NULL,
-    avatar TEXT,
+    avatar_url TEXT,
     nickname TEXT,
     about_me TEXT,
     profile_type TEXT DEFAULT 'public'

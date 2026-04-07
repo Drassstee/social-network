@@ -1,6 +1,7 @@
 package user
 
 import (
+	"social-network/internal/models/avatar"
 	"social-network/internal/models/follow"
 	"social-network/internal/models/profile"
 	"social-network/internal/models/user"
@@ -16,6 +17,7 @@ type UserServ interface {
 	Register(*user.User) (*user.UserData, error)
 	Login(string, string) (*user.UserData, error)
 	Logout(int64) error
+	DeleteUser(int64) error
 
 	GetProfile(int64, int64) (*profile.Profile, error)
 	UpdateProfile(*user.User) error
@@ -26,6 +28,9 @@ type UserServ interface {
 
 	GetNotification(int64) ([]user.UserData, error)
 	RespondToFollowRequest(follow.Follow) error
+
+	UploadAvatar(*avatar.Avatar) error
+	GetAvatar(int64) (string, error)
 }
 
 func NewUserHandler(serv UserServ) *UserHandler {

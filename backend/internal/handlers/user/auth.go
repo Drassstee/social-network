@@ -98,7 +98,30 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 
 	utils.DeleteCookie(w)
 
-	utils.RespondJSON(w, http.StatusOK, nil)
+	utils.RespondJSON(w, http.StatusNoContent, nil)
 }
 
 // --------------------------------------------------------------------|
+
+func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	id, ok := utils.GetUserIDByContext(r)
+	if !ok {
+		msg := map[string]string{"error": "unauthorized"}
+		utils.RespondJSON(w, http.StatusUnauthorized, msg)
+		return
+	}
+
+	err := h.Users.DeleteUser(id)
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidData) {
+			msg := map[string]string{"error": err.Error()}
+			utils.RespondJSON(w, http.StatusBadRequest, msg)
+			return
+		}
+
+		utils.RespondJSON(w, http.StatusInternalServerError, errInternalServer)
+		return
+	}
+
+	utils.RespondJSON(w, http.StatusNoContent, nil)
+}

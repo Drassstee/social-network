@@ -123,3 +123,25 @@ func (us *UserService) Logout(id int64) error {
 }
 
 // --------------------------------------------------------------------|
+
+func (us *UserService) DeleteUser(id int64) error {
+	if id < 1 {
+		return fmt.Errorf("delete user: %w: incorrect user id", models.ErrInvalidData)
+	}
+
+	uuid, err := us.sessions.GetUUID(id)
+	if err != nil {
+		return fmt.Errorf("logout: %w", err)
+	}
+
+	err = us.sessions.DeleteSession(uuid)
+	if err != nil {
+		return fmt.Errorf("logout: %w", err)
+	}
+
+	err = us.users.DeleteUser(id)
+	if err != nil {
+		return fmt.Errorf("delete user: %w", err)
+	}
+	return nil
+}

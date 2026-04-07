@@ -12,7 +12,7 @@ import (
 
 func (r *UserRepo) CreateUser(u *user.User) (int64, error) {
 	query := `INSERT INTO 
-			users (email, first_name, last_name, password, date_of_birth, avatar, nickname, about_me) 
+			users (email, first_name, last_name, password, date_of_birth, avatar_url, nickname, about_me) 
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 
 	res, err := r.db.Exec(query,
@@ -21,7 +21,7 @@ func (r *UserRepo) CreateUser(u *user.User) (int64, error) {
 		u.LastName,
 		u.Password,
 		u.DOB,
-		u.Avatar,
+		u.AvatarURL,
 		u.Nickname,
 		u.AboutMe,
 	)

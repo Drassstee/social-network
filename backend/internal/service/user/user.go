@@ -17,10 +17,13 @@ type UserService struct {
 type UserRepo interface {
 	CreateUser(*user.User) (int64, error)
 	UpdateUser(*user.User) error
+	UpdateAvatar(int64, string) error
+	DeleteUser(int64) error
 
 	GetByEmail(string) (*user.User, error)
 	GetByID(int64) (*user.User, error)
 	GetProfileType(int64) (string, error)
+	GetAvatarURL(int64) (string, error)
 
 	IsPrivate(int64) (bool, error)
 	EmailExists(string, int64) (bool, error)

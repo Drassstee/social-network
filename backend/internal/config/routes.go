@@ -15,6 +15,7 @@ func SetupRoutes(h *handlers.Handler) *http.ServeMux {
 	apimux.HandleFunc("POST /login", h.Login)
 
 	apimux.HandleFunc("POST /logout", middleware.AuthMiddleware(h.Users, h.Logout))
+	apimux.HandleFunc("DELETE /delete", middleware.AuthMiddleware(h.Users, h.DeleteUser))
 	apimux.HandleFunc("GET /users/{id}", middleware.AuthMiddleware(h.Users, h.GetProfile))
 	apimux.HandleFunc("PUT /users", middleware.AuthMiddleware(h.Users, h.UpdateProfile))
 
@@ -24,7 +25,8 @@ func SetupRoutes(h *handlers.Handler) *http.ServeMux {
 	apimux.HandleFunc("GET /notifications", middleware.AuthMiddleware(h.Users, h.GetNotification))
 	apimux.HandleFunc("POST /notifications", middleware.AuthMiddleware(h.Users, h.RespondToFollowRequest))
 
-	// avatar
+	apimux.HandleFunc("GET /avatar/{id}", middleware.AuthMiddleware(h.Users, h.GetAvatar))
+	apimux.HandleFunc("POST /avatar", middleware.AuthMiddleware(h.Users, h.UploadAvatar))
 
 	mux.Handle("/api/v1/", http.StripPrefix("/api/v1", apimux))
 

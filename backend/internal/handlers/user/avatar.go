@@ -1,60 +1,50 @@
 package user
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 
 	"social-network/internal/models"
-	"social-network/internal/models/follow"
+	"social-network/internal/models/avatar"
 	"social-network/internal/utils"
 )
 
-// --------------------------------------------------------------------|
-
-func (h *UserHandler) Follow(w http.ResponseWriter, r *http.Request) {
-	userID, ok := utils.GetUserIDByContext(r)
+func (h *UserHandler) GetAvatar(w http.ResponseWriter, r *http.Request) {
+	_, ok := utils.GetUserIDByContext(r)
 	if !ok {
 		msg := map[string]string{"error": "unauthorized"}
 		utils.RespondJSON(w, http.StatusUnauthorized, msg)
 		return
 	}
 
-	var data follow.Follow
-	err := json.NewDecoder(r.Body).Decode(&data)
+	userID, err := utils.GetIDByURL(r, "id")
 	if err != nil {
 		msg := map[string]string{"error": err.Error()}
 		utils.RespondJSON(w, http.StatusBadRequest, msg)
 		return
 	}
-	data.FollowerID = userID
 
-	status, err := h.Users.Follow(data)
+	avatarURL, err := h.Users.GetAvatar(userID)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidData) {
 			msg := map[string]string{"error": err.Error()}
 			utils.RespondJSON(w, http.StatusBadRequest, msg)
-			return
-		} else if errors.Is(err, models.ErrConflict) {
-			msg := map[string]string{"error": err.Error()}
-			utils.RespondJSON(w, http.StatusConflict, msg)
 			return
 		} else if errors.Is(err, models.ErrNotFound) {
 			msg := map[string]string{"error": err.Error()}
 			utils.RespondJSON(w, http.StatusNotFound, msg)
 			return
 		}
-
 		utils.RespondJSON(w, http.StatusInternalServerError, errInternalServer)
 		return
 	}
 
-	utils.RespondJSON(w, http.StatusOK, map[string]string{"status": status})
+	http.ServeFile(w, r, avatarURL)
 }
 
 // --------------------------------------------------------------------|
 
-func (h *UserHandler) Unfollow(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	userID, ok := utils.GetUserIDByContext(r)
 	if !ok {
 		msg := map[string]string{"error": "unauthorized"}
@@ -62,16 +52,26 @@ func (h *UserHandler) Unfollow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var data follow.Follow
-	err := json.NewDecoder(r.Body).Decode(&data)
-	if err != nil {
-		msg := map[string]string{"error": err.Error()}
+	if err := r.ParseMultipartForm(5 << 20); err != nil {
+		msg := map[string]string{"error": "file too large"}
 		utils.RespondJSON(w, http.StatusBadRequest, msg)
 		return
 	}
-	data.FollowerID = userID
 
-	err = h.Users.Unfollow(data)
+	file, header, err := r.FormFile("avatar")
+	if err != nil {
+		http.Error(w, "invalid file", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	var a = avatar.Avatar{
+		File:   file,
+		Header: header,
+		UserID: userID,
+	}
+
+	err = h.Users.UploadAvatar(&a)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidData) {
 			msg := map[string]string{"error": err.Error()}
@@ -83,7 +83,5 @@ func (h *UserHandler) Unfollow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	utils.RespondJSON(w, http.StatusOK, map[string]string{"status": "unfollow"})
+	utils.RespondJSON(w, http.StatusOK, nil)
 }
-
-// --------------------------------------------------------------------|

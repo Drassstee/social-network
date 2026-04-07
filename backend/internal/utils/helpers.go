@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -11,12 +12,16 @@ import (
 
 func RespondJSON(w http.ResponseWriter, status int, data any) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	err := json.NewEncoder(w).Encode(data)
+
+	buf := &bytes.Buffer{}
+	err := json.NewEncoder(buf).Encode(data)
 	if err != nil {
 		http.Error(w, "invalid json", http.StatusInternalServerError)
 		return
 	}
+
+	w.WriteHeader(status)
+	w.Write(buf.Bytes())
 }
 
 // --------------------------------------------------------------------|

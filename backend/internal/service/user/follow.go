@@ -22,7 +22,7 @@ func (us *UserService) Follow(f follow.Follow) (string, error) {
 	}
 
 	if !exists {
-		return "", fmt.Errorf("follow: %w: incorrect user id", models.ErrInvalidData)
+		return "", fmt.Errorf("follow: %w: user not found", models.ErrNotFound)
 	}
 
 	ptype, err := us.users.GetProfileType(f.FollowingID)

@@ -20,7 +20,7 @@ type User struct {
 	LastName    string     `json:"last_name"`
 	Password    string     `json:"password,omitempty"`
 	DOB         *time.Time `json:"dob,omitempty"`
-	Avatar      string     `json:"avatar,omitempty"`
+	AvatarURL   string     `json:"-"`
 	Nickname    string     `json:"nickname,omitempty"`
 	AboutMe     string     `json:"about_me,omitempty"`
 	ProfileType string     `json:"profile_type,omitempty"`
