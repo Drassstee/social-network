@@ -376,8 +376,8 @@ func (s *GroupService) GetGroupMessages(ctx context.Context, groupID, limit, off
 func (s *GroupService) notify(userID, actorID int, targetType string, targetID int, notifType string) {
 	go func() {
 		username := ""
-		if actor, err := s.UserRepo.GetByID(context.Background(), actorID); err == nil {
-			username = actor.Username
+		if actor, err := s.UserRepo.GetByID(int64(actorID)); err == nil {
+			username = actor.Nickname
 		}
 		s.NotifService.Notify(context.Background(), userID, actorID, username, targetType, targetID, notifType)
 	}()

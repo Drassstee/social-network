@@ -1,9 +1,10 @@
-package server
+package main
 
 import (
 	"context"
 	"log"
 	"net/http"
+
 	"social-network/db/sqlite"
 	"social-network/internal/config"
 	"social-network/internal/handlers"
@@ -22,10 +23,12 @@ func main() {
 		log.Fatal("database connection failed: ", err)
 	}
 	defer db.Close()
-	migPath := "../../db/migrations/sqlite"
+
+	migPath := "db/migrations/sqlite"
 	if err := sqlite.RunMigrations(db, migPath); err != nil {
 		log.Fatal("Migrations failed: ", err)
 	}
+
 	rep := repository.NewRepo(db)
 
 	// Initialize WebSocket Hub

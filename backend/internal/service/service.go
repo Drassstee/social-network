@@ -10,25 +10,21 @@ import (
 	"social-network/internal/service/user"
 )
 
-//--------------------------------------------------------------------------------------|
-
 type Service struct {
-	User          models.UserService
+	User          *user.UserService
 	Post          *servicepost.PostService
 	Group         models.GroupService
 	Chat          models.ChatService
 	Notifications models.NotificationService
 }
 
-//--------------------------------------------------------------------------------------|
-
-func NewService(repo *repository.Repository, hub *chatsvc.Hub) *Service {
-	notifSvc := notifications.NewService(repo.Notifications, hub)
+func NewService(r *repository.Repository, hub *chatsvc.Hub) *Service {
+	notifSvc := notifications.NewService(r.Notifications, hub)
 	return &Service{
-		User:          user.NewUserService(repo.User),
-		Post:          servicepost.NewPostService(repo.Post),
-		Group:         groupsvc.NewGroupService(repo.Group, notifSvc, repo.User, repo.DB),
-		Chat:          chatsvc.NewChatService(repo.Chat),
+		User:          user.NewUserService(r.User, r.Session, r.Follow, r.Post),
+		Post:          servicepost.NewPostService(r.Post),
+		Group:         groupsvc.NewGroupService(r.Group, notifSvc, r.User, r.DB),
+		Chat:          chatsvc.NewChatService(r.Chat),
 		Notifications: notifSvc,
 	}
 }

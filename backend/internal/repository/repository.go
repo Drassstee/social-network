@@ -5,14 +5,18 @@ import (
 
 	"social-network/internal/models"
 	chatrepo "social-network/internal/repository/chat"
+	"social-network/internal/repository/follow"
 	grouprepo "social-network/internal/repository/group"
 	"social-network/internal/repository/notifications"
-	"social-network/internal/repository/post"
-	"social-network/internal/repository/user"
+	postrepo "social-network/internal/repository/post"
+	"social-network/internal/repository/session"
+	userrepo "social-network/internal/repository/user"
 )
 
 type Repository struct {
 	User          models.UserRepo
+	Session       *session.SessionRepo
+	Follow        *follow.FollowRepo
 	Post          models.PostRepo
 	Group         models.GroupRepo
 	Chat          models.ChatRepo
@@ -22,8 +26,10 @@ type Repository struct {
 
 func NewRepo(db *sql.DB) *Repository {
 	return &Repository{
-		User:          user.NewUserRepository(db),
-		Post:          post.NewPostRepository(db),
+		User:          userrepo.NewUserRepo(db),
+		Session:       session.NewSessionRepo(db),
+		Follow:        follow.NewSessionRepo(db),
+		Post:          postrepo.NewPostRepo(db),
 		Group:         grouprepo.NewGroupRepository(db),
 		Chat:          chatrepo.NewChatRepository(db),
 		Notifications: notifications.NewRepository(db),

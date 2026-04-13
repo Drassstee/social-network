@@ -1,12 +1,13 @@
 package handlers
 
 import (
+	"social-network/internal/models"
+
 	"social-network/internal/handlers/chat"
 	"social-network/internal/handlers/group"
 	"social-network/internal/handlers/notifications"
 	"social-network/internal/handlers/post"
 	"social-network/internal/handlers/user"
-	"social-network/internal/models"
 	"social-network/internal/service"
 	chatsvc "social-network/internal/service/chat"
 )

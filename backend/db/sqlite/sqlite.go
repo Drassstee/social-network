@@ -6,6 +6,8 @@ import (
 
 	"github.com/golang-migrate/migrate"
 	"github.com/golang-migrate/migrate/database/sqlite3"
+	_ "github.com/golang-migrate/migrate/source/file"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func ConnectDB(dbPath string) (*sql.DB, error) {

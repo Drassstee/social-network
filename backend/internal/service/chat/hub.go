@@ -298,11 +298,11 @@ func (h *Hub) broadcastStatusUpdate(userID int, online bool) {
 	if val, found := h.userCache.Get(cacheKey); found {
 		username = val.(string)
 	} else if h.UserRepo != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+		_, cancel := context.WithTimeout(context.Background(), dbTimeout)
 		defer cancel()
-		user, err := h.UserRepo.GetByID(ctx, userID)
+		user, err := h.UserRepo.GetByID(int64(userID))
 		if err == nil && user != nil {
-			username = user.Username
+			username = user.Nickname
 			h.userCache.Set(cacheKey, username, 1*time.Hour)
 		}
 	}

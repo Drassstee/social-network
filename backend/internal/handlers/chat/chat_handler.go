@@ -95,7 +95,7 @@ func (h *ChatHandler) GetMessages(w http.ResponseWriter, r *http.Request, identi
 func (h *ChatHandler) GetOnlineUsers(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	onlineIDs := h.Hub.GetOnlineUsers()
 
-	users, err := h.UserRepo.GetByIDs(r.Context(), onlineIDs)
+	users, err := h.UserRepo.GetByIDs(convertIntsToInt64s(onlineIDs))
 	if err != nil {
 		return err
 	}
@@ -109,11 +109,19 @@ func (h *ChatHandler) GetOnlineUsers(w http.ResponseWriter, r *http.Request, ide
 	onlineUsers := make([]OnlineUser, len(users))
 	for i, u := range users {
 		onlineUsers[i] = OnlineUser{
-			ID:       u.ID,
-			Username: u.Username,
+			ID:       int(u.ID),
+			Username: u.Nickname,
 		}
 	}
 
 	web.JSONResponse(w, http.StatusOK, onlineUsers)
 	return nil
+}
+
+func convertIntsToInt64s(ints []int) []int64 {
+	res := make([]int64, len(ints))
+	for i, v := range ints {
+		res[i] = int64(v)
+	}
+	return res
 }

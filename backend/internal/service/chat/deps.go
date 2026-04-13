@@ -19,5 +19,5 @@ type ChatRepository interface {
 
 // UserRepository defines the interface for fetching user data needed by the Hub.
 type UserRepository interface {
-	GetByID(ctx context.Context, id int) (*models.User, error)
+	GetByID(id int64) (*models.User, error)
 }

@@ -17,4 +17,5 @@ type PostService interface {
 type PostRepo interface {
 	List(limit, offset int) ([]Post, bool, error)
 	Insert(authorID, content string) (*Post, error)
+	GetPosts(int64) ([]Post, error)
 }

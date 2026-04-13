@@ -4,15 +4,40 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"social-network/internal/models"
+	"social-network/internal/models/avatar"
+	"social-network/internal/models/follow"
+	"social-network/internal/models/profile"
+	"social-network/internal/models/user"
 )
 
+var errInternalServer = map[string]string{"error": "internal server error"}
+
 type UserHandler struct {
-	serv models.UserService
+	Users UserServ
 }
 
-func NewUserHandler(serv models.UserService) *UserHandler {
-	return &UserHandler{serv: serv}
+type UserServ interface {
+	Register(*user.User) (*user.UserData, error)
+	Login(string, string) (*user.UserData, error)
+	Logout(int64) error
+	DeleteUser(int64) error
+
+	GetProfile(int64, int64) (*profile.Profile, error)
+	UpdateProfile(*user.User) error
+	GetUserID(string) (int64, error)
+
+	Follow(follow.Follow) (string, error)
+	Unfollow(follow.Follow) error
+
+	GetNotification(int64) ([]user.UserData, error)
+	RespondToFollowRequest(follow.Follow) error
+
+	UploadAvatar(*avatar.Avatar) error
+	GetAvatar(int64) (string, error)
+}
+
+func NewUserHandler(serv UserServ) *UserHandler {
+	return &UserHandler{Users: serv}
 }
 
 type errJSON struct {
@@ -23,22 +48,4 @@ func notImplemented(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusNotImplemented)
 	_ = json.NewEncoder(w).Encode(errJSON{Error: "not implemented"})
-}
-
-// Stubs until auth/profile is implemented by teammate.
-
-func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
-}
-
-func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
-	notImplemented(w)
 }

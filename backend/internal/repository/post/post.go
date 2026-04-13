@@ -7,24 +7,24 @@ import (
 	"social-network/internal/models"
 )
 
-type PostRepository struct {
+type PostRepo struct {
 	db *sql.DB
 }
 
-func NewPostRepository(db *sql.DB) *PostRepository {
-	return &PostRepository{db: db}
+func NewPostRepo(db *sql.DB) *PostRepo {
+	return &PostRepo{db: db}
 }
 
-func (r *PostRepository) List(limit, offset int) ([]models.Post, bool, error) {
+func (r *PostRepo) List(limit, offset int) ([]models.Post, bool, error) {
 	if limit < 1 {
 		limit = 20
 	}
 	rows, err := r.db.Query(`
-		SELECT id, author_id, content, created_at
-		FROM posts
-		ORDER BY datetime(created_at) DESC
-		LIMIT ? OFFSET ?
-	`, limit+1, offset)
+SELECT id, author_id, content, created_at
+FROM posts
+ORDER BY datetime(created_at) DESC
+LIMIT ? OFFSET ?
+`, limit+1, offset)
 	if err != nil {
 		return nil, false, err
 	}
@@ -53,7 +53,7 @@ func (r *PostRepository) List(limit, offset int) ([]models.Post, bool, error) {
 	return posts, hasMore, nil
 }
 
-func (r *PostRepository) Insert(authorID, content string) (*models.Post, error) {
+func (r *PostRepo) Insert(authorID, content string) (*models.Post, error) {
 	res, err := r.db.Exec(`INSERT INTO posts (author_id, content) VALUES (?, ?)`, authorID, content)
 	if err != nil {
 		return nil, err
@@ -63,8 +63,8 @@ func (r *PostRepository) Insert(authorID, content string) (*models.Post, error) 
 		return nil, err
 	}
 	row := r.db.QueryRow(`
-		SELECT id, author_id, content, created_at FROM posts WHERE id = ?
-	`, id)
+SELECT id, author_id, content, created_at FROM posts WHERE id = ?
+`, id)
 	var p models.Post
 	var created string
 	if err := row.Scan(&p.ID, &p.AuthorID, &p.Content, &created); err != nil {

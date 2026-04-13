@@ -1,36 +1,55 @@
 package models
 
 import (
-	"context"
-	"time"
+	"social-network/internal/models/follow"
+	"social-network/internal/models/session"
+	"social-network/internal/models/user"
 )
 
-type User struct {
-	ID          int       `json:"id"`
-	Email       string    `json:"email"`
-	Username    string    `json:"username"`
-	FirstName   string    `json:"first_name"`
-	LastName    string    `json:"last_name"`
-	Password    string    `json:"-"`
-	BirthDay    time.Time `json:"date_of_birth"`
-	Avatar      string    `json:"avatar,omitempty"`
-	Nickname    string    `json:"nickname,omitempty"`
-	Bio         string    `json:"about_me,omitempty"`
-	ProfileType string    `json:"profile_type"`
-}
+type User = user.User
 
 type UserService interface {
-	GetByID(ctx context.Context, id int) (*User, error)
-	GetByEmail(ctx context.Context, email string) (*User, error)
-	GetByIDs(ctx context.Context, ids []int) ([]User, error)
+	GetByID(id int64) (*User, error)
+	GetByEmail(email string) (*User, error)
+	GetByIDs(ids []int64) ([]User, error)
 }
 
 type UserRepo interface {
-	GetByID(ctx context.Context, id int) (*User, error)
-	GetByEmail(ctx context.Context, email string) (*User, error)
-	GetByIDs(ctx context.Context, ids []int) ([]User, error)
-	CreateUser(user *User) error
+	CreateUser(*user.User) (int64, error)
+	UpdateUser(*user.User) error
+	UpdateAvatar(int64, string) error
+	DeleteUser(int64) error
+
+	GetByEmail(string) (*user.User, error)
+	GetByID(int64) (*user.User, error)
+	GetProfileType(int64) (string, error)
+	GetAvatarURL(int64) (string, error)
+
+	IsPrivate(int64) (bool, error)
+	EmailExists(string, int64) (bool, error)
+	UserExists(int64) (bool, error)
+	GetByIDs(ids []int64) ([]user.User, error)
 }
 
-type UserHandler interface {
+type SessionRepo interface {
+	CreateSession(*session.Session) error
+	DeleteSession(string) error
+	DeleteAllSessions(int64) error
+
+	GetUserID(string) (int64, error)
+	GetUUID(int64) (string, error)
 }
+
+type FollowRepo interface {
+	CreateFollow(follow.Follow) error
+	DeleteFollow(follow.Follow) error
+	UpdateFollow(follow.Follow) error
+
+	GetFollowers(int64, string) ([]user.UserData, error)
+	GetFollowing(int64, string) ([]user.UserData, error)
+
+	IsFollower(int64, int64) (bool, error)
+	FollowExists(int64, int64, string) (bool, error)
+}
+
+type UserHandler interface{}
