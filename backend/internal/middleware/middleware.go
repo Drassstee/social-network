@@ -7,7 +7,6 @@ import (
 
 	Serv "social-network/internal/handlers/user"
 	"social-network/internal/models"
-	"social-network/internal/models/user"
 	"social-network/internal/utils"
 )
 
@@ -22,7 +21,7 @@ func AuthMiddleware(serv Serv.UserServ, next http.HandlerFunc) http.HandlerFunc 
 
 		id, err := serv.GetUserID(cookie.Value)
 		if errors.Is(err, models.ErrNotFound) {
-			msg := map[string]string{"error": err.Error()}
+			msg := map[string]string{"error": "unauthorized"}
 			utils.RespondJSON(w, http.StatusUnauthorized, msg)
 			return
 		} else if err != nil {
@@ -31,7 +30,11 @@ func AuthMiddleware(serv Serv.UserServ, next http.HandlerFunc) http.HandlerFunc 
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), user.Key, id)
+		identity := &models.UserIdentity{
+			ID: int(id),
+		}
+
+		ctx := context.WithValue(r.Context(), models.UserKey, identity)
 		next(w, r.WithContext(ctx))
 	}
 }

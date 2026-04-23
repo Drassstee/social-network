@@ -8,82 +8,65 @@ import (
 	"social-network/internal/models"
 	"social-network/internal/models/user"
 	"social-network/internal/utils"
+	"social-network/internal/web"
 )
 
 // --------------------------------------------------------------------|
 
-func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
-	userID, ok := utils.GetUserIDByContext(r)
-	if !ok {
-		msg := map[string]string{"error": "unauthorized"}
-		utils.RespondJSON(w, http.StatusUnauthorized, msg)
-		return
+func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
+	if identity == nil {
+		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("unauthorized")}
 	}
+	userID := int64(identity.ID)
 
 	targetID, err := utils.GetIDByURL(r, "id")
 	if err != nil {
-		msg := map[string]string{"error": err.Error()}
-		utils.RespondJSON(w, http.StatusBadRequest, msg)
-		return
+		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
 
 	u, err := h.Users.GetProfile(userID, targetID)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidData) {
-			msg := map[string]string{"error": err.Error()}
-			utils.RespondJSON(w, http.StatusBadRequest, msg)
-			return
+			return web.StatusError{Code: http.StatusBadRequest, Err: err}
 		} else if errors.Is(err, models.ErrNotFound) {
-			msg := map[string]string{"error": err.Error()}
-			utils.RespondJSON(w, http.StatusNotFound, msg)
-			return
+			return web.StatusError{Code: http.StatusNotFound, Err: err}
 		} else if errors.Is(err, models.ErrUserPrivate) {
-			msg := map[string]string{"error": err.Error()}
-			utils.RespondJSON(w, http.StatusForbidden, msg)
-			return
+			return web.StatusError{Code: http.StatusForbidden, Err: err}
 		}
 
-		utils.RespondJSON(w, http.StatusInternalServerError, errInternalServer)
-		return
+		return web.StatusError{Code: http.StatusInternalServerError, Err: errors.New("internal server error")}
 	}
 
 	utils.RespondJSON(w, http.StatusOK, u)
+	return nil
 }
 
 // --------------------------------------------------------------------|
 
-func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
-	id, ok := utils.GetUserIDByContext(r)
-	if !ok {
-		msg := map[string]string{"error": "unauthorized"}
-		utils.RespondJSON(w, http.StatusUnauthorized, msg)
-		return
+func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
+	if identity == nil {
+		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("unauthorized")}
 	}
+	id := int64(identity.ID)
 
 	var u user.User
 	err := json.NewDecoder(r.Body).Decode(&u)
 	if err != nil {
-		msg := map[string]string{"error": err.Error()}
-		utils.RespondJSON(w, http.StatusBadRequest, msg)
-		return
+		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
 	u.ID = id
 
 	err = h.Users.UpdateProfile(&u)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidData) {
-			msg := map[string]string{"error": err.Error()}
-			utils.RespondJSON(w, http.StatusBadRequest, msg)
-			return
+			return web.StatusError{Code: http.StatusBadRequest, Err: err}
 		} else if errors.Is(err, models.ErrConflict) {
-			msg := map[string]string{"error": err.Error()}
-			utils.RespondJSON(w, http.StatusConflict, msg)
-			return
+			return web.StatusError{Code: http.StatusConflict, Err: err}
 		}
 
-		utils.RespondJSON(w, http.StatusInternalServerError, errInternalServer)
-		return
+		return web.StatusError{Code: http.StatusInternalServerError, Err: errors.New("internal server error")}
 	}
 
 	utils.RespondJSON(w, http.StatusOK, u)
+	return nil
 }

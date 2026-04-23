@@ -34,6 +34,12 @@ const handleCreatePost = async () => {
     if (resp.ok) {
       const data = await resp.json()
       if (data.post) {
+        // Since backend doesn't embed the full author object, inject the current user's profile
+        // Handling both common JSON mapping cases for robustness
+        data.post.author = {
+          first_name: auth.user?.first_name || auth.user?.FirstName || 'Anonymous',
+          last_name: auth.user?.last_name || auth.user?.LastName || ''
+        }
         posts.value.unshift(data.post)
       }
     }
@@ -83,7 +89,7 @@ const handleCreatePost = async () => {
         <div class="post-header">
           <div class="avatar-placeholder">{{ post.author?.first_name?.[0] || 'U' }}</div>
           <div class="post-meta">
-            <h3 class="author-name">{{ post.author?.first_name || 'User ' + (post.author_id || '') }} {{ post.author?.last_name || '' }}</h3>
+            <h3 class="author-name">{{ post.author?.first_name || post.author?.FirstName || 'User ' + (post.author_id || '') }} {{ post.author?.last_name || post.author?.LastName || '' }}</h3>
             <span class="post-date text-muted">{{ new Date(post.created_at).toLocaleDateString() }}</span>
           </div>
           <div class="privacy-badge">{{ post.privacy || 'public' }}</div>

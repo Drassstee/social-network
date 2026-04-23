@@ -8,49 +8,42 @@ import (
 	"social-network/internal/models"
 	"social-network/internal/models/follow"
 	"social-network/internal/utils"
+	"social-network/internal/web"
 )
 
 // --------------------------------------------------------------------|
 
-func (h *UserHandler) GetNotification(w http.ResponseWriter, r *http.Request) {
-	id, ok := utils.GetUserIDByContext(r)
-	if !ok {
-		msg := map[string]string{"error": "unauthorized"}
-		utils.RespondJSON(w, http.StatusUnauthorized, msg)
-		return
+func (h *UserHandler) GetNotification(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
+	if identity == nil {
+		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("unauthorized")}
 	}
+	id := int64(identity.ID)
 
 	users, err := h.Users.GetNotification(id)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidData) {
-			msg := map[string]string{"error": err.Error()}
-			utils.RespondJSON(w, http.StatusBadRequest, msg)
-			return
+			return web.StatusError{Code: http.StatusBadRequest, Err: err}
 		}
 
-		utils.RespondJSON(w, http.StatusInternalServerError, errInternalServer)
-		return
+		return web.StatusError{Code: http.StatusInternalServerError, Err: errors.New("internal server error")}
 	}
 
 	utils.RespondJSON(w, http.StatusOK, users)
+	return nil
 }
 
 // --------------------------------------------------------------------|
 
-func (h *UserHandler) RespondToFollowRequest(w http.ResponseWriter, r *http.Request) {
-	id, ok := utils.GetUserIDByContext(r)
-	if !ok {
-		msg := map[string]string{"error": "unauthorized"}
-		utils.RespondJSON(w, http.StatusUnauthorized, msg)
-		return
+func (h *UserHandler) RespondToFollowRequest(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
+	if identity == nil {
+		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("unauthorized")}
 	}
+	id := int64(identity.ID)
 
 	var f follow.Follow
 	err := json.NewDecoder(r.Body).Decode(&f)
 	if err != nil {
-		msg := map[string]string{"error": err.Error()}
-		utils.RespondJSON(w, http.StatusBadRequest, msg)
-		return
+		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
 
 	f.FollowingID = id
@@ -58,20 +51,16 @@ func (h *UserHandler) RespondToFollowRequest(w http.ResponseWriter, r *http.Requ
 	err = h.Users.RespondToFollowRequest(f)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidData) {
-			msg := map[string]string{"error": err.Error()}
-			utils.RespondJSON(w, http.StatusBadRequest, msg)
-			return
+			return web.StatusError{Code: http.StatusBadRequest, Err: err}
 		} else if errors.Is(err, models.ErrNotFound) {
-			msg := map[string]string{"error": err.Error()}
-			utils.RespondJSON(w, http.StatusNotFound, msg)
-			return
+			return web.StatusError{Code: http.StatusNotFound, Err: err}
 		}
 
-		utils.RespondJSON(w, http.StatusInternalServerError, errInternalServer)
-		return
+		return web.StatusError{Code: http.StatusInternalServerError, Err: errors.New("internal server error")}
 	}
 
 	utils.RespondJSON(w, http.StatusOK, nil)
+	return nil
 }
 
 // --------------------------------------------------------------------|

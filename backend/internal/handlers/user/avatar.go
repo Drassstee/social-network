@@ -7,61 +7,48 @@ import (
 	"social-network/internal/models"
 	"social-network/internal/models/avatar"
 	"social-network/internal/utils"
+	"social-network/internal/web"
 )
 
-func (h *UserHandler) GetAvatar(w http.ResponseWriter, r *http.Request) {
-	_, ok := utils.GetUserIDByContext(r)
-	if !ok {
-		msg := map[string]string{"error": "unauthorized"}
-		utils.RespondJSON(w, http.StatusUnauthorized, msg)
-		return
+func (h *UserHandler) GetAvatar(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
+	if identity == nil {
+		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("unauthorized")}
 	}
 
 	userID, err := utils.GetIDByURL(r, "id")
 	if err != nil {
-		msg := map[string]string{"error": err.Error()}
-		utils.RespondJSON(w, http.StatusBadRequest, msg)
-		return
+		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
 
 	avatarURL, err := h.Users.GetAvatar(userID)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidData) {
-			msg := map[string]string{"error": err.Error()}
-			utils.RespondJSON(w, http.StatusBadRequest, msg)
-			return
+			return web.StatusError{Code: http.StatusBadRequest, Err: err}
 		} else if errors.Is(err, models.ErrNotFound) {
-			msg := map[string]string{"error": err.Error()}
-			utils.RespondJSON(w, http.StatusNotFound, msg)
-			return
+			return web.StatusError{Code: http.StatusNotFound, Err: err}
 		}
-		utils.RespondJSON(w, http.StatusInternalServerError, errInternalServer)
-		return
+		return web.StatusError{Code: http.StatusInternalServerError, Err: errors.New("internal server error")}
 	}
 
 	http.ServeFile(w, r, avatarURL)
+	return nil
 }
 
 // --------------------------------------------------------------------|
 
-func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
-	userID, ok := utils.GetUserIDByContext(r)
-	if !ok {
-		msg := map[string]string{"error": "unauthorized"}
-		utils.RespondJSON(w, http.StatusUnauthorized, msg)
-		return
+func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
+	if identity == nil {
+		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("unauthorized")}
 	}
+	userID := int64(identity.ID)
 
 	if err := r.ParseMultipartForm(5 << 20); err != nil {
-		msg := map[string]string{"error": "file too large"}
-		utils.RespondJSON(w, http.StatusBadRequest, msg)
-		return
+		return web.StatusError{Code: http.StatusBadRequest, Err: errors.New("file too large")}
 	}
 
 	file, header, err := r.FormFile("avatar")
 	if err != nil {
-		http.Error(w, "invalid file", http.StatusBadRequest)
-		return
+		return web.StatusError{Code: http.StatusBadRequest, Err: errors.New("invalid file")}
 	}
 	defer file.Close()
 
@@ -74,14 +61,12 @@ func (h *UserHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	err = h.Users.UploadAvatar(&a)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidData) {
-			msg := map[string]string{"error": err.Error()}
-			utils.RespondJSON(w, http.StatusBadRequest, msg)
-			return
+			return web.StatusError{Code: http.StatusBadRequest, Err: err}
 		}
 
-		utils.RespondJSON(w, http.StatusInternalServerError, errInternalServer)
-		return
+		return web.StatusError{Code: http.StatusInternalServerError, Err: errors.New("internal server error")}
 	}
 
 	utils.RespondJSON(w, http.StatusOK, nil)
+	return nil
 }
