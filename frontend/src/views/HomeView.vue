@@ -87,9 +87,13 @@ const handleCreatePost = async () => {
     <div class="posts-list">
       <div v-for="post in posts" :key="post.id" class="card-traditional post-card">
         <div class="post-header">
-          <div class="avatar-placeholder">{{ post.author?.first_name?.[0] || 'U' }}</div>
+          <router-link :to="`/profile/${post.author_id}`" class="avatar-link">
+            <div class="avatar-placeholder">{{ post.author?.first_name?.[0] || 'U' }}</div>
+          </router-link>
           <div class="post-meta">
-            <h3 class="author-name">{{ post.author?.first_name || post.author?.FirstName || 'User ' + (post.author_id || '') }} {{ post.author?.last_name || post.author?.LastName || '' }}</h3>
+            <router-link :to="`/profile/${post.author_id}`" class="author-link">
+              <h3 class="author-name">{{ post.author?.first_name || post.author?.FirstName || 'User ' + (post.author_id || '') }} {{ post.author?.last_name || post.author?.LastName || '' }}</h3>
+            </router-link>
             <span class="post-date text-muted">{{ new Date(post.created_at).toLocaleDateString() }}</span>
           </div>
           <div class="privacy-badge">{{ post.privacy || 'public' }}</div>
@@ -133,20 +137,6 @@ const handleCreatePost = async () => {
   margin-bottom: 15px;
 }
 
-.avatar-placeholder {
-  width: 45px;
-  height: 45px;
-  background: var(--color-charcoal);
-  color: var(--color-paper);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Noto Serif JP', serif;
-  font-weight: 700;
-  border: 2px solid var(--color-gold);
-}
-
 .username {
   font-weight: 600;
 }
@@ -188,6 +178,20 @@ const handleCreatePost = async () => {
 
 .author-name {
   font-size: 1.1rem;
+}
+
+.avatar-link, .author-link {
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 0.2s;
+}
+
+.avatar-link:hover, .author-link:hover {
+  opacity: 0.8;
+}
+
+.author-link:hover .author-name {
+  color: var(--color-vermilion);
 }
 
 .text-muted {

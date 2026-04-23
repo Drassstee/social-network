@@ -34,10 +34,9 @@ func (s *PostService) ListPosts(limit, offset int) ([]models.Post, bool, error) 
 	return s.repo.List(limit, offset)
 }
 
-func (s *PostService) CreatePost(authorID, content string) (*models.Post, error) {
-	authorID = strings.TrimSpace(authorID)
+func (s *PostService) CreatePost(authorID int64, content string) (*models.Post, error) {
 	content = strings.TrimSpace(content)
-	if authorID == "" {
+	if authorID == 0 {
 		return nil, errors.New("author_id is required")
 	}
 	if content == "" {

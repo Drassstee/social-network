@@ -13,6 +13,8 @@ func (us *UserService) GetNotification(id int64) ([]user.UserData, error) {
 		return nil, fmt.Errorf("notification: %w: incorrect user id", models.ErrInvalidData)
 	}
 
+	// This now only returns follow requests. 
+	// In the future, we could merge with models.NotificationRepo results.
 	users, err := us.follows.GetFollowers(id, "pending")
 	if err != nil {
 		return nil, fmt.Errorf("notification: %w", err)

@@ -47,11 +47,18 @@ func (h *PostHandler) GetPosts(w http.ResponseWriter, r *http.Request, identity 
 }
 
 func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
-	var body createPostRequest
+	if identity == nil {
+		return &models.ValidationError{Field: "auth", Message: "unauthorized"}
+	}
+
+	var body struct {
+		Content string `json:"content"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		return &models.ValidationError{Field: "json", Message: "invalid json"}
 	}
-	p, err := h.serv.CreatePost(body.AuthorID, body.Content)
+
+	p, err := h.serv.CreatePost(int64(identity.ID), body.Content)
 	if err != nil {
 		return err
 	}

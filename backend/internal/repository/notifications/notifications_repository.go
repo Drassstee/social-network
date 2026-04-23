@@ -60,7 +60,7 @@ func (r *sqlRepository) CreateNotification(ctx context.Context, userID, actorID 
 func (r *sqlRepository) GetUserNotifications(ctx context.Context, userID, limit, offset int) ([]models.Notification, error) {
 	query := `
 		SELECT 
-			n.id, n.user_id, n.actor_id, u.username as actor_username,
+			n.id, n.user_id, n.actor_id, u.nickname as actor_username,
 			n.target_type, n.target_id,
 			COALESCE(CASE 
 				WHEN n.target_type = 'post' THEN p.title

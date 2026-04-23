@@ -20,9 +20,10 @@ func (r *PostRepo) List(limit, offset int) ([]models.Post, bool, error) {
 		limit = 20
 	}
 	rows, err := r.db.Query(`
-SELECT id, author_id, content, created_at
-FROM posts
-ORDER BY datetime(created_at) DESC
+SELECT p.id, p.author_id, p.content, p.created_at, u.id, u.first_name, u.last_name
+FROM posts p
+JOIN users u ON p.author_id = u.id
+ORDER BY datetime(p.created_at) DESC
 LIMIT ? OFFSET ?
 `, limit+1, offset)
 	if err != nil {
@@ -33,10 +34,12 @@ LIMIT ? OFFSET ?
 	var posts []models.Post
 	for rows.Next() {
 		var p models.Post
+		var a models.PostAuthor
 		var created string
-		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &created); err != nil {
+		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
 			return nil, false, err
 		}
+		p.Author = &a
 		p.CreatedAt, err = parseSQLiteTime(created)
 		if err != nil {
 			return nil, false, err
@@ -53,7 +56,7 @@ LIMIT ? OFFSET ?
 	return posts, hasMore, nil
 }
 
-func (r *PostRepo) Insert(authorID, content string) (*models.Post, error) {
+func (r *PostRepo) Insert(authorID int64, content string) (*models.Post, error) {
 	res, err := r.db.Exec(`INSERT INTO posts (author_id, content) VALUES (?, ?)`, authorID, content)
 	if err != nil {
 		return nil, err
@@ -63,13 +66,18 @@ func (r *PostRepo) Insert(authorID, content string) (*models.Post, error) {
 		return nil, err
 	}
 	row := r.db.QueryRow(`
-SELECT id, author_id, content, created_at FROM posts WHERE id = ?
+SELECT p.id, p.author_id, p.content, p.created_at, u.id, u.first_name, u.last_name
+FROM posts p
+JOIN users u ON p.author_id = u.id
+WHERE p.id = ?
 `, id)
 	var p models.Post
+	var a models.PostAuthor
 	var created string
-	if err := row.Scan(&p.ID, &p.AuthorID, &p.Content, &created); err != nil {
+	if err := row.Scan(&p.ID, &p.AuthorID, &p.Content, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
 		return nil, err
 	}
+	p.Author = &a
 	p.CreatedAt, err = parseSQLiteTime(created)
 	if err != nil {
 		return nil, err
@@ -78,7 +86,12 @@ SELECT id, author_id, content, created_at FROM posts WHERE id = ?
 }
 
 func (r *PostRepo) GetPosts(authorID int64) ([]models.Post, error) {
-	rows, err := r.db.Query(`SELECT id, author_id, content, created_at FROM posts WHERE author_id = ?`, authorID)
+	rows, err := r.db.Query(`
+SELECT p.id, p.author_id, p.content, p.created_at, u.id, u.first_name, u.last_name
+FROM posts p
+JOIN users u ON p.author_id = u.id
+WHERE p.author_id = ?
+`, authorID)
 	if err != nil {
 		return nil, err
 	}
@@ -87,10 +100,12 @@ func (r *PostRepo) GetPosts(authorID int64) ([]models.Post, error) {
 	var posts []models.Post
 	for rows.Next() {
 		var p models.Post
+		var a models.PostAuthor
 		var created string
-		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &created); err != nil {
+		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
 			return nil, err
 		}
+		p.Author = &a
 		p.CreatedAt, _ = parseSQLiteTime(created)
 		posts = append(posts, p)
 	}

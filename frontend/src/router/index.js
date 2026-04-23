@@ -41,6 +41,18 @@ const routes = [
     name: 'notifications',
     component: () => import('../views/NotificationsView.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/profile/:id/followers',
+    name: 'followers',
+    component: () => import('../views/SocialListView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/profile/:id/following',
+    name: 'following',
+    component: () => import('../views/SocialListView.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 

@@ -8,14 +8,18 @@ onMounted(() => {
   store.fetchNotifications()
 })
 
-const getNotificationText = (notif) => {
-  switch (notif.type) {
-    case 'follow_request': return 'sent you a follow request.'
-    case 'group_invitation': return 'invited you to join'
-    case 'join_request': return 'requested to join your group'
-    case 'event_created': return 'created a new event in'
-    default: return 'sent you a notification.'
-  }
+const handleResponse = async (followerId, status) => {
+  try {
+    const response = await fetch('/api/v1/notifications/respond', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ follower_id: followerId, status: status })
+    })
+    if (response.ok) {
+      alert(`Request ${status}ed`)
+      store.fetchNotifications()
+    }
+  } catch (err) { console.error(err) }
 }
 </script>
 
@@ -31,17 +35,16 @@ const getNotificationText = (notif) => {
       <div v-else-if="store.notifications.length === 0" class="card-traditional no-notifications">
         <p>No notifications yet.</p>
       </div>
-      <div v-for="notif in store.notifications" :key="notif.id" class="card-traditional notif-card">
+      <div v-for="user in store.notifications" :key="user.id" class="card-traditional notif-card">
         <div class="notif-content">
-          <div class="notif-icon">🔔</div>
+          <div class="notif-icon">👤</div>
           <div class="notif-text">
-            <strong>User {{ notif.sender_id }}</strong> {{ getNotificationText(notif) }}
-            <span v-if="notif.group_id" class="group-name"> Group {{ notif.group_id }}</span>
+            <strong>{{ user.first_name }} {{ user.last_name }}</strong> sent you a follow request.
           </div>
         </div>
-        <div class="notif-actions" v-if="notif.type === 'follow_request' || notif.type === 'group_invitation'">
-          <button class="btn-traditional mini">Accept</button>
-          <button class="btn-traditional mini ghost">Decline</button>
+        <div class="notif-actions">
+          <button @click="handleResponse(user.id, 'accept')" class="btn-traditional mini">Accept</button>
+          <button @click="handleResponse(user.id, 'decline')" class="btn-traditional mini ghost">Decline</button>
         </div>
       </div>
     </div>
