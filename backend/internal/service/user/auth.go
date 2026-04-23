@@ -14,7 +14,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// --------------------------------------------------------------------|
+
 
 func (us *UserService) Register(u *user.User) (*user.UserData, error) {
 	if len(strings.TrimSpace(u.Password)) == 0 {
@@ -55,7 +55,7 @@ func (us *UserService) Register(u *user.User) (*user.UserData, error) {
 	}, nil
 }
 
-// --------------------------------------------------------------------|
+
 
 func (us *UserService) Login(email, password string) (*user.UserData, error) {
 	if len(strings.TrimSpace(email)) == 0 {
@@ -103,7 +103,7 @@ func (us *UserService) Login(email, password string) (*user.UserData, error) {
 	}, nil
 }
 
-// --------------------------------------------------------------------|
+
 
 func (us *UserService) Logout(id int64) error {
 	if id < 1 {
@@ -122,7 +122,7 @@ func (us *UserService) Logout(id int64) error {
 	return nil
 }
 
-// --------------------------------------------------------------------|
+
 
 func (us *UserService) DeleteUser(id int64) error {
 	if id < 1 {

@@ -7,7 +7,7 @@ import (
 	"social-network/internal/models"
 	"social-network/internal/models/user"
 
-	"github.com/mattn/go-sqlite3"
+	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
 func (r *UserRepo) CreateUser(u *user.User) (int64, error) {

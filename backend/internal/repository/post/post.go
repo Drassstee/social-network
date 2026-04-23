@@ -77,6 +77,26 @@ SELECT id, author_id, content, created_at FROM posts WHERE id = ?
 	return &p, nil
 }
 
+func (r *PostRepo) GetPosts(authorID int64) ([]models.Post, error) {
+	rows, err := r.db.Query(`SELECT id, author_id, content, created_at FROM posts WHERE author_id = ?`, authorID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []models.Post
+	for rows.Next() {
+		var p models.Post
+		var created string
+		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &created); err != nil {
+			return nil, err
+		}
+		p.CreatedAt, _ = parseSQLiteTime(created)
+		posts = append(posts, p)
+	}
+	return posts, nil
+}
+
 func parseSQLiteTime(s string) (time.Time, error) {
 	if t, err := time.Parse(time.RFC3339, s); err == nil {
 		return t, nil

@@ -12,7 +12,7 @@ import (
 	"social-network/internal/sessions"
 )
 
-//--------------------------------------------------------------------------------------|
+
 
 // LoadEnv loads environment variables from a .env file at the specified path.
 func LoadEnv(path string) error {
@@ -47,7 +47,7 @@ func LoadEnv(path string) error {
 	return scanner.Err()
 }
 
-//--------------------------------------------------------------------------------------|
+
 
 // Getenv retrieves the value of an environment variable or returns a default value.
 func Getenv(key, defaultVal string) string {
@@ -57,7 +57,7 @@ func Getenv(key, defaultVal string) string {
 	return defaultVal
 }
 
-//--------------------------------------------------------------------------------------|
+
 
 // GetIntEnv retrieves the value of an environment variable as an integer or returns a default value.
 func GetIntEnv(key string, defaultVal int) int {
@@ -69,7 +69,7 @@ func GetIntEnv(key string, defaultVal int) int {
 	return defaultVal
 }
 
-//--------------------------------------------------------------------------------------|
+
 
 // GetUserID extracts the user ID from the request context or session cookie.
 func GetUserID(ctx context.Context, r *http.Request, sm *sessions.SessionManager) int {
@@ -81,7 +81,7 @@ func GetUserID(ctx context.Context, r *http.Request, sm *sessions.SessionManager
 		return 0
 	}
 
-	cookie, err := r.Cookie("session_id")
+	cookie, err := r.Cookie("session_token")
 	if err != nil {
 		return 0
 	}
@@ -93,14 +93,14 @@ func GetUserID(ctx context.Context, r *http.Request, sm *sessions.SessionManager
 	return session.UserID
 }
 
-//--------------------------------------------------------------------------------------|
+
 
 // IsLoggedIn checks if a user is currently logged in.
 func IsLoggedIn(ctx context.Context, r *http.Request, sm *sessions.SessionManager) bool {
 	return GetUserID(ctx, r, sm) > 0
 }
 
-//--------------------------------------------------------------------------------------|
+
 
 // ParseInt is a helper to convert a string to an integer.
 func ParseInt(s string) (int, error) {

@@ -302,7 +302,10 @@ func (h *Hub) broadcastStatusUpdate(userID int, online bool) {
 		defer cancel()
 		user, err := h.UserRepo.GetByID(int64(userID))
 		if err == nil && user != nil {
-			username = user.Nickname
+			username = user.FirstName + " " + user.LastName
+			if username == " " {
+				username = user.Nickname
+			}
 			h.userCache.Set(cacheKey, username, 1*time.Hour)
 		}
 	}

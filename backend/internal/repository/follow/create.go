@@ -7,7 +7,7 @@ import (
 	"social-network/internal/models"
 	"social-network/internal/models/follow"
 
-	"github.com/mattn/go-sqlite3"
+	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
 func (r *FollowRepo) CreateFollow(f follow.Follow) error {

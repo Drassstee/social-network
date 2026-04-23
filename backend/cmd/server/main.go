@@ -14,10 +14,10 @@ import (
 	"social-network/internal/utils"
 )
 
-//--------------------------------------------------------------------------------------|
+
 
 func main() {
-	dbPath := "social_network.db"
+	dbPath := utils.Getenv("DB_PATH", "social_network.db")
 	db, err := sqlite.ConnectDB(dbPath)
 	if err != nil {
 		log.Fatal("database connection failed: ", err)

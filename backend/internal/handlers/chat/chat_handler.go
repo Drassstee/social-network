@@ -108,13 +108,25 @@ func (h *ChatHandler) GetOnlineUsers(w http.ResponseWriter, r *http.Request, ide
 
 	onlineUsers := make([]OnlineUser, len(users))
 	for i, u := range users {
+		name := u.FirstName + " " + u.LastName
+		if name == " " {
+			name = u.Nickname
+		}
 		onlineUsers[i] = OnlineUser{
 			ID:       int(u.ID),
-			Username: u.Nickname,
+			Username: name,
 		}
 	}
 
 	web.JSONResponse(w, http.StatusOK, onlineUsers)
+	return nil
+}
+
+//--------------------------------------------------------------------------------------|
+
+// Connect upgrades the HTTP connection to a WebSocket connection.
+func (h *ChatHandler) Connect(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
+	chatsvc.ServeWs(h.Hub, w, r, identity.ID)
 	return nil
 }
 

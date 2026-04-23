@@ -11,20 +11,20 @@ import (
 	"social-network/internal/utils"
 )
 
-// --------------------------------------------------------------------|
+
 
 type LoginData struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-// --------------------------------------------------------------------|
+
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var u user.User
 	err := json.NewDecoder(r.Body).Decode(&u)
 	if err != nil {
-		msg := map[string]string{"error": err.Error()} // invalid json data
+		msg := map[string]string{"error": err.Error()}
 		utils.RespondJSON(w, http.StatusBadRequest, msg)
 		return
 	}
@@ -51,13 +51,13 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	utils.RespondJSON(w, http.StatusCreated, data)
 }
 
-// --------------------------------------------------------------------|
+
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var d LoginData
 	err := json.NewDecoder(r.Body).Decode(&d)
 	if err != nil {
-		msg := map[string]string{"error": err.Error()} // invalid json data
+		msg := map[string]string{"error": err.Error()}
 		utils.RespondJSON(w, http.StatusBadRequest, msg)
 		return
 	}
@@ -80,7 +80,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	utils.RespondJSON(w, http.StatusOK, data)
 }
 
-// --------------------------------------------------------------------|
+
 
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	id, ok := utils.GetUserIDByContext(r)
@@ -101,7 +101,7 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	utils.RespondJSON(w, http.StatusNoContent, nil)
 }
 
-// --------------------------------------------------------------------|
+
 
 func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	id, ok := utils.GetUserIDByContext(r)

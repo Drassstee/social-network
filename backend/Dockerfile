@@ -1,20 +1,22 @@
 FROM golang:1.22-alpine AS builder
 
+RUN apk add --no-cache gcc musl-dev libc-dev
+
 WORKDIR /app
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN go build -o server ./cmd/server
+RUN CGO_ENABLED=1 GOOS=linux go build -o server ./cmd/server
 
 FROM alpine:3.20
 
 WORKDIR /app
 
-COPY --from=builder /app/server ./server
+COPY --from=builder /app/server /usr/local/bin/server
 COPY --from=builder /app/db ./db
 
 EXPOSE 8080
 
-CMD ["./server"]
+CMD ["server"]

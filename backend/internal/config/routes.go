@@ -50,6 +50,7 @@ func SetupRoutes(h *handlers.Handler) *http.ServeMux {
         apimux.HandleFunc("GET /chat/messages", web.NewAppHandler(h.Chat.GetMessages))
         apimux.HandleFunc("POST /chat/upload", web.NewAppHandler(h.Chat.UploadImage))
         apimux.HandleFunc("GET /chat/online", web.NewAppHandler(h.Chat.GetOnlineUsers))
+        apimux.HandleFunc("GET /ws", web.NewAppHandler(h.Chat.Connect))
 
         mux.Handle("/api/v1/", http.StripPrefix("/api/v1", apimux))
 
