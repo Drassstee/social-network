@@ -82,7 +82,50 @@ const togglePrivacy = async () => {
     }
   } catch (e) { console.error(e) }
 }
+
+const showComments = ref({})
+const newCommentContent = ref({})
+const commentImages = ref({})
+
+const onFileChange = (e, postId) => {
+  const file = e.target.files[0]
+  commentImages.value[postId] = file
+}
+
+const toggleComments = (postId) => {
+  showComments.value[postId] = !showComments.value[postId]
+}
+
+const handleCreateComment = async (postId) => {
+  const content = newCommentContent.value[postId]
+  const image = commentImages.value[postId]
+  if (!content && !image) return
+
+  try {
+    const formData = new FormData()
+    formData.append('post_id', postId)
+    formData.append('content', content || '')
+    if (image) formData.append('image', image)
+
+    const resp = await fetch('/api/v1/comments', {
+      method: 'POST',
+      body: formData
+    })
+
+    if (resp.ok) {
+      const comment = await resp.json()
+      const post = profile.value.posts.find(p => p.id === postId)
+      if (post) {
+        if (!post.comments) post.comments = []
+        post.comments.push(comment)
+      }
+      newCommentContent.value[postId] = ''
+      commentImages.value[postId] = null
+    }
+  } catch (e) { console.error('Failed to create comment:', e) }
+}
 </script>
+
 
 <template>
   <div class="profile-view">
@@ -166,11 +209,46 @@ const togglePrivacy = async () => {
                 <h3 class="author-name">{{ profile.user.first_name }} {{ profile.user.last_name }}</h3>
                 <span class="post-date text-muted">{{ new Date(post.created_at).toLocaleDateString() }}</span>
               </div>
+              <div class="privacy-badge">{{ post.privacy || 'public' }}</div>
             </div>
             <div class="post-body">
-              <p>{{ post.content }}</p>
+              <p v-if="post.content">{{ post.content }}</p>
+              <img v-if="post.image_url" :src="post.image_url" class="post-image" alt="Post content">
+            </div>
+            <div class="post-footer">
+              <button @click="toggleComments(post.id)" class="action-btn">💬 Comment ({{ post.comments?.length || 0 }})</button>
+            </div>
+
+            <div v-if="showComments[post.id]" class="comments-section">
+              <div class="comments-list">
+                <div v-for="comment in post.comments" :key="comment.id" class="comment-item">
+                  <div class="avatar-placeholder xsmall">{{ comment.author?.first_name?.[0] || 'U' }}</div>
+                  <div class="comment-content">
+                    <span class="comment-author">{{ comment.author?.first_name }} {{ comment.author?.last_name }}</span>
+                    <p>{{ comment.content }}</p>
+                    <img v-if="comment.image_url" :src="comment.image_url" class="comment-image">
+                  </div>
+                </div>
+              </div>
+              
+              <div class="comment-input-area">
+                <textarea 
+                  v-model="newCommentContent[post.id]" 
+                  placeholder="Write a comment..." 
+                  class="input-traditional mini-textarea"
+                ></textarea>
+                <div class="comment-actions">
+                  <label class="comment-file-label">
+                    🖼️
+                    <input type="file" @change="e => onFileChange(e, post.id)" accept="image/*" class="hidden-input">
+                  </label>
+                  <button @click="handleCreateComment(post.id)" class="btn-traditional mini-btn">Reply</button>
+                </div>
+                <span v-if="commentImages[post.id]" class="file-name-mini">{{ commentImages[post.id].name }}</span>
+              </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>
@@ -322,16 +400,132 @@ const togglePrivacy = async () => {
   padding: 0 10px;
 }
 
-.profile-activity h2 {
+.post-card {
   margin-bottom: 25px;
 }
 
-.no-posts {
-  text-align: center;
-  padding: 40px;
-  color: #888;
-  font-style: italic;
+.post-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 15px;
 }
 
+.post-image {
+  max-width: 100%;
+  border-radius: 8px;
+  margin-top: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
 
+.privacy-badge {
+  font-size: 0.75rem;
+  background: var(--color-paper);
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  text-transform: capitalize;
+}
+
+.post-footer {
+  border-top: 1px solid #eee;
+  padding-top: 15px;
+  margin-top: 15px;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  color: var(--color-charcoal);
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.action-btn:hover {
+  color: var(--color-vermilion);
+}
+
+.comments-section {
+  padding-top: 20px;
+  margin-top: 15px;
+  border-top: 1px solid #eee;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.comment-item {
+  display: flex;
+  gap: 10px;
+}
+
+.comment-content {
+  background: var(--color-paper);
+  padding: 8px 15px;
+  border-radius: 18px;
+  flex: 1;
+}
+
+.comment-author {
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.comment-image {
+  max-width: 200px;
+  border-radius: 4px;
+  margin-top: 8px;
+}
+
+.comment-input-area {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mini-textarea {
+  min-height: 40px;
+  font-size: 0.95rem;
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.comment-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+
+.comment-file-label {
+  cursor: pointer;
+  background: #eee;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: background 0.3s;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.file-name-mini {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.mini-btn {
+  padding: 5px 15px;
+  font-size: 0.9rem;
+}
+
+.italic { font-style: italic; }
 </style>

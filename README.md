@@ -61,7 +61,18 @@ social-network/
 ├── frontend/ (Vue.js SPA)
 └── README.md
 ```
-
+## Commands
+```bash
+ docker compose up --build -d
+```
+Stop and remove containers:
+```bash
+ docker compose down
+```
+stop and remove containers and database:
+```bash
+ docker compose down -v
+```
 ## Features
 
 ### Real-Time Chat

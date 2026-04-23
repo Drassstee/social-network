@@ -23,7 +23,7 @@ type Handler struct {
 func NewHandler(service *service.Service, hub *chatsvc.Hub, userRepo models.UserRepo, chatRepo models.ChatRepo, uploader chat.ImageUploader) *Handler {
 	return &Handler{
 		User:          user.NewUserHandler(service.User),
-		Post:          post.NewPostHandler(service.Post),
+		Post:          post.NewPostHandler(service.Post, uploader),
 		Group:         group.NewGroupHandler(service.Group),
 		Chat:          chat.NewChatHandler(chatRepo, hub, userRepo, uploader),
 		Notifications: notifications.NewHandler(service.Notifications),

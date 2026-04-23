@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"time"
 )
+
 
 //--------------------------------------------------------------------------------------|
 
@@ -40,10 +42,10 @@ func (u *LocalImageUploader) UploadImage(ctx context.Context, userID int, filena
 	newFilename := fmt.Sprintf("u%d_%d%s", userID, time.Now().UnixNano(), ext)
 
 	// 2. Define the path
-	path := filepath.Join(u.BaseDir, newFilename)
+	diskPath := filepath.Join(u.BaseDir, newFilename)
 
 	// 3. Create the file
-	file, err := os.Create(path)
+	file, err := os.Create(diskPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to create file on disk: %w", err)
 	}
@@ -55,5 +57,5 @@ func (u *LocalImageUploader) UploadImage(ctx context.Context, userID int, filena
 	}
 
 	// 5. Return the URL (e.g., /uploads/image.png)
-	return filepath.Join(u.BaseURL, newFilename), nil
+	return path.Join(u.BaseURL, newFilename), nil
 }

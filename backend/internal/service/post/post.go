@@ -21,7 +21,7 @@ func NewPostService(repo models.PostRepo) *PostService {
 	return &PostService{repo: repo}
 }
 
-func (s *PostService) ListPosts(limit, offset int) ([]models.Post, bool, error) {
+func (s *PostService) ListPosts(requesterID int64, limit, offset int) ([]models.Post, bool, error) {
 	if limit <= 0 {
 		limit = defaultLimit
 	}
@@ -31,19 +31,38 @@ func (s *PostService) ListPosts(limit, offset int) ([]models.Post, bool, error) 
 	if offset < 0 {
 		offset = 0
 	}
-	return s.repo.List(limit, offset)
+	return s.repo.List(requesterID, limit, offset)
 }
 
-func (s *PostService) CreatePost(authorID int64, content string) (*models.Post, error) {
+func (s *PostService) CreatePost(authorID int64, content, imageURL, privacy string, allowedUsers []int64) (*models.Post, error) {
 	content = strings.TrimSpace(content)
 	if authorID == 0 {
 		return nil, errors.New("author_id is required")
 	}
-	if content == "" {
-		return nil, errors.New("content is required")
+	if content == "" && imageURL == "" {
+		return nil, errors.New("content or image is required")
 	}
 	if len(content) > maxPostContent {
 		return nil, errors.New("content is too long")
 	}
-	return s.repo.Insert(authorID, content)
+	if privacy == "" {
+		privacy = "public"
+	}
+	return s.repo.Insert(authorID, content, imageURL, privacy, allowedUsers)
 }
+
+func (s *PostService) CreateComment(authorID int64, postID int64, content, imageURL string) (*models.Comment, error) {
+	content = strings.TrimSpace(content)
+	if authorID == 0 || postID == 0 {
+		return nil, errors.New("author_id and post_id are required")
+	}
+	if content == "" && imageURL == "" {
+		return nil, errors.New("content or image is required")
+	}
+	return s.repo.InsertComment(authorID, postID, content, imageURL)
+}
+
+func (s *PostService) GetComments(postID int64) ([]models.Comment, error) {
+	return s.repo.GetComments(postID)
+}
+

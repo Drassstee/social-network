@@ -34,6 +34,7 @@ func SetupRoutes(h *handlers.Handler) *http.ServeMux {
 	// Posts
 	apimux.HandleFunc("GET /posts", authMW(web.NewAppHandler(h.Post.GetPosts)))
 	apimux.HandleFunc("POST /posts", authMW(web.NewAppHandler(h.Post.CreatePost)))
+	apimux.HandleFunc("POST /comments", authMW(web.NewAppHandler(h.Post.CreateComment)))
 
 	// Groups
 	apimux.HandleFunc("POST /groups", authMW(web.NewAppHandler(h.Group.CreateGroup)))

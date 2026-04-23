@@ -9,43 +9,111 @@ const newPost = ref({
   privacy: 'public',
   allowed_users: []
 })
+const postImage = ref(null)
+const followers = ref([])
+const showComments = ref({})
+const newCommentContent = ref({})
+const commentImages = ref({})
+
+const onFileChange = (e, type, postId = null) => {
+  const file = e.target.files[0]
+  if (type === 'post') postImage.value = file
+  else commentImages.value[postId] = file
+}
+
+const fetchFollowers = async () => {
+  if (!auth.user?.id) return
+  try {
+    const response = await fetch(`/api/v1/users/${auth.user.id}`)
+    if (response.ok) {
+      const data = await response.json()
+      followers.value = data.followers || []
+    }
+  } catch (e) { console.error('Failed to fetch followers:', e) }
+}
+
 
 // Mock fetching posts for now
 onMounted(async () => {
+  fetchFollowers()
   try {
     const response = await fetch('/api/v1/posts')
     if (response.ok) {
-        const data = await response.json()
-        posts.value = data.posts || []
+      const data = await response.json()
+      posts.value = data.posts || []
     }
   } catch (e) { console.error('Failed to fetch posts:', e) }
 })
 
+
 const handleCreatePost = async () => {
   try {
+    const formData = new FormData()
+    formData.append('content', newPost.value.body)
+    formData.append('privacy', newPost.value.privacy)
+    if (newPost.value.privacy === 'private') {
+      formData.append('allowed_users', JSON.stringify(newPost.value.allowed_users))
+    }
+    if (postImage.value) {
+      formData.append('image', postImage.value)
+    }
+
     const resp = await fetch('/api/v1/posts', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        author_id: String(auth.user?.id),
-        content: newPost.value.body
-      })
+      body: formData
     })
+    
     if (resp.ok) {
       const data = await resp.json()
       if (data.post) {
-        // Since backend doesn't embed the full author object, inject the current user's profile
-        // Handling both common JSON mapping cases for robustness
         data.post.author = {
-          first_name: auth.user?.first_name || auth.user?.FirstName || 'Anonymous',
-          last_name: auth.user?.last_name || auth.user?.LastName || ''
+          first_name: auth.user?.first_name || 'Me',
+          last_name: auth.user?.last_name || ''
         }
         posts.value.unshift(data.post)
+        newPost.value.body = ''
+        newPost.value.privacy = 'public'
+        newPost.value.allowed_users = []
+        postImage.value = null
+        alert('Post created!')
       }
     }
   } catch (e) { console.error('Failed to create post:', e) }
-  finally { newPost.value.body = '' }
 }
+
+const toggleComments = (postId) => {
+  showComments.value[postId] = !showComments.value[postId]
+}
+
+const handleCreateComment = async (postId) => {
+  const content = newCommentContent.value[postId]
+  const image = commentImages.value[postId]
+  if (!content && !image) return
+
+  try {
+    const formData = new FormData()
+    formData.append('post_id', postId)
+    formData.append('content', content || '')
+    if (image) formData.append('image', image)
+
+    const resp = await fetch('/api/v1/comments', {
+      method: 'POST',
+      body: formData
+    })
+
+    if (resp.ok) {
+      const comment = await resp.json()
+      const post = posts.value.find(p => p.id === postId)
+      if (post) {
+        if (!post.comments) post.comments = []
+        post.comments.push(comment)
+      }
+      newCommentContent.value[postId] = ''
+      commentImages.value[postId] = null
+    }
+  } catch (e) { console.error('Failed to create comment:', e) }
+}
+
 
 </script>
 
@@ -68,18 +136,35 @@ const handleCreatePost = async () => {
           placeholder="What is on your mind?" 
           class="input-traditional textarea"
           rows="3"
-          required
         ></textarea>
         
-        <div class="post-actions">
-          <div class="privacy-select">
-            <select v-model="newPost.privacy" class="input-traditional select-mini">
-              <option value="public">🌐 Public</option>
-              <option value="almost_private">👥 Followers</option>
-              <option value="private">🔒 Private</option>
-            </select>
+        <div v-if="newPost.privacy === 'private'" class="allowed-users-selection">
+          <label>Select followers to see this post:</label>
+          <div class="followers-checklist">
+            <label v-for="f in followers" :key="f.id" class="follower-checkbox">
+              <input type="checkbox" :value="f.id" v-model="newPost.allowed_users">
+              {{ f.first_name }} {{ f.last_name }}
+            </label>
+            <p v-if="followers.length === 0" class="text-muted italic">You have no followers to share with.</p>
           </div>
-          <button type="submit" class="btn-traditional">Post</button>
+        </div>
+
+        <div class="post-actions">
+          <div class="action-left">
+            <div class="privacy-select">
+              <select v-model="newPost.privacy" class="input-traditional select-mini">
+                <option value="public">🌐 Public</option>
+                <option value="almost_private">👥 Followers</option>
+                <option value="private">🔒 Private</option>
+              </select>
+            </div>
+            <label class="file-label">
+              🖼️ Photo/GIF
+              <input type="file" @change="e => onFileChange(e, 'post')" accept="image/*" class="hidden-input">
+            </label>
+            <span v-if="postImage" class="file-name">{{ postImage.name }}</span>
+          </div>
+          <button type="submit" class="btn-traditional" :disabled="!newPost.body && !postImage">Post</button>
         </div>
       </form>
     </div>
@@ -92,7 +177,7 @@ const handleCreatePost = async () => {
           </router-link>
           <div class="post-meta">
             <router-link :to="`/profile/${post.author_id}`" class="author-link">
-              <h3 class="author-name">{{ post.author?.first_name || post.author?.FirstName || 'User ' + (post.author_id || '') }} {{ post.author?.last_name || post.author?.LastName || '' }}</h3>
+              <h3 class="author-name">{{ post.author?.first_name || 'User' }} {{ post.author?.last_name || '' }}</h3>
             </router-link>
             <span class="post-date text-muted">{{ new Date(post.created_at).toLocaleDateString() }}</span>
           </div>
@@ -100,11 +185,41 @@ const handleCreatePost = async () => {
         </div>
         
         <div class="post-body">
-          <p>{{ post.content || post.body }}</p>
+          <p v-if="post.content">{{ post.content }}</p>
+          <img v-if="post.image_url" :src="post.image_url" class="post-image" alt="Post content">
         </div>
         
         <div class="post-footer">
-          <button class="action-btn">💬 Comment</button>
+          <button @click="toggleComments(post.id)" class="action-btn">💬 Comment ({{ post.comments?.length || 0 }})</button>
+        </div>
+
+        <div v-if="showComments[post.id]" class="comments-section">
+          <div class="comments-list">
+            <div v-for="comment in post.comments" :key="comment.id" class="comment-item">
+              <div class="avatar-placeholder xsmall">{{ comment.author?.first_name?.[0] || 'U' }}</div>
+              <div class="comment-content">
+                <span class="comment-author">{{ comment.author?.first_name }} {{ comment.author?.last_name }}</span>
+                <p>{{ comment.content }}</p>
+                <img v-if="comment.image_url" :src="comment.image_url" class="comment-image">
+              </div>
+            </div>
+          </div>
+          
+          <div class="comment-input-area">
+            <textarea 
+              v-model="newCommentContent[post.id]" 
+              placeholder="Write a comment..." 
+              class="input-traditional mini-textarea"
+            ></textarea>
+            <div class="comment-actions">
+              <label class="comment-file-label">
+                🖼️
+                <input type="file" @change="e => onFileChange(e, 'comment', post.id)" accept="image/*" class="hidden-input">
+              </label>
+              <button @click="handleCreateComment(post.id)" class="btn-traditional mini-btn">Reply</button>
+            </div>
+            <span v-if="commentImages[post.id]" class="file-name-mini">{{ commentImages[post.id].name }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -220,16 +335,131 @@ const handleCreatePost = async () => {
   padding-top: 15px;
 }
 
-.action-btn {
-  background: none;
-  border: none;
-  color: var(--color-charcoal);
-  cursor: pointer;
-  font-weight: 500;
-  transition: color 0.3s;
+.action-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
-.action-btn:hover {
-  color: var(--color-vermilion);
+.file-label, .comment-file-label {
+  cursor: pointer;
+  background: #eee;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: background 0.3s;
 }
+
+.file-label:hover {
+  background: var(--color-gold);
+  color: white;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.file-name, .file-name-mini {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.allowed-users-selection {
+  margin-top: 15px;
+  padding: 15px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border: 1px dashed #ccc;
+}
+
+.followers-checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.follower-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9rem;
+  background: white;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid #ddd;
+  cursor: pointer;
+}
+
+.post-image {
+  max-width: 100%;
+  border-radius: 8px;
+  margin-top: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.comments-section {
+  padding-top: 20px;
+  margin-top: 15px;
+  border-top: 1px solid #eee;
+}
+
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.comment-item {
+  display: flex;
+  gap: 10px;
+}
+
+.comment-content {
+  background: #f1f1f1;
+  padding: 8px 15px;
+  border-radius: 18px;
+  flex: 1;
+}
+
+.comment-author {
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.comment-image {
+  max-width: 200px;
+  border-radius: 4px;
+  margin-top: 8px;
+}
+
+.comment-input-area {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mini-textarea {
+  min-height: 40px;
+  font-size: 0.95rem;
+  padding: 10px;
+  border-radius: 12px;
+}
+
+.comment-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+
+.mini-btn {
+  padding: 5px 15px;
+  font-size: 0.9rem;
+}
+
+.italic { font-style: italic; }
 </style>

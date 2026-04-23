@@ -9,20 +9,39 @@ type PostAuthor struct {
 }
 
 type Post struct {
+	ID           int64       `json:"id"`
+	AuthorID     int64       `json:"author_id"`
+	Author       *PostAuthor `json:"author,omitempty"`
+	Content      string      `json:"content"`
+	ImageURL     string      `json:"image_url,omitempty"`
+	Privacy      string      `json:"privacy"`
+	AllowedUsers []int64     `json:"allowed_users,omitempty"`
+	Comments     []Comment   `json:"comments,omitempty"`
+	CreatedAt    time.Time   `json:"created_at"`
+}
+
+type Comment struct {
 	ID        int64       `json:"id"`
+	PostID    int64       `json:"post_id"`
 	AuthorID  int64       `json:"author_id"`
 	Author    *PostAuthor `json:"author,omitempty"`
 	Content   string      `json:"content"`
+	ImageURL  string      `json:"image_url,omitempty"`
 	CreatedAt time.Time   `json:"created_at"`
 }
 
 type PostService interface {
-	ListPosts(limit, offset int) ([]Post, bool, error)
-	CreatePost(authorID int64, content string) (*Post, error)
+	ListPosts(requesterID int64, limit, offset int) ([]Post, bool, error)
+	CreatePost(authorID int64, content, imageURL, privacy string, allowedUsers []int64) (*Post, error)
+	CreateComment(authorID int64, postID int64, content, imageURL string) (*Comment, error)
+	GetComments(postID int64) ([]Comment, error)
 }
 
 type PostRepo interface {
-	List(limit, offset int) ([]Post, bool, error)
-	Insert(authorID int64, content string) (*Post, error)
+	List(requesterID int64, limit, offset int) ([]Post, bool, error)
+	Insert(authorID int64, content, imageURL, privacy string, allowedUsers []int64) (*Post, error)
 	GetPosts(authorID int64) ([]Post, error)
+	InsertComment(authorID int64, postID int64, content, imageURL string) (*Comment, error)
+	GetComments(postID int64) ([]Comment, error)
 }
+

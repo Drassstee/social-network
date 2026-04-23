@@ -15,17 +15,21 @@ func NewPostRepo(db *sql.DB) *PostRepo {
 	return &PostRepo{db: db}
 }
 
-func (r *PostRepo) List(limit, offset int) ([]models.Post, bool, error) {
+func (r *PostRepo) List(requesterID int64, limit, offset int) ([]models.Post, bool, error) {
 	if limit < 1 {
 		limit = 20
 	}
 	rows, err := r.db.Query(`
-SELECT p.id, p.author_id, p.content, p.created_at, u.id, u.first_name, u.last_name
+SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.created_at, u.id, u.first_name, u.last_name
 FROM posts p
 JOIN users u ON p.author_id = u.id
+WHERE p.privacy = 'public'
+   OR p.author_id = ?
+   OR (p.privacy = 'almost_private' AND p.author_id IN (SELECT following_id FROM follows WHERE follower_id = ? AND status = 'accept'))
+   OR (p.privacy = 'private' AND p.id IN (SELECT post_id FROM post_allowed_users WHERE user_id = ?))
 ORDER BY datetime(p.created_at) DESC
 LIMIT ? OFFSET ?
-`, limit+1, offset)
+`, requesterID, requesterID, requesterID, limit+1, offset)
 	if err != nil {
 		return nil, false, err
 	}
@@ -36,18 +40,20 @@ LIMIT ? OFFSET ?
 		var p models.Post
 		var a models.PostAuthor
 		var created string
-		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
+		var img, priv sql.NullString
+		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &img, &priv, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
 			return nil, false, err
 		}
 		p.Author = &a
-		p.CreatedAt, err = parseSQLiteTime(created)
-		if err != nil {
-			return nil, false, err
-		}
+		p.ImageURL = img.String
+		p.Privacy = priv.String
+		p.CreatedAt, _ = parseSQLiteTime(created)
+		
+		// Load comments for each post
+		comments, _ := r.GetComments(p.ID)
+		p.Comments = comments
+		
 		posts = append(posts, p)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, false, err
 	}
 	hasMore := len(posts) > limit
 	if hasMore {
@@ -56,8 +62,15 @@ LIMIT ? OFFSET ?
 	return posts, hasMore, nil
 }
 
-func (r *PostRepo) Insert(authorID int64, content string) (*models.Post, error) {
-	res, err := r.db.Exec(`INSERT INTO posts (author_id, content) VALUES (?, ?)`, authorID, content)
+func (r *PostRepo) Insert(authorID int64, content, imageURL, privacy string, allowedUsers []int64) (*models.Post, error) {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	res, err := tx.Exec(`INSERT INTO posts (author_id, content, image_url, privacy) VALUES (?, ?, ?, ?)`, 
+		authorID, content, imageURL, privacy)
 	if err != nil {
 		return nil, err
 	}
@@ -65,8 +78,23 @@ func (r *PostRepo) Insert(authorID int64, content string) (*models.Post, error) 
 	if err != nil {
 		return nil, err
 	}
+
+	if privacy == "private" {
+		for _, userID := range allowedUsers {
+			_, err = tx.Exec(`INSERT INTO post_allowed_users (post_id, user_id) VALUES (?, ?)`, id, userID)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	// Fetch the inserted post
 	row := r.db.QueryRow(`
-SELECT p.id, p.author_id, p.content, p.created_at, u.id, u.first_name, u.last_name
+SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.created_at, u.id, u.first_name, u.last_name
 FROM posts p
 JOIN users u ON p.author_id = u.id
 WHERE p.id = ?
@@ -74,23 +102,24 @@ WHERE p.id = ?
 	var p models.Post
 	var a models.PostAuthor
 	var created string
-	if err := row.Scan(&p.ID, &p.AuthorID, &p.Content, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
+	var img, priv sql.NullString
+	if err := row.Scan(&p.ID, &p.AuthorID, &p.Content, &img, &priv, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
 		return nil, err
 	}
 	p.Author = &a
-	p.CreatedAt, err = parseSQLiteTime(created)
-	if err != nil {
-		return nil, err
-	}
+	p.ImageURL = img.String
+	p.Privacy = priv.String
+	p.CreatedAt, _ = parseSQLiteTime(created)
 	return &p, nil
 }
 
 func (r *PostRepo) GetPosts(authorID int64) ([]models.Post, error) {
 	rows, err := r.db.Query(`
-SELECT p.id, p.author_id, p.content, p.created_at, u.id, u.first_name, u.last_name
+SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.created_at, u.id, u.first_name, u.last_name
 FROM posts p
 JOIN users u ON p.author_id = u.id
 WHERE p.author_id = ?
+ORDER BY datetime(p.created_at) DESC
 `, authorID)
 	if err != nil {
 		return nil, err
@@ -102,14 +131,74 @@ WHERE p.author_id = ?
 		var p models.Post
 		var a models.PostAuthor
 		var created string
-		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
+		var img, priv sql.NullString
+		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &img, &priv, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
 			return nil, err
 		}
 		p.Author = &a
+		p.ImageURL = img.String
+		p.Privacy = priv.String
 		p.CreatedAt, _ = parseSQLiteTime(created)
 		posts = append(posts, p)
 	}
 	return posts, nil
+}
+
+func (r *PostRepo) InsertComment(authorID int64, postID int64, content, imageURL string) (*models.Comment, error) {
+	res, err := r.db.Exec(`INSERT INTO comments (post_id, author_id, content, image_url) VALUES (?, ?, ?, ?)`,
+		postID, authorID, content, imageURL)
+	if err != nil {
+		return nil, err
+	}
+	id, _ := res.LastInsertId()
+
+	row := r.db.QueryRow(`
+SELECT c.id, c.post_id, c.author_id, c.content, c.image_url, c.created_at, u.id, u.first_name, u.last_name
+FROM comments c
+JOIN users u ON c.author_id = u.id
+WHERE c.id = ?
+`, id)
+	var c models.Comment
+	var a models.PostAuthor
+	var created string
+	var img sql.NullString
+	if err := row.Scan(&c.ID, &c.PostID, &c.AuthorID, &c.Content, &img, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
+		return nil, err
+	}
+	c.Author = &a
+	c.ImageURL = img.String
+	c.CreatedAt, _ = parseSQLiteTime(created)
+	return &c, nil
+}
+
+func (r *PostRepo) GetComments(postID int64) ([]models.Comment, error) {
+	rows, err := r.db.Query(`
+SELECT c.id, c.post_id, c.author_id, c.content, c.image_url, c.created_at, u.id, u.first_name, u.last_name
+FROM comments c
+JOIN users u ON c.author_id = u.id
+WHERE c.post_id = ?
+ORDER BY datetime(c.created_at) ASC
+`, postID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var comments []models.Comment
+	for rows.Next() {
+		var c models.Comment
+		var a models.PostAuthor
+		var created string
+		var img sql.NullString
+		if err := rows.Scan(&c.ID, &c.PostID, &c.AuthorID, &c.Content, &img, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
+			continue
+		}
+		c.Author = &a
+		c.ImageURL = img.String
+		c.CreatedAt, _ = parseSQLiteTime(created)
+		comments = append(comments, c)
+	}
+	return comments, nil
 }
 
 func parseSQLiteTime(s string) (time.Time, error) {
@@ -118,3 +207,4 @@ func parseSQLiteTime(s string) (time.Time, error) {
 	}
 	return time.ParseInLocation("2006-01-02 15:04:05", s, time.UTC)
 }
+
