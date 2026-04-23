@@ -43,6 +43,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/groups/:id',
+    name: 'group-detail',
+    component: () => import('../views/GroupDetailView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/profile/:id/followers',
     name: 'followers',
     component: () => import('../views/SocialListView.vue'),

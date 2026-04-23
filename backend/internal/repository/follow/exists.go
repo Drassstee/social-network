@@ -4,7 +4,8 @@ func (r *FollowRepo) IsFollower(userID, targetID int64) (bool, error) {
 	query := `SELECT EXISTS(
 				SELECT 1 
 				FROM follows 
-				WHERE follower_id = ? AND following_id = ?)`
+				WHERE follower_id = ? AND following_id = ? AND status = 'accept')`
+
 
 	var exists int
 	err := r.db.QueryRow(query, userID, targetID).Scan(&exists)

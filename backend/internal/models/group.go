@@ -13,6 +13,7 @@ type Group struct {
 	CreatorID   int       `json:"creator_id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
+	MemberCount int       `json:"member_count"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 

@@ -46,13 +46,14 @@ type errResponse struct {
 func (h *PostHandler) GetPosts(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	groupID, _ := strconv.ParseInt(r.URL.Query().Get("group_id"), 10, 64)
 	
 	requesterID := int64(0)
 	if identity != nil {
 		requesterID = int64(identity.ID)
 	}
 
-	posts, hasMore, err := h.serv.ListPosts(requesterID, limit, offset)
+	posts, hasMore, err := h.serv.ListPosts(requesterID, groupID, limit, offset)
 	if err != nil {
 		return err
 	}
@@ -73,13 +74,14 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request, identit
 	var body struct {
 		Content      string  `json:"content"`
 		Privacy      string  `json:"privacy"`
+		GroupID      int64   `json:"group_id"`
 		AllowedUsers []int64 `json:"allowed_users"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		return &models.ValidationError{Field: "json", Message: "invalid json"}
 	}
 
-	p, err := h.serv.CreatePost(int64(identity.ID), body.Content, "", body.Privacy, body.AllowedUsers)
+	p, err := h.serv.CreatePost(int64(identity.ID), body.Content, "", body.Privacy, body.GroupID, body.AllowedUsers)
 	if err != nil {
 		return err
 	}
@@ -101,6 +103,8 @@ func (h *PostHandler) handleMultipartCreatePost(w http.ResponseWriter, r *http.R
 		json.Unmarshal([]byte(allowedUsersStr), &allowedUsers)
 	}
 
+	groupID, _ := strconv.ParseInt(r.FormValue("group_id"), 10, 64)
+
 	var imageURL string
 	file, header, err := r.FormFile("image")
 	if err == nil {
@@ -111,7 +115,7 @@ func (h *PostHandler) handleMultipartCreatePost(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	p, err := h.serv.CreatePost(int64(identity.ID), content, imageURL, privacy, allowedUsers)
+	p, err := h.serv.CreatePost(int64(identity.ID), content, imageURL, privacy, groupID, allowedUsers)
 	if err != nil {
 		return err
 	}

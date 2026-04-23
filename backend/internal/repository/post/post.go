@@ -15,21 +15,27 @@ func NewPostRepo(db *sql.DB) *PostRepo {
 	return &PostRepo{db: db}
 }
 
-func (r *PostRepo) List(requesterID int64, limit, offset int) ([]models.Post, bool, error) {
+func (r *PostRepo) List(requesterID int64, groupID int64, limit, offset int) ([]models.Post, bool, error) {
 	if limit < 1 {
 		limit = 20
 	}
-	rows, err := r.db.Query(`
-SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.created_at, u.id, u.first_name, u.last_name
+	
+	query := `
+SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.group_id, p.created_at, u.id, u.first_name, u.last_name
 FROM posts p
 JOIN users u ON p.author_id = u.id
-WHERE p.privacy = 'public'
-   OR p.author_id = ?
-   OR (p.privacy = 'almost_private' AND p.author_id IN (SELECT following_id FROM follows WHERE follower_id = ? AND status = 'accept'))
-   OR (p.privacy = 'private' AND p.id IN (SELECT post_id FROM post_allowed_users WHERE user_id = ?))
+WHERE (p.group_id IS NULL)
+  AND (
+    (p.author_id = ?)
+    OR (p.privacy = 'public' AND u.profile_type = 'public')
+    OR ((p.privacy = 'public' OR p.privacy = 'almost_private') AND p.author_id IN (SELECT following_id FROM follows WHERE follower_id = ? AND status = 'accept'))
+    OR (p.privacy = 'private' AND p.id IN (SELECT post_id FROM post_allowed_users WHERE user_id = ?))
+  )
 ORDER BY datetime(p.created_at) DESC
 LIMIT ? OFFSET ?
-`, requesterID, requesterID, requesterID, limit+1, offset)
+`
+	rows, err := r.db.Query(query, requesterID, requesterID, requesterID, limit+1, offset)
+
 	if err != nil {
 		return nil, false, err
 	}
@@ -41,12 +47,16 @@ LIMIT ? OFFSET ?
 		var a models.PostAuthor
 		var created string
 		var img, priv sql.NullString
-		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &img, &priv, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
+		var grpID sql.NullInt64
+		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &img, &priv, &grpID, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
 			return nil, false, err
 		}
 		p.Author = &a
 		p.ImageURL = img.String
 		p.Privacy = priv.String
+		if grpID.Valid {
+			p.GroupID = grpID.Int64
+		}
 		p.CreatedAt, _ = parseSQLiteTime(created)
 		
 		// Load comments for each post
@@ -62,15 +72,20 @@ LIMIT ? OFFSET ?
 	return posts, hasMore, nil
 }
 
-func (r *PostRepo) Insert(authorID int64, content, imageURL, privacy string, allowedUsers []int64) (*models.Post, error) {
+func (r *PostRepo) Insert(authorID int64, content, imageURL, privacy string, groupID int64, allowedUsers []int64) (*models.Post, error) {
 	tx, err := r.db.Begin()
 	if err != nil {
 		return nil, err
 	}
 	defer tx.Rollback()
 
-	res, err := tx.Exec(`INSERT INTO posts (author_id, content, image_url, privacy) VALUES (?, ?, ?, ?)`, 
-		authorID, content, imageURL, privacy)
+	var gID *int64
+	if groupID > 0 {
+		gID = &groupID
+	}
+
+	res, err := tx.Exec(`INSERT INTO posts (author_id, content, image_url, privacy, group_id) VALUES (?, ?, ?, ?, ?)`, 
+		authorID, content, imageURL, privacy, gID)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +94,7 @@ func (r *PostRepo) Insert(authorID int64, content, imageURL, privacy string, all
 		return nil, err
 	}
 
-	if privacy == "private" {
+	if privacy == "private" && groupID == 0 {
 		for _, userID := range allowedUsers {
 			_, err = tx.Exec(`INSERT INTO post_allowed_users (post_id, user_id) VALUES (?, ?)`, id, userID)
 			if err != nil {
@@ -94,7 +109,7 @@ func (r *PostRepo) Insert(authorID int64, content, imageURL, privacy string, all
 
 	// Fetch the inserted post
 	row := r.db.QueryRow(`
-SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.created_at, u.id, u.first_name, u.last_name
+SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.group_id, p.created_at, u.id, u.first_name, u.last_name
 FROM posts p
 JOIN users u ON p.author_id = u.id
 WHERE p.id = ?
@@ -103,24 +118,34 @@ WHERE p.id = ?
 	var a models.PostAuthor
 	var created string
 	var img, priv sql.NullString
-	if err := row.Scan(&p.ID, &p.AuthorID, &p.Content, &img, &priv, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
+	var grpID sql.NullInt64
+	if err := row.Scan(&p.ID, &p.AuthorID, &p.Content, &img, &priv, &grpID, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
 		return nil, err
 	}
 	p.Author = &a
 	p.ImageURL = img.String
 	p.Privacy = priv.String
+	if grpID.Valid {
+		p.GroupID = grpID.Int64
+	}
 	p.CreatedAt, _ = parseSQLiteTime(created)
 	return &p, nil
 }
 
-func (r *PostRepo) GetPosts(authorID int64) ([]models.Post, error) {
+func (r *PostRepo) GetPosts(authorID int64, requesterID int64) ([]models.Post, error) {
 	rows, err := r.db.Query(`
-SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.created_at, u.id, u.first_name, u.last_name
+SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.group_id, p.created_at, u.id, u.first_name, u.last_name
 FROM posts p
 JOIN users u ON p.author_id = u.id
-WHERE p.author_id = ?
+WHERE p.author_id = ? AND p.group_id IS NULL
+  AND ( (p.author_id = ?)
+     OR (p.privacy = 'public' AND u.profile_type = 'public')
+     OR ((p.privacy = 'public' OR p.privacy = 'almost_private') AND p.author_id IN (SELECT following_id FROM follows WHERE follower_id = ? AND status = 'accept'))
+     OR (p.privacy = 'private' AND p.id IN (SELECT post_id FROM post_allowed_users WHERE user_id = ?))
+  )
 ORDER BY datetime(p.created_at) DESC
-`, authorID)
+`, authorID, requesterID, requesterID, requesterID)
+
 	if err != nil {
 		return nil, err
 	}
@@ -132,13 +157,65 @@ ORDER BY datetime(p.created_at) DESC
 		var a models.PostAuthor
 		var created string
 		var img, priv sql.NullString
-		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &img, &priv, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
+		var grpID sql.NullInt64
+		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &img, &priv, &grpID, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
 			return nil, err
 		}
 		p.Author = &a
 		p.ImageURL = img.String
 		p.Privacy = priv.String
+		if grpID.Valid {
+			p.GroupID = grpID.Int64
+		}
 		p.CreatedAt, _ = parseSQLiteTime(created)
+		posts = append(posts, p)
+	}
+	return posts, nil
+}
+
+func (r *PostRepo) GetGroupPosts(groupID int64, requesterID int64) ([]models.Post, error) {
+	// Check if user is member of the group
+	var count int
+	err := r.db.QueryRow(`SELECT COUNT(*) FROM group_members WHERE group_id = ? AND user_id = ?`, groupID, requesterID).Scan(&count)
+	if err != nil || count == 0 {
+		return nil, nil // Or error? Instructions say only displayed to members.
+	}
+
+	rows, err := r.db.Query(`
+SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.group_id, p.created_at, u.id, u.first_name, u.last_name
+FROM posts p
+JOIN users u ON p.author_id = u.id
+WHERE p.group_id = ?
+ORDER BY datetime(p.created_at) DESC
+`, groupID)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []models.Post
+	for rows.Next() {
+		var p models.Post
+		var a models.PostAuthor
+		var created string
+		var img, priv sql.NullString
+		var gID sql.NullInt64
+		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &img, &priv, &gID, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
+			return nil, err
+		}
+		p.Author = &a
+		p.ImageURL = img.String
+		p.Privacy = priv.String
+		if gID.Valid {
+			p.GroupID = gID.Int64
+		}
+		p.CreatedAt, _ = parseSQLiteTime(created)
+		
+		// Load comments
+		comments, _ := r.GetComments(p.ID)
+		p.Comments = comments
+		
 		posts = append(posts, p)
 	}
 	return posts, nil

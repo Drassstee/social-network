@@ -62,20 +62,20 @@ onMounted(fetchGroups)
     </header>
 
     <div class="groups-grid">
-      <div v-for="group in groups" :key="group.id" class="card-traditional group-card">
-        <div class="group-header">
-          <div class="group-icon">Grp</div>
-          <div>
-            <h3 class="group-title">{{ group.title }}</h3>
-            <span class="member-count">{{ group.members?.length || 0 }} members</span>
+        <router-link v-for="group in groups" :key="group.id" :to="`/groups/${group.id}`" class="card-traditional group-card">
+          <div class="group-header">
+            <div class="group-icon">Grp</div>
+            <div>
+              <h3 class="group-title">{{ group.title }}</h3>
+              <span class="member-count">{{ group.member_count || 0 }} members</span>
+            </div>
           </div>
-        </div>
-        <p class="group-desc">{{ group.description }}</p>
-        <div class="group-actions">
-          <button @click="joinGroup(group.id)" class="btn-traditional ghost">Request to Join</button>
-          <router-link :to="`/groups/${group.id}`" class="btn-traditional mini">View</router-link>
-        </div>
-      </div>
+          <p class="group-desc">{{ group.description }}</p>
+          <div class="group-actions" @click.stop>
+            <button @click.prevent="joinGroup(group.id)" class="btn-traditional ghost">Request to Join</button>
+            <button class="btn-traditional mini">View</button>
+          </div>
+        </router-link>
     </div>
 
     <!-- Create Group Modal -->

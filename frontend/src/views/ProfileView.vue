@@ -8,7 +8,7 @@ const auth = useAuthStore()
 const profile = ref(null)
 const loading = ref(true)
 
-const followStatus = ref('none') // 'none', 'pending', 'accept'
+const followStatus = ref('none')
 const isMe = ref(false)
 
 const fetchProfile = async (id) => {
@@ -18,11 +18,10 @@ const fetchProfile = async (id) => {
     const response = await fetch(`/api/v1/users/${id}`)
     if (!response.ok) throw new Error('Failed to fetch profile')
     profile.value = await response.json()
-    // In a real app we'd fetch follow status specifically, 
-    // but here we can check if I'm in followers list if it's public
     if (profile.value.followers?.some(f => f.id === auth.user?.id)) {
       followStatus.value = 'accept'
     }
+
   } catch (e) { 
     console.error(e)
     profile.value = null

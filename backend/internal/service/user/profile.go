@@ -50,7 +50,7 @@ func (us *UserService) GetProfile(userID, targetID int64) (*profile.Profile, err
 		return nil, fmt.Errorf("get profile: %w", err)
 	}
 
-	posts, err := us.posts.GetPosts(targetID)
+	posts, err := us.posts.GetPosts(targetID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("get profile: %w", err)
 	}

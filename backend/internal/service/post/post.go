@@ -21,7 +21,7 @@ func NewPostService(repo models.PostRepo) *PostService {
 	return &PostService{repo: repo}
 }
 
-func (s *PostService) ListPosts(requesterID int64, limit, offset int) ([]models.Post, bool, error) {
+func (s *PostService) ListPosts(requesterID int64, groupID int64, limit, offset int) ([]models.Post, bool, error) {
 	if limit <= 0 {
 		limit = defaultLimit
 	}
@@ -31,10 +31,19 @@ func (s *PostService) ListPosts(requesterID int64, limit, offset int) ([]models.
 	if offset < 0 {
 		offset = 0
 	}
-	return s.repo.List(requesterID, limit, offset)
+	if groupID > 0 {
+		posts, err := s.repo.GetGroupPosts(groupID, requesterID)
+		if err != nil {
+			return nil, false, err
+		}
+		// Basic pagination for memory-cached group posts (or I could implement it in repo)
+		// For now simple return as is or implement paging.
+		return posts, false, nil
+	}
+	return s.repo.List(requesterID, 0, limit, offset)
 }
 
-func (s *PostService) CreatePost(authorID int64, content, imageURL, privacy string, allowedUsers []int64) (*models.Post, error) {
+func (s *PostService) CreatePost(authorID int64, content, imageURL, privacy string, groupID int64, allowedUsers []int64) (*models.Post, error) {
 	content = strings.TrimSpace(content)
 	if authorID == 0 {
 		return nil, errors.New("author_id is required")
@@ -48,7 +57,7 @@ func (s *PostService) CreatePost(authorID int64, content, imageURL, privacy stri
 	if privacy == "" {
 		privacy = "public"
 	}
-	return s.repo.Insert(authorID, content, imageURL, privacy, allowedUsers)
+	return s.repo.Insert(authorID, content, imageURL, privacy, groupID, allowedUsers)
 }
 
 func (s *PostService) CreateComment(authorID int64, postID int64, content, imageURL string) (*models.Comment, error) {

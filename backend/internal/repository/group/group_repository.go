@@ -44,10 +44,21 @@ func (r *sqlGroupRepository) WithTx(tx any) models.GroupRepo {
 //--------------------------------------------------------------------------------------|
 
 func (r *sqlGroupRepository) CreateGroup(ctx context.Context, group *models.Group) error {
-	return r.db.QueryRowContext(ctx,
-		`INSERT INTO groups (creator_id, title, description) VALUES (?, ?, ?) RETURNING id, created_at`,
-		group.CreatorID, group.Title, group.Description,
-	).Scan(&group.ID, &group.CreatedAt)
+	res, err := r.db.ExecContext(ctx,
+		`INSERT INTO groups (creator_id, title, description) VALUES (?, ?, ?)`,
+		group.CreatorID, group.Title, group.Description)
+	if err != nil {
+		return err
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return err
+	}
+	group.ID = int(id)
+	
+	// Optional: Fetch created_at or just use current time if not critical for immediate return
+	err = r.db.QueryRowContext(ctx, `SELECT created_at FROM groups WHERE id = ?`, id).Scan(&group.CreatedAt)
+	return err
 }
 
 //--------------------------------------------------------------------------------------|
@@ -67,7 +78,9 @@ func (r *sqlGroupRepository) GetGroupByID(ctx context.Context, id int) (*models.
 
 func (r *sqlGroupRepository) ListGroups(ctx context.Context, limit, offset int) ([]models.Group, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, creator_id, title, description, created_at FROM groups ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+		`SELECT g.id, g.creator_id, g.title, g.description, g.created_at,
+		        (SELECT COUNT(*) FROM group_members WHERE group_id = g.id) as member_count
+		 FROM groups g ORDER BY g.created_at DESC LIMIT ? OFFSET ?`,
 		limit, offset)
 	if err != nil {
 		return nil, err
@@ -77,7 +90,7 @@ func (r *sqlGroupRepository) ListGroups(ctx context.Context, limit, offset int) 
 	var groups []models.Group
 	for rows.Next() {
 		var g models.Group
-		if err := rows.Scan(&g.ID, &g.CreatorID, &g.Title, &g.Description, &g.CreatedAt); err != nil {
+		if err := rows.Scan(&g.ID, &g.CreatorID, &g.Title, &g.Description, &g.CreatedAt, &g.MemberCount); err != nil {
 			return nil, err
 		}
 		groups = append(groups, g)

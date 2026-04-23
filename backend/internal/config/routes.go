@@ -26,6 +26,8 @@ func SetupRoutes(h *handlers.Handler) *http.ServeMux {
 	apimux.HandleFunc("DELETE /delete", authMW(web.NewAppHandler(h.User.DeleteUser)))
 	apimux.HandleFunc("PUT /users", authMW(web.NewAppHandler(h.User.UpdateProfile)))
 	apimux.HandleFunc("GET /notifications", authMW(web.NewAppHandler(h.User.GetNotification)))
+	apimux.HandleFunc("POST /notifications/respond", authMW(web.NewAppHandler(h.User.RespondToFollowRequest)))
+
 	apimux.HandleFunc("POST /follow", authMW(web.NewAppHandler(h.User.Follow)))
 	apimux.HandleFunc("POST /unfollow", authMW(web.NewAppHandler(h.User.Unfollow)))
 	apimux.HandleFunc("POST /avatar", authMW(web.NewAppHandler(h.User.UploadAvatar)))

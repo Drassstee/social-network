@@ -32,9 +32,8 @@ const fetchFollowers = async () => {
   } catch (e) { console.error('Failed to fetch followers:', e) }
 }
 
-
-// Mock fetching posts for now
 onMounted(async () => {
+
   fetchFollowers()
   try {
     const response = await fetch('/api/v1/posts')

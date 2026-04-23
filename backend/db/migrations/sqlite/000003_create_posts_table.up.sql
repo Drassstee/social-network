@@ -4,8 +4,10 @@ CREATE TABLE IF NOT EXISTS posts (
     content TEXT NOT NULL,
     image_url TEXT,
     privacy TEXT NOT NULL DEFAULT 'public',
+    group_id INTEGER,
     created_at DATETIME NOT NULL DEFAULT (datetime('now')),
-    FOREIGN KEY (author_id) REFERENCES users(id)
+    FOREIGN KEY (author_id) REFERENCES users(id),
+    FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS post_allowed_users (

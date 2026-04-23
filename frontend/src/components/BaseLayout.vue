@@ -18,7 +18,11 @@ onMounted(() => {
 })
 
 watch(() => auth.isAuthenticated, (val) => {
-  if (val) chat.connect()
+  if (val) {
+    chat.connect()
+  } else {
+    router.push('/login')
+  }
 })
 </script>
 

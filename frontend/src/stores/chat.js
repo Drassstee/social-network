@@ -4,7 +4,7 @@ export const useChatStore = defineStore('chat', {
   state: () => ({
     socket: null,
     onlineUsers: [],
-    messages: {}, // userID -> array of messages
+    messages: {},
     activeChatUser: null,
     connected: false,
   }),
@@ -31,9 +31,9 @@ export const useChatStore = defineStore('chat', {
         this.connected = false
         this.socket = null
         console.log('Chat disconnected')
-        // Reconnect after a delay
         setTimeout(() => this.connect(), 3000)
       }
+
     },
     async fetchOnlineUsers() {
       try {
@@ -52,10 +52,15 @@ export const useChatStore = defineStore('chat', {
         case 'private_message':
           this.addMessage(msg.data)
           break
+        case 'group_message':
+          // Handle group message (could be simplified or specialized)
+          // For now, we'll let the GroupChat component handle its own state or add to a global one
+          this.addGroupMessage(msg.data)
+          break
         case 'typing':
-          // Handle typing indicator
           break
       }
+
     },
     updateUserStatus(data) {
       const index = this.onlineUsers.findIndex(u => u.id === data.user_id)
@@ -83,6 +88,21 @@ export const useChatStore = defineStore('chat', {
         }
       }
       this.socket.send(JSON.stringify(payload))
+    },
+    addGroupMessage(msg) {
+        // Optional: keep global group messages state or broadcast to specific listeners
+    },
+    sendGroupMessage(groupID, body) {
+        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return
+
+        const payload = {
+            type: 'group_message',
+            data: {
+                group_id: groupID,
+                body: body
+            }
+        }
+        this.socket.send(JSON.stringify(payload))
     }
   }
 })
