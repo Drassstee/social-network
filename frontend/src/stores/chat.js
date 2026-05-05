@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { useNotificationStore } from './notifications'
 
 export const useChatStore = defineStore('chat', {
   state: () => ({
@@ -18,7 +19,6 @@ export const useChatStore = defineStore('chat', {
 
       this.socket.onopen = () => {
         this.connected = true
-        console.log('Chat connected')
         this.fetchOnlineUsers()
       }
 
@@ -30,7 +30,6 @@ export const useChatStore = defineStore('chat', {
       this.socket.onclose = () => {
         this.connected = false
         this.socket = null
-        console.log('Chat disconnected')
         setTimeout(() => this.connect(), 3000)
       }
 
@@ -53,12 +52,13 @@ export const useChatStore = defineStore('chat', {
           this.addMessage(msg.data)
           break
         case 'group_message':
-          // Handle group message (could be simplified or specialized)
-          // For now, we'll let the GroupChat component handle its own state or add to a global one
           this.addGroupMessage(msg.data)
           break
-        case 'typing':
+        case 'notification': {
+          const notifStore = useNotificationStore()
+          notifStore.addNotification(msg.data)
           break
+        }
       }
 
     },
@@ -77,29 +77,41 @@ export const useChatStore = defineStore('chat', {
       }
       this.messages[otherID].push(msg)
     },
-    sendMessage(receiverID, body) {
+    sendMessage(receiverID, body, imageURL = null) {
       if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return
 
       const payload = {
         type: 'private_message',
         data: {
           receiver_id: receiverID,
-          body: body
+          body: body,
+          image_url: imageURL
         }
       }
       this.socket.send(JSON.stringify(payload))
     },
-    addGroupMessage(msg) {
-        // Optional: keep global group messages state or broadcast to specific listeners
+    async fetchMessages(userID) {
+      try {
+        const response = await fetch(`/api/v1/chat/messages?user_id=${userID}&limit=50&offset=0`)
+        const data = await response.json()
+        this.messages[userID] = data || []
+      } catch (err) {
+        console.error('Failed to fetch messages:', err)
+      }
     },
-    sendGroupMessage(groupID, body) {
+    addGroupMessage(msg) {
+        // This action triggers $onAction listeners in components like GroupChat.vue
+        return msg
+    },
+    sendGroupMessage(groupID, body, imageURL = null) {
         if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return
 
         const payload = {
             type: 'group_message',
             data: {
                 group_id: groupID,
-                body: body
+                body: body,
+                image_url: imageURL
             }
         }
         this.socket.send(JSON.stringify(payload))

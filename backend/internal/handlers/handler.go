@@ -20,12 +20,12 @@ type Handler struct {
 	Notifications *notifications.Handler
 }
 
-func NewHandler(service *service.Service, hub *chatsvc.Hub, userRepo models.UserRepo, chatRepo models.ChatRepo, uploader chat.ImageUploader) *Handler {
+func NewHandler(service *service.Service, hub *chatsvc.Hub, userRepo models.UserRepo, chatRepo models.ChatRepo, followRepo models.FollowRepo, uploader chat.ImageUploader) *Handler {
 	return &Handler{
 		User:          user.NewUserHandler(service.User),
 		Post:          post.NewPostHandler(service.Post, uploader),
 		Group:         group.NewGroupHandler(service.Group),
-		Chat:          chat.NewChatHandler(chatRepo, hub, userRepo, uploader),
+		Chat:          chat.NewChatHandler(chatRepo, hub, userRepo, followRepo, uploader),
 		Notifications: notifications.NewHandler(service.Notifications),
 	}
 }

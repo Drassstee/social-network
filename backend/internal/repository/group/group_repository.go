@@ -56,7 +56,6 @@ func (r *sqlGroupRepository) CreateGroup(ctx context.Context, group *models.Grou
 	}
 	group.ID = int(id)
 	
-	// Optional: Fetch created_at or just use current time if not critical for immediate return
 	err = r.db.QueryRowContext(ctx, `SELECT created_at FROM groups WHERE id = ?`, id).Scan(&group.CreatedAt)
 	return err
 }

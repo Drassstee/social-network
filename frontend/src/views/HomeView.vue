@@ -14,6 +14,14 @@ const followers = ref([])
 const showComments = ref({})
 const newCommentContent = ref({})
 const commentImages = ref({})
+const feedbackMessage = ref('')
+const feedbackType = ref('info')
+
+const showFeedback = (msg, type = 'info') => {
+  feedbackMessage.value = msg
+  feedbackType.value = type
+  setTimeout(() => { feedbackMessage.value = '' }, 3000)
+}
 
 const onFileChange = (e, type, postId = null) => {
   const file = e.target.files[0]
@@ -74,7 +82,7 @@ const handleCreatePost = async () => {
         newPost.value.privacy = 'public'
         newPost.value.allowed_users = []
         postImage.value = null
-        alert('Post created!')
+        showFeedback('Post created!', 'success')
       }
     }
   } catch (e) { console.error('Failed to create post:', e) }
@@ -118,6 +126,9 @@ const handleCreateComment = async (postId) => {
 
 <template>
   <div class="home-view">
+    <div v-if="feedbackMessage" class="feedback-toast" :class="feedbackType">
+      {{ feedbackMessage }}
+    </div>
     <header class="view-header">
       <h1 class="view-title">Feed</h1>
       <p class="view-subtitle">Feed</p>
@@ -172,7 +183,8 @@ const handleCreateComment = async (postId) => {
       <div v-for="post in posts" :key="post.id" class="card-traditional post-card">
         <div class="post-header">
           <router-link :to="`/profile/${post.author_id}`" class="avatar-link">
-            <div class="avatar-placeholder">{{ post.author?.first_name?.[0] || 'U' }}</div>
+            <img v-if="post.author?.avatar_url" :src="post.author.avatar_url" class="avatar-small-img" />
+            <div v-else class="avatar-placeholder">{{ post.author?.first_name?.[0] || 'U' }}</div>
           </router-link>
           <div class="post-meta">
             <router-link :to="`/profile/${post.author_id}`" class="author-link">
@@ -195,7 +207,8 @@ const handleCreateComment = async (postId) => {
         <div v-if="showComments[post.id]" class="comments-section">
           <div class="comments-list">
             <div v-for="comment in post.comments" :key="comment.id" class="comment-item">
-              <div class="avatar-placeholder xsmall">{{ comment.author?.first_name?.[0] || 'U' }}</div>
+               <img v-if="comment.author?.avatar_url" :src="comment.author.avatar_url" class="avatar-xsmall-img" />
+               <div v-else class="avatar-placeholder xsmall">{{ comment.author?.first_name?.[0] || 'U' }}</div>
               <div class="comment-content">
                 <span class="comment-author">{{ comment.author?.first_name }} {{ comment.author?.last_name }}</span>
                 <p>{{ comment.content }}</p>
@@ -461,4 +474,19 @@ const handleCreateComment = async (postId) => {
 }
 
 .italic { font-style: italic; }
+.avatar-small-img {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  border: 2px solid var(--color-gold);
+  object-fit: cover;
+}
+
+.avatar-xsmall-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--color-gold);
+  object-fit: cover;
+}
 </style>

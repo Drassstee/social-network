@@ -36,6 +36,7 @@ func (us *UserService) GetProfile(userID, targetID int64) (*profile.Profile, err
 					FirstName:   data.FirstName,
 					LastName:    data.LastName,
 					ProfileType: data.ProfileType,
+					AvatarURL:   formatAvatarURL(data.AvatarURL),
 				}
 
 				return &profile.Profile{
@@ -64,6 +65,8 @@ func (us *UserService) GetProfile(userID, targetID int64) (*profile.Profile, err
 	if err != nil {
 		return nil, fmt.Errorf("get profile: %w", err)
 	}
+
+	u.AvatarURL = formatAvatarURL(u.AvatarURL)
 
 	return &profile.Profile{
 		User:      u,
@@ -109,4 +112,37 @@ func (us *UserService) GetUserID(uuid string) (int64, error) {
 	}
 
 	return id, nil
+}
+
+// --------------------------------------------------------------------|
+
+func (us *UserService) GetMe(id int64) (*user.UserData, error) {
+	if id < 1 {
+		return nil, fmt.Errorf("get me: %w: incorrect user id", models.ErrInvalidData)
+	}
+
+	u, err := us.users.GetByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("get me: %w", err)
+	}
+
+	return &user.UserData{
+		ID:        u.ID,
+		FirstName: u.FirstName,
+		LastName:  u.LastName,
+		Nickname:  u.Nickname,
+		AvatarURL: formatAvatarURL(u.AvatarURL),
+	}, nil
+}
+
+func formatAvatarURL(path string) string {
+	if path == "" {
+		return ""
+	}
+	// If it's already a full URL or starts with /, return as is
+	if path[0] == '/' || path[:4] == "http" {
+		return path
+	}
+	// Prefix with api path
+	return "/api/v1/" + path
 }

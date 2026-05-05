@@ -16,19 +16,21 @@ import (
 type ChatHandler struct {
 	Repo     models.ChatRepo
 	Hub      *chatsvc.Hub
-	UserRepo models.UserRepo
-	Uploader ImageUploader
+	UserRepo   models.UserRepo
+	FollowRepo models.FollowRepo
+	Uploader   ImageUploader
 }
 
 //--------------------------------------------------------------------------------------|
 
 // NewChatHandler creates a new instance of the chat handler.
-func NewChatHandler(repo models.ChatRepo, hub *chatsvc.Hub, userRepo models.UserRepo, uploader ImageUploader) *ChatHandler {
+func NewChatHandler(repo models.ChatRepo, hub *chatsvc.Hub, userRepo models.UserRepo, followRepo models.FollowRepo, uploader ImageUploader) *ChatHandler {
 	return &ChatHandler{
-		Repo:     repo,
-		Hub:      hub,
-		UserRepo: userRepo,
-		Uploader: uploader,
+		Repo:       repo,
+		Hub:        hub,
+		UserRepo:   userRepo,
+		FollowRepo: followRepo,
+		Uploader:   uploader,
 	}
 }
 
@@ -106,16 +108,27 @@ func (h *ChatHandler) GetOnlineUsers(w http.ResponseWriter, r *http.Request, ide
 		Username string `json:"username"`
 	}
 
-	onlineUsers := make([]OnlineUser, len(users))
-	for i, u := range users {
+	onlineUsers := make([]OnlineUser, 0, len(users))
+	for _, u := range users {
+		if u.ID == int64(identity.ID) {
+			continue // Skip self
+		}
+
+		// Audit Requirement: Only show followers/following
+		isF1, _ := h.FollowRepo.IsFollower(int64(identity.ID), u.ID)
+		isF2, _ := h.FollowRepo.IsFollower(u.ID, int64(identity.ID))
+		if !isF1 && !isF2 {
+			continue
+		}
+
 		name := u.FirstName + " " + u.LastName
 		if name == " " {
 			name = u.Nickname
 		}
-		onlineUsers[i] = OnlineUser{
+		onlineUsers = append(onlineUsers, OnlineUser{
 			ID:       int(u.ID),
 			Username: name,
-		}
+		})
 	}
 
 	web.JSONResponse(w, http.StatusOK, onlineUsers)

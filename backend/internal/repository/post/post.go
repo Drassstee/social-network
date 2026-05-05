@@ -21,7 +21,7 @@ func (r *PostRepo) List(requesterID int64, groupID int64, limit, offset int) ([]
 	}
 	
 	query := `
-SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.group_id, p.created_at, u.id, u.first_name, u.last_name
+SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.group_id, p.created_at, u.id, u.first_name, u.last_name, u.avatar_url
 FROM posts p
 JOIN users u ON p.author_id = u.id
 WHERE (p.group_id IS NULL)
@@ -46,11 +46,12 @@ LIMIT ? OFFSET ?
 		var p models.Post
 		var a models.PostAuthor
 		var created string
-		var img, priv sql.NullString
+		var img, priv, avt sql.NullString
 		var grpID sql.NullInt64
-		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &img, &priv, &grpID, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
+		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &img, &priv, &grpID, &created, &a.ID, &a.FirstName, &a.LastName, &avt); err != nil {
 			return nil, false, err
 		}
+		a.AvatarURL = avt.String
 		p.Author = &a
 		p.ImageURL = img.String
 		p.Privacy = priv.String
@@ -109,7 +110,7 @@ func (r *PostRepo) Insert(authorID int64, content, imageURL, privacy string, gro
 
 	// Fetch the inserted post
 	row := r.db.QueryRow(`
-SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.group_id, p.created_at, u.id, u.first_name, u.last_name
+SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.group_id, p.created_at, u.id, u.first_name, u.last_name, u.avatar_url
 FROM posts p
 JOIN users u ON p.author_id = u.id
 WHERE p.id = ?
@@ -117,11 +118,12 @@ WHERE p.id = ?
 	var p models.Post
 	var a models.PostAuthor
 	var created string
-	var img, priv sql.NullString
+	var img, priv, avt sql.NullString
 	var grpID sql.NullInt64
-	if err := row.Scan(&p.ID, &p.AuthorID, &p.Content, &img, &priv, &grpID, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
+	if err := row.Scan(&p.ID, &p.AuthorID, &p.Content, &img, &priv, &grpID, &created, &a.ID, &a.FirstName, &a.LastName, &avt); err != nil {
 		return nil, err
 	}
+	a.AvatarURL = avt.String
 	p.Author = &a
 	p.ImageURL = img.String
 	p.Privacy = priv.String
@@ -134,7 +136,7 @@ WHERE p.id = ?
 
 func (r *PostRepo) GetPosts(authorID int64, requesterID int64) ([]models.Post, error) {
 	rows, err := r.db.Query(`
-SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.group_id, p.created_at, u.id, u.first_name, u.last_name
+SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.group_id, p.created_at, u.id, u.first_name, u.last_name, u.avatar_url
 FROM posts p
 JOIN users u ON p.author_id = u.id
 WHERE p.author_id = ? AND p.group_id IS NULL
@@ -156,11 +158,12 @@ ORDER BY datetime(p.created_at) DESC
 		var p models.Post
 		var a models.PostAuthor
 		var created string
-		var img, priv sql.NullString
+		var img, priv, avt sql.NullString
 		var grpID sql.NullInt64
-		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &img, &priv, &grpID, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
+		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &img, &priv, &grpID, &created, &a.ID, &a.FirstName, &a.LastName, &avt); err != nil {
 			return nil, err
 		}
+		a.AvatarURL = avt.String
 		p.Author = &a
 		p.ImageURL = img.String
 		p.Privacy = priv.String
@@ -182,7 +185,7 @@ func (r *PostRepo) GetGroupPosts(groupID int64, requesterID int64) ([]models.Pos
 	}
 
 	rows, err := r.db.Query(`
-SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.group_id, p.created_at, u.id, u.first_name, u.last_name
+SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.group_id, p.created_at, u.id, u.first_name, u.last_name, u.avatar_url
 FROM posts p
 JOIN users u ON p.author_id = u.id
 WHERE p.group_id = ?
@@ -199,11 +202,12 @@ ORDER BY datetime(p.created_at) DESC
 		var p models.Post
 		var a models.PostAuthor
 		var created string
-		var img, priv sql.NullString
+		var img, priv, avt sql.NullString
 		var gID sql.NullInt64
-		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &img, &priv, &gID, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
+		if err := rows.Scan(&p.ID, &p.AuthorID, &p.Content, &img, &priv, &gID, &created, &a.ID, &a.FirstName, &a.LastName, &avt); err != nil {
 			return nil, err
 		}
+		a.AvatarURL = avt.String
 		p.Author = &a
 		p.ImageURL = img.String
 		p.Privacy = priv.String
@@ -230,7 +234,7 @@ func (r *PostRepo) InsertComment(authorID int64, postID int64, content, imageURL
 	id, _ := res.LastInsertId()
 
 	row := r.db.QueryRow(`
-SELECT c.id, c.post_id, c.author_id, c.content, c.image_url, c.created_at, u.id, u.first_name, u.last_name
+SELECT c.id, c.post_id, c.author_id, c.content, c.image_url, c.created_at, u.id, u.first_name, u.last_name, u.avatar_url
 FROM comments c
 JOIN users u ON c.author_id = u.id
 WHERE c.id = ?
@@ -238,10 +242,11 @@ WHERE c.id = ?
 	var c models.Comment
 	var a models.PostAuthor
 	var created string
-	var img sql.NullString
-	if err := row.Scan(&c.ID, &c.PostID, &c.AuthorID, &c.Content, &img, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
+	var img, avt sql.NullString
+	if err := row.Scan(&c.ID, &c.PostID, &c.AuthorID, &c.Content, &img, &created, &a.ID, &a.FirstName, &a.LastName, &avt); err != nil {
 		return nil, err
 	}
+	a.AvatarURL = avt.String
 	c.Author = &a
 	c.ImageURL = img.String
 	c.CreatedAt, _ = parseSQLiteTime(created)
@@ -250,7 +255,7 @@ WHERE c.id = ?
 
 func (r *PostRepo) GetComments(postID int64) ([]models.Comment, error) {
 	rows, err := r.db.Query(`
-SELECT c.id, c.post_id, c.author_id, c.content, c.image_url, c.created_at, u.id, u.first_name, u.last_name
+SELECT c.id, c.post_id, c.author_id, c.content, c.image_url, c.created_at, u.id, u.first_name, u.last_name, u.avatar_url
 FROM comments c
 JOIN users u ON c.author_id = u.id
 WHERE c.post_id = ?
@@ -266,10 +271,11 @@ ORDER BY datetime(c.created_at) ASC
 		var c models.Comment
 		var a models.PostAuthor
 		var created string
-		var img sql.NullString
-		if err := rows.Scan(&c.ID, &c.PostID, &c.AuthorID, &c.Content, &img, &created, &a.ID, &a.FirstName, &a.LastName); err != nil {
+		var img, avt sql.NullString
+		if err := rows.Scan(&c.ID, &c.PostID, &c.AuthorID, &c.Content, &img, &created, &a.ID, &a.FirstName, &a.LastName, &avt); err != nil {
 			continue
 		}
+		a.AvatarURL = avt.String
 		c.Author = &a
 		c.ImageURL = img.String
 		c.CreatedAt, _ = parseSQLiteTime(created)

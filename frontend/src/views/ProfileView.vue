@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
@@ -10,6 +10,19 @@ const loading = ref(true)
 
 const followStatus = ref('none')
 const isMe = ref(false)
+const feedbackMessage = ref('')
+const feedbackType = ref('info')
+
+const showFeedback = (msg, type = 'info') => {
+  feedbackMessage.value = msg
+  feedbackType.value = type
+  setTimeout(() => { feedbackMessage.value = '' }, 3000)
+}
+
+const isPrivateAndNotFollowed = computed(() => {
+  if (isMe.value) return false
+  return profile.value?.user?.profile_type === 'private' && followStatus.value !== 'accept'
+})
 
 const fetchProfile = async (id) => {
   loading.value = true
@@ -18,6 +31,8 @@ const fetchProfile = async (id) => {
     const response = await fetch(`/api/v1/users/${id}`)
     if (!response.ok) throw new Error('Failed to fetch profile')
     profile.value = await response.json()
+    
+    // Determine follow status from backend response
     if (profile.value.followers?.some(f => f.id === auth.user?.id)) {
       followStatus.value = 'accept'
     }
@@ -44,7 +59,7 @@ const handleFollow = async () => {
     if (response.ok) {
       const data = await response.json()
       followStatus.value = data.status || 'pending'
-      alert(data.status === 'accept' ? 'Following!' : 'Follow request sent!')
+      showFeedback(data.status === 'accept' ? 'Following!' : 'Follow request sent!', 'success')
       fetchProfile(route.params.id)
     }
   } catch (e) { console.error(e) }
@@ -60,7 +75,7 @@ const handleUnfollow = async () => {
     })
     if (response.ok) {
       followStatus.value = 'none'
-      alert('Unfollowed')
+      showFeedback('Unfollowed', 'success')
       fetchProfile(route.params.id)
     }
   } catch (e) { console.error(e) }
@@ -73,11 +88,17 @@ const togglePrivacy = async () => {
     const response = await fetch('/api/v1/users', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ profile_type: newType, email: profile.value.user.email, first_name: profile.value.user.first_name, last_name: profile.value.user.last_name, dob: profile.value.user.dob })
+      body: JSON.stringify({ 
+        profile_type: newType, 
+        email: profile.value.user.email, 
+        first_name: profile.value.user.first_name, 
+        last_name: profile.value.user.last_name, 
+        dob: profile.value.user.dob 
+      })
     })
     if (response.ok) {
       profile.value.user.profile_type = newType
-      alert(`Profile is now ${newType}`)
+      showFeedback(`Profile is now ${newType}`, 'success')
     }
   } catch (e) { console.error(e) }
 }
@@ -128,6 +149,9 @@ const handleCreateComment = async (postId) => {
 
 <template>
   <div class="profile-view">
+    <div v-if="feedbackMessage" class="feedback-toast" :class="feedbackType">
+      {{ feedbackMessage }}
+    </div>
     <div v-if="loading" class="loading">Loading...</div>
     <div v-else-if="profile" class="profile-content">
       <div class="card-traditional profile-header">
@@ -136,7 +160,10 @@ const handleCreateComment = async (postId) => {
         </div>
         
         <div class="profile-info-section">
-          <div class="avatar-placeholder avatar-large">{{ profile.user.first_name[0] }}</div>
+          <div class="avatar-container-large">
+            <img v-if="profile.user.avatar_url" :src="profile.user.avatar_url" class="avatar-large-img" />
+            <div v-else class="avatar-placeholder avatar-large">{{ profile.user.first_name[0] }}</div>
+          </div>
           <div class="user-details">
             <h1 class="fullname">{{ profile.user.first_name }} {{ profile.user.last_name }}</h1>
             <p class="nickname">@{{ profile.user.nickname || 'user' + profile.user.id }}</p>
@@ -173,7 +200,14 @@ const handleCreateComment = async (postId) => {
           </div>
         </div>
 
-        <div class="about-section">
+        <!-- Privacy Gating -->
+        <div v-if="isPrivateAndNotFollowed" class="private-overlay">
+          <div class="private-icon">🔒</div>
+          <h2>This Account is Private</h2>
+          <p>Follow this user to see their photos and posts.</p>
+        </div>
+
+        <div v-else class="about-section">
           <div class="info-grid">
             <div class="info-item">
               <span class="info-label">Email:</span>
@@ -195,7 +229,7 @@ const handleCreateComment = async (postId) => {
         </div>
       </div>
 
-      <div class="profile-activity">
+      <div v-if="!isPrivateAndNotFollowed" class="profile-activity">
         <h2>Activity</h2>
         <div class="posts-list">
           <div v-if="profile.posts?.length === 0" class="no-posts">
@@ -203,7 +237,10 @@ const handleCreateComment = async (postId) => {
           </div>
           <div v-else v-for="post in profile.posts" :key="post.id" class="card-traditional post-card">
             <div class="post-header">
-              <div class="avatar-placeholder small">{{ profile.user.first_name[0] }}</div>
+              <div class="avatar-container-small">
+                <img v-if="post.author?.avatar_url" :src="post.author.avatar_url" class="avatar-small-img" />
+                <div v-else class="avatar-placeholder small">{{ profile.user.first_name[0] }}</div>
+              </div>
               <div class="post-meta">
                 <h3 class="author-name">{{ profile.user.first_name }} {{ profile.user.last_name }}</h3>
                 <span class="post-date text-muted">{{ new Date(post.created_at).toLocaleDateString() }}</span>
@@ -247,7 +284,6 @@ const handleCreateComment = async (postId) => {
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
@@ -526,5 +562,46 @@ const handleCreateComment = async (postId) => {
   font-size: 0.9rem;
 }
 
+.private-overlay {
+  padding: 60px 40px;
+  text-align: center;
+  background: white;
+  border-top: 1px solid #eee;
+}
+
+.private-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  opacity: 0.3;
+}
+
+.private-overlay h2 {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+.private-overlay p {
+  color: #666;
+}
+
 .italic { font-style: italic; }
+.avatar-container-large, .avatar-container-small {
+  flex-shrink: 0;
+}
+
+.avatar-large-img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 4px solid var(--color-gold);
+  object-fit: cover;
+}
+
+.avatar-small-img {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  border: 2px solid var(--color-gold);
+  object-fit: cover;
+}
 </style>

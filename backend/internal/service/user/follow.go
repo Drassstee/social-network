@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"fmt"
 
 	"social-network/internal/models"
@@ -39,6 +40,19 @@ func (us *UserService) Follow(f follow.Follow) (string, error) {
 	err = us.follows.CreateFollow(f)
 	if err != nil {
 		return "", fmt.Errorf("follow: %w", err)
+	}
+
+	// Notify the user being followed
+	if f.Status == "pending" {
+		follower, _ := us.users.GetByID(f.FollowerID)
+		username := ""
+		if follower != nil {
+			username = follower.Nickname
+			if username == "" {
+				username = follower.FirstName + " " + follower.LastName
+			}
+		}
+		us.notifications.Notify(context.Background(), int(f.FollowingID), int(f.FollowerID), username, "user", int(f.FollowerID), "follow_request")
 	}
 
 	return f.Status, nil

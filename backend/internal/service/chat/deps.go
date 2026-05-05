@@ -21,3 +21,10 @@ type ChatRepository interface {
 type UserRepository interface {
 	GetByID(id int64) (*models.User, error)
 }
+
+//--------------------------------------------------------------------------------------|
+
+// FollowRepository defines the interface for checking follow status.
+type FollowRepository interface {
+	IsFollower(followerID, followingID int64) (bool, error)
+}

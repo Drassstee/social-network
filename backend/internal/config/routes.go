@@ -20,12 +20,16 @@ func SetupRoutes(h *handlers.Handler) *http.ServeMux {
 	apimux.HandleFunc("POST /register", web.NewAppHandler(h.User.Register))
 	apimux.HandleFunc("POST /login", web.NewAppHandler(h.User.Login))
 	apimux.HandleFunc("POST /logout", authMW(web.NewAppHandler(h.User.Logout)))
+	apimux.HandleFunc("GET /me", authMW(web.NewAppHandler(h.User.GetMe)))
 
 	// Users
 	apimux.HandleFunc("GET /users/{id}", authMW(web.NewAppHandler(h.User.GetProfile)))
 	apimux.HandleFunc("DELETE /delete", authMW(web.NewAppHandler(h.User.DeleteUser)))
 	apimux.HandleFunc("PUT /users", authMW(web.NewAppHandler(h.User.UpdateProfile)))
-	apimux.HandleFunc("GET /notifications", authMW(web.NewAppHandler(h.User.GetNotification)))
+	apimux.HandleFunc("GET /notifications/list", authMW(web.NewAppHandler(h.Notifications.List)))
+	apimux.HandleFunc("GET /notifications/unread-count", authMW(web.NewAppHandler(h.Notifications.GetUnreadCount)))
+	apimux.HandleFunc("POST /notifications/{id}/read", authMW(web.NewAppHandler(h.Notifications.MarkAsRead)))
+	apimux.HandleFunc("POST /notifications/read-all", authMW(web.NewAppHandler(h.Notifications.MarkAllAsRead)))
 	apimux.HandleFunc("POST /notifications/respond", authMW(web.NewAppHandler(h.User.RespondToFollowRequest)))
 
 	apimux.HandleFunc("POST /follow", authMW(web.NewAppHandler(h.User.Follow)))

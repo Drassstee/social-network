@@ -2,18 +2,24 @@ node_modules/
 
 frontend/dist/
 
-
+# Backend Build Artifacts
 backend/main
+backend/server
 backend/*.exe
 
+# Databases
 *.db
 *.sqlite
 *.sqlite3
 
+# Uploads
+backend/uploads/
+uploads/
 
+# Environments
 .env
 
-
+# IDEs and OS
 .vscode/
 .idea/
 .DS_Store

@@ -1,11 +1,13 @@
 <script setup>
 import { useAuthStore } from '../stores/auth'
 import { useChatStore } from '../stores/chat'
+import { useNotificationStore } from '../stores/notifications'
 import { useRouter } from 'vue-router'
 import { onMounted, watch } from 'vue'
 
 const auth = useAuthStore()
 const chat = useChatStore()
+const notifStore = useNotificationStore()
 const router = useRouter()
 
 const handleLogout = async () => {
@@ -13,13 +15,18 @@ const handleLogout = async () => {
   router.push('/login')
 }
 
-onMounted(() => {
-  if (auth.isAuthenticated) chat.connect()
+onMounted(async () => {
+  await auth.checkSession()
+  if (auth.isAuthenticated) {
+    chat.connect()
+    notifStore.fetchUnreadCount()
+  }
 })
 
 watch(() => auth.isAuthenticated, (val) => {
   if (val) {
     chat.connect()
+    notifStore.fetchUnreadCount()
   } else {
     router.push('/login')
   }
@@ -51,8 +58,18 @@ watch(() => auth.isAuthenticated, (val) => {
         </router-link>
         <router-link to="/notifications" class="nav-item">
           <span class="icon">🔔</span> Notifications
+          <span v-if="notifStore.unreadCount > 0" class="badge">{{ notifStore.unreadCount }}</span>
         </router-link>
         
+        <div class="user-profile-summary">
+          <img v-if="auth.user?.avatar_url" :src="auth.user.avatar_url" class="avatar-nav-img" />
+          <div v-else class="avatar-placeholder small">{{ auth.user?.first_name?.[0] || 'U' }}</div>
+          <div class="user-info-nav">
+            <span class="nav-username">{{ auth.user?.first_name }}</span>
+            <span class="nav-role">Member</span>
+          </div>
+        </div>
+
         <button @click="handleLogout" class="nav-item logout-btn">
           <span class="icon">🚪</span> Logout
         </button>
@@ -137,13 +154,57 @@ watch(() => auth.isAuthenticated, (val) => {
   font-size: 1.2rem;
 }
 
+.badge {
+  background: var(--color-vermilion);
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: auto;
+  font-family: sans-serif;
+  font-weight: bold;
+}
+
 .logout-btn {
   background: none;
   border: none;
   width: 100%;
   text-align: left;
   cursor: pointer;
+  margin-top: 20px;
+}
+
+.user-profile-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 20px;
   margin-top: auto;
+  border-top: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.avatar-nav-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--color-gold);
+  object-fit: cover;
+}
+
+.user-info-nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-username {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-gold);
+}
+
+.nav-role {
+  font-size: 0.75rem;
+  opacity: 0.7;
 }
 
 .main-content {

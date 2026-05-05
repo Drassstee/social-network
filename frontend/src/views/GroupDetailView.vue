@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import GroupEvents from '../components/GroupEvents.vue'
@@ -16,9 +16,17 @@ const isLoading = ref(true)
 const isMember = ref(false)
 const isCreator = ref(false)
 const joinRequests = ref([])
-const searchResults = ref([])
-const searchQuery = ref('')
 const inviteUserId = ref('')
+const feedbackMessage = ref('')
+const feedbackType = ref('info') // 'success', 'error', 'info'
+
+const showFeedback = (msg, type = 'info') => {
+    feedbackMessage.value = msg
+    feedbackType.value = type
+    setTimeout(() => {
+        feedbackMessage.value = ''
+    }, 3000)
+}
 
 const newPostContent = ref('')
 const newPostImage = ref(null)
@@ -71,9 +79,10 @@ const fetchJoinRequests = async () => {
 const handleJoinRequest = async () => {
     try {
         await fetch(`/api/v1/groups/${route.params.id}/request`, { method: 'POST' })
-        alert('Request sent to creator')
+        showFeedback('Request sent to creator', 'success')
     } catch (err) {
-        alert('Failed to send request')
+        console.error('Failed to send request:', err)
+        showFeedback('Failed to send request', 'error')
     }
 }
 
@@ -122,17 +131,7 @@ const onFileChange = (e) => {
     newPostImage.value = e.target.files[0]
 }
 
-const searchUsers = async () => {
-    if (!searchQuery.value) return
-    try {
-        // We'll use the existing chat online or simple users list if available
-        // For now, let's assume a search endpoint exists or searching followers
-        const res = await fetch(`/api/v1/users/${auth.user.id}`) // Mocking search via followers or profile info
-        const data = await res.json()
-        // If the backend has no search, we might need to add one.
-        // Let's assume for now we can just search local users list if we had one.
-    } catch (err) {}
-}
+
 
 const handleInvite = async (userId) => {
     try {
@@ -140,9 +139,13 @@ const handleInvite = async (userId) => {
             method: 'POST',
             body: JSON.stringify({ user_id: userId })
         })
-        if (res.ok) alert('Invitation sent!')
+        if (res.ok) {
+            showFeedback('Invitation sent!', 'success')
+            inviteUserId.value = ''
+        }
     } catch (err) {
-        alert('Failed to invite user')
+        console.error('Failed to invite user:', err)
+        showFeedback('Failed to invite user', 'error')
     }
 }
 
@@ -152,6 +155,9 @@ watch(() => route.params.id, fetchGroupData)
 
 <template>
     <div class="group-detail" v-if="group">
+        <div v-if="feedbackMessage" class="feedback-toast" :class="feedbackType">
+            {{ feedbackMessage }}
+        </div>
         <header class="group-header">
             <div class="group-info">
                 <h1>{{ group.title }}</h1>

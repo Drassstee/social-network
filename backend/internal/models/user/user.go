@@ -20,7 +20,7 @@ type User struct {
 	LastName    string     `json:"last_name"`
 	Password    string     `json:"password,omitempty"`
 	DOB         *time.Time `json:"dob,omitempty"`
-	AvatarURL   string     `json:"-"`
+	AvatarURL   string     `json:"avatar_url,omitempty"`
 	Nickname    string     `json:"nickname,omitempty"`
 	AboutMe     string     `json:"about_me,omitempty"`
 	ProfileType string     `json:"profile_type,omitempty"`
@@ -30,6 +30,8 @@ type UserData struct {
 	ID        int64      `json:"id"`
 	FirstName string     `json:"first_name"`
 	LastName  string     `json:"last_name"`
+	Nickname  string     `json:"nickname,omitempty"`
+	AvatarURL string     `json:"avatar_url,omitempty"`
 	UUID      string     `json:"-"`
 	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 }

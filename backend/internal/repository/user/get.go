@@ -9,12 +9,12 @@ import (
 )
 
 func (r *UserRepo) GetByID(id int64) (*user.User, error) {
-	query := `SELECT id, email, first_name, last_name, date_of_birth, nickname, about_me, profile_type
+	query := `SELECT id, email, first_name, last_name, date_of_birth, nickname, about_me, profile_type, avatar_url
 			FROM users
 			WHERE id = ?`
 
 	var u user.User
-	err := r.db.QueryRow(query, id).Scan(&u.ID, &u.Email, &u.FirstName, &u.LastName, &u.DOB, &u.Nickname, &u.AboutMe, &u.ProfileType)
+	err := r.db.QueryRow(query, id).Scan(&u.ID, &u.Email, &u.FirstName, &u.LastName, &u.DOB, &u.Nickname, &u.AboutMe, &u.ProfileType, &u.AvatarURL)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("%w: user not found", models.ErrNotFound)

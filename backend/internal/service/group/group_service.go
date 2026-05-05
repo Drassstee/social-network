@@ -128,7 +128,7 @@ func (s *GroupService) InviteUser(ctx context.Context, groupID, inviterID, invit
 	}
 
 	// Trigger notification
-	s.notify(inviteeID, inviterID, "group", groupID, "invite")
+	s.notify(inviteeID, inviterID, "group", inv.ID, "invite")
 
 	return nil
 }
@@ -200,7 +200,7 @@ func (s *GroupService) RequestJoin(ctx context.Context, groupID, userID int) err
 	// Trigger notification to group creator
 	group, err := s.GetGroup(ctx, groupID)
 	if err == nil {
-		s.notify(group.CreatorID, userID, "group", groupID, "request")
+		s.notify(group.CreatorID, userID, "group", req.ID, "request")
 	}
 
 	return nil
@@ -289,7 +289,21 @@ func (s *GroupService) CreateEvent(ctx context.Context, event *models.GroupEvent
 	if event.Title == "" {
 		return &models.ValidationError{Field: "title", Message: "event title is required"}
 	}
-	return s.Repo.CreateEvent(ctx, event)
+	if err := s.Repo.CreateEvent(ctx, event); err != nil {
+		return err
+	}
+
+	// Notify all members
+	members, err := s.Repo.GetMembers(ctx, event.GroupID)
+	if err == nil {
+		for _, member := range members {
+			if member.UserID != event.CreatorID {
+				s.notify(member.UserID, event.CreatorID, "group", event.GroupID, "event")
+			}
+		}
+	}
+
+	return nil
 }
 
 //--------------------------------------------------------------------------------------|

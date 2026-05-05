@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"social-network/internal/models"
+	"social-network/internal/utils"
 )
 
 const (
@@ -31,16 +32,21 @@ func (s *PostService) ListPosts(requesterID int64, groupID int64, limit, offset 
 	if offset < 0 {
 		offset = 0
 	}
-	if groupID > 0 {
-		posts, err := s.repo.GetGroupPosts(groupID, requesterID)
-		if err != nil {
-			return nil, false, err
-		}
-		// Basic pagination for memory-cached group posts (or I could implement it in repo)
-		// For now simple return as is or implement paging.
-		return posts, false, nil
+	posts, hasMore, err := s.repo.List(requesterID, 0, limit, offset)
+	if err != nil {
+		return nil, false, err
 	}
-	return s.repo.List(requesterID, 0, limit, offset)
+	for i := range posts {
+		if posts[i].Author != nil {
+			posts[i].Author.AvatarURL = utils.FormatAvatarURL(posts[i].Author.AvatarURL)
+		}
+		for j := range posts[i].Comments {
+			if posts[i].Comments[j].Author != nil {
+				posts[i].Comments[j].Author.AvatarURL = utils.FormatAvatarURL(posts[i].Comments[j].Author.AvatarURL)
+			}
+		}
+	}
+	return posts, hasMore, nil
 }
 
 func (s *PostService) CreatePost(authorID int64, content, imageURL, privacy string, groupID int64, allowedUsers []int64) (*models.Post, error) {
@@ -54,10 +60,11 @@ func (s *PostService) CreatePost(authorID int64, content, imageURL, privacy stri
 	if len(content) > maxPostContent {
 		return nil, errors.New("content is too long")
 	}
-	if privacy == "" {
-		privacy = "public"
+	p, err := s.repo.Insert(authorID, content, imageURL, privacy, groupID, allowedUsers)
+	if err == nil && p.Author != nil {
+		p.Author.AvatarURL = utils.FormatAvatarURL(p.Author.AvatarURL)
 	}
-	return s.repo.Insert(authorID, content, imageURL, privacy, groupID, allowedUsers)
+	return p, err
 }
 
 func (s *PostService) CreateComment(authorID int64, postID int64, content, imageURL string) (*models.Comment, error) {
@@ -68,10 +75,22 @@ func (s *PostService) CreateComment(authorID int64, postID int64, content, image
 	if content == "" && imageURL == "" {
 		return nil, errors.New("content or image is required")
 	}
-	return s.repo.InsertComment(authorID, postID, content, imageURL)
+	c, err := s.repo.InsertComment(authorID, postID, content, imageURL)
+	if err == nil && c.Author != nil {
+		c.Author.AvatarURL = utils.FormatAvatarURL(c.Author.AvatarURL)
+	}
+	return c, err
 }
 
 func (s *PostService) GetComments(postID int64) ([]models.Comment, error) {
-	return s.repo.GetComments(postID)
+	comments, err := s.repo.GetComments(postID)
+	if err == nil {
+		for i := range comments {
+			if comments[i].Author != nil {
+				comments[i].Author.AvatarURL = utils.FormatAvatarURL(comments[i].Author.AvatarURL)
+			}
+		}
+	}
+	return comments, err
 }
 

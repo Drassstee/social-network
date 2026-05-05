@@ -106,3 +106,16 @@ func IsLoggedIn(ctx context.Context, r *http.Request, sm *sessions.SessionManage
 func ParseInt(s string) (int, error) {
 	return strconv.Atoi(s)
 }
+
+// FormatAvatarURL converts a disk path to a web URL.
+func FormatAvatarURL(path string) string {
+	if path == "" {
+		return ""
+	}
+	// If it's already a full URL or starts with /, return as is
+	if path[0] == '/' || strings.HasPrefix(path, "http") {
+		return path
+	}
+	// Prefix with api path
+	return "/api/v1/" + path
+}

@@ -3,13 +3,19 @@ package user
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
 	"social-network/internal/models"
 	"social-network/internal/models/user"
 	"social-network/internal/utils"
 	"social-network/internal/web"
+
+	"github.com/google/uuid"
 )
 
 
@@ -23,9 +29,49 @@ type LoginData struct {
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request, _ *models.UserIdentity) error {
 	var u user.User
-	err := json.NewDecoder(r.Body).Decode(&u)
-	if err != nil {
-		return web.StatusError{Code: http.StatusBadRequest, Err: err}
+
+	if strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
+		err := r.ParseMultipartForm(10 << 20) // 10MB
+		if err != nil {
+			return web.StatusError{Code: http.StatusBadRequest, Err: err}
+		}
+
+		u.FirstName = r.FormValue("first_name")
+		u.LastName = r.FormValue("last_name")
+		u.Email = r.FormValue("email")
+		u.Password = r.FormValue("password")
+		u.Nickname = r.FormValue("nickname")
+		u.AboutMe = r.FormValue("about_me")
+		dobStr := r.FormValue("dob")
+		if dobStr != "" {
+			dob, err := time.Parse(time.RFC3339, dobStr)
+			if err == nil {
+				u.DOB = &dob
+			}
+		}
+
+		file, header, err := r.FormFile("avatar")
+		if err == nil {
+			defer file.Close()
+
+			ext := filepath.Ext(header.Filename)
+			dir := "uploads/avatars/registration"
+			os.MkdirAll(dir, 0750)
+
+			filename := uuid.NewString() + ext
+			filePath := dir + "/" + filename
+			dst, err := os.Create(filePath)
+			if err == nil {
+				defer dst.Close()
+				io.Copy(dst, file)
+				u.AvatarURL = filePath
+			}
+		}
+	} else {
+		err := json.NewDecoder(r.Body).Decode(&u)
+		if err != nil {
+			return web.StatusError{Code: http.StatusBadRequest, Err: err}
+		}
 	}
 
 	data, err := h.Users.Register(&u)
@@ -41,7 +87,6 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request, _ *models
 
 	utils.SetCookie(w, data.UUID, *data.ExpiresAt)
 
-	fmt.Println("User created")
 	utils.RespondJSON(w, http.StatusCreated, data)
 	return nil
 }
@@ -66,7 +111,6 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request, _ *models.Us
 
 	utils.SetCookie(w, data.UUID, *data.ExpiresAt)
 
-	fmt.Println("The user has logged in")
 	utils.RespondJSON(w, http.StatusOK, data)
 	return nil
 }

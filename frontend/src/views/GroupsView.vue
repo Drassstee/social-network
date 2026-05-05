@@ -1,14 +1,19 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useAuthStore } from '../stores/auth'
-
-const auth = useAuthStore()
 const groups = ref([])
 const showCreateModal = ref(false)
 const newGroup = ref({
   title: '',
   description: ''
 })
+const feedbackMessage = ref('')
+const feedbackType = ref('info')
+
+const showFeedback = (msg, type = 'info') => {
+  feedbackMessage.value = msg
+  feedbackType.value = type
+  setTimeout(() => { feedbackMessage.value = '' }, 3000)
+}
 
 const fetchGroups = async () => {
   try {
@@ -40,7 +45,7 @@ const handleCreateGroup = async () => {
 const joinGroup = async (groupId) => {
   try {
     await fetch(`/api/v1/groups/${groupId}/request`, { method: 'POST' })
-    alert('Join request sent!')
+    showFeedback('Join request sent!', 'success')
   } catch (err) {
     console.error('Failed to join group:', err)
   }
@@ -51,6 +56,9 @@ onMounted(fetchGroups)
 
 <template>
   <div class="groups-view">
+    <div v-if="feedbackMessage" class="feedback-toast" :class="feedbackType">
+      {{ feedbackMessage }}
+    </div>
     <header class="view-header">
       <div class="header-content">
         <div>
@@ -158,6 +166,7 @@ onMounted(fetchGroups)
   margin-bottom: 20px;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

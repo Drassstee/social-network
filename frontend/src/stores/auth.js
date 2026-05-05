@@ -35,11 +35,17 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       this.error = null
       try {
-        const response = await fetch('/api/v1/register', {
+        const isFormData = userData instanceof FormData
+        const options = {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(userData),
-        })
+          body: isFormData ? userData : JSON.stringify(userData),
+        }
+        
+        if (!isFormData) {
+          options.headers = { 'Content-Type': 'application/json' }
+        }
+
+        const response = await fetch('/api/v1/register', options)
         const data = await response.json()
         if (!response.ok) throw new Error(data.error || 'Registration failed')
         
@@ -61,6 +67,26 @@ export const useAuthStore = defineStore('auth', {
       } catch (err) {
         console.error('Logout error:', err)
       } finally {
+        this.user = null
+        this.isAuthenticated = false
+        localStorage.removeItem('user')
+      }
+    },
+    async checkSession() {
+      try {
+        const response = await fetch('/api/v1/me')
+        if (response.ok) {
+          const data = await response.json()
+          this.user = data
+          this.isAuthenticated = true
+          localStorage.setItem('user', JSON.stringify(data))
+        } else {
+          this.user = null
+          this.isAuthenticated = false
+          localStorage.removeItem('user')
+        }
+      } catch (err) {
+        console.error('Session check failed:', err)
         this.user = null
         this.isAuthenticated = false
         localStorage.removeItem('user')

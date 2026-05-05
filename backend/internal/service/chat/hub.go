@@ -28,9 +28,10 @@ type Hub struct {
 
 	mu sync.RWMutex
 
-	ChatRepo  ChatRepository
-	UserRepo  UserRepository
-	GroupRepo models.GroupRepo
+	ChatRepo   ChatRepository
+	UserRepo   UserRepository
+	GroupRepo  models.GroupRepo
+	FollowRepo FollowRepository
 
 	// Optimization: Cache online group memberships and usernames
 	userCache    *utils.Cache
@@ -40,7 +41,7 @@ type Hub struct {
 //--------------------------------------------------------------------------------------|
 
 // NewHub creates a new instance of the Hub.
-func NewHub(chatRepo ChatRepository, userRepo UserRepository, groupRepo models.GroupRepo) *Hub {
+func NewHub(chatRepo ChatRepository, userRepo UserRepository, groupRepo models.GroupRepo, followRepo FollowRepository) *Hub {
 	return &Hub{
 		broadcast:    make(chan []byte),
 		register:     make(chan *Client),
@@ -49,6 +50,7 @@ func NewHub(chatRepo ChatRepository, userRepo UserRepository, groupRepo models.G
 		ChatRepo:     chatRepo,
 		UserRepo:     userRepo,
 		GroupRepo:    groupRepo,
+		FollowRepo:   followRepo,
 		userCache:    utils.NewCache(),
 		groupMembers: make(map[int]map[int]bool),
 	}
@@ -155,6 +157,16 @@ func (h *Hub) handlePrivateMessage(wsMsg wsMessage) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
+
+	// 1. Follow check (Audit Requirement)
+	// You can only chat with users you follow or who follow you.
+	f1, _ := h.FollowRepo.IsFollower(int64(wsMsg.Sender), int64(data.ReceiverID))
+	f2, _ := h.FollowRepo.IsFollower(int64(data.ReceiverID), int64(wsMsg.Sender))
+	if !f1 && !f2 {
+		log.Printf("Chat blocked: user %d does not follow user %d", wsMsg.Sender, data.ReceiverID)
+		h.sendToUser(wsMsg.Sender, "error", map[string]string{"message": "you can only chat with followers/following"})
+		return
+	}
 
 	msg, err := h.ChatRepo.SaveMessage(ctx, wsMsg.Sender, data.ReceiverID, data.Body, data.ImageURL)
 	if err != nil {

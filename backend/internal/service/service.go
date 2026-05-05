@@ -21,7 +21,7 @@ type Service struct {
 func NewService(r *repository.Repository, hub *chatsvc.Hub) *Service {
 	notifSvc := notifications.NewService(r.Notifications, hub)
 	return &Service{
-		User:          user.NewUserService(r.User, r.Session, r.Follow, r.Post),
+		User:          user.NewUserService(r.User, r.Session, r.Follow, r.Post, notifSvc),
 		Post:          servicepost.NewPostService(r.Post),
 		Group:         groupsvc.NewGroupService(r.Group, notifSvc, r.User, r.DB),
 		Chat:          chatsvc.NewChatService(r.Chat),

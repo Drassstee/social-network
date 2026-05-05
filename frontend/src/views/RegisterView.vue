@@ -10,12 +10,17 @@ const userData = ref({
   last_name: '',
   date_of_birth: '',
   nickname: '',
-  about_me: '',
-  avatar_url: ''
+  about_me: ''
 })
 
 const auth = useAuthStore()
 const router = useRouter()
+
+const avatarFile = ref(null)
+
+const handleAvatarChange = (e) => {
+  avatarFile.value = e.target.files[0]
+}
 
 const handleRegister = async () => {
   const payload = { ...userData.value }
@@ -23,7 +28,17 @@ const handleRegister = async () => {
     payload.dob = new Date(payload.date_of_birth).toISOString()
     delete payload.date_of_birth
   }
-  const success = await auth.register(payload)
+
+  let registrationData = payload
+  if (avatarFile.value) {
+    registrationData = new FormData()
+    for (const key in payload) {
+      registrationData.append(key, payload[key])
+    }
+    registrationData.append('avatar', avatarFile.value)
+  }
+
+  const success = await auth.register(registrationData)
   if (success) {
     router.push('/')
   }
@@ -105,6 +120,17 @@ const handleRegister = async () => {
             id="nickname"
             v-model="userData.nickname" 
             type="text" 
+            class="input-traditional" 
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="avatar">Avatar (Optional)</label>
+          <input 
+            id="avatar"
+            type="file" 
+            @change="handleAvatarChange" 
+            accept="image/*"
             class="input-traditional" 
           />
         </div>

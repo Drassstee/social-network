@@ -50,6 +50,7 @@ func (us *UserService) Register(u *user.User) (*user.UserData, error) {
 		ID:        u.ID,
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
+		Nickname:  u.Nickname,
 		UUID:      s.UUID,
 		ExpiresAt: &s.ExpiresAt,
 	}, nil
@@ -98,6 +99,7 @@ func (us *UserService) Login(email, password string) (*user.UserData, error) {
 		ID:        u.ID,
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
+		Nickname:  u.Nickname,
 		UUID:      s.UUID,
 		ExpiresAt: &s.ExpiresAt,
 	}, nil

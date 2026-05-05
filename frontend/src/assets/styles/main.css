@@ -141,3 +141,27 @@ h1, h2, h3, h4, h5, h6 {
   display: inline-flex;
 }
 
+
+/* Feedback Toast */
+.feedback-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 24px;
+  border-radius: var(--border-radius);
+  color: white;
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  animation: slideInRight 0.3s ease-out;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 500;
+}
+
+.feedback-toast.success { background-color: #2e7d32; }
+.feedback-toast.error { background-color: var(--color-vermilion); }
+.feedback-toast.info { background-color: var(--color-charcoal); }
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}

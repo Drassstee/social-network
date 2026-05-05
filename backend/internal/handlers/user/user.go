@@ -23,6 +23,7 @@ type UserServ interface {
 	DeleteUser(int64) error
 
 	GetProfile(int64, int64) (*profile.Profile, error)
+	GetMe(int64) (*user.UserData, error)
 	UpdateProfile(*user.User) error
 	GetUserID(string) (int64, error)
 
