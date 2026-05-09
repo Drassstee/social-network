@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+//--------------------------------------------------------------------------------------|
+
 type User struct {
 	ID          int64      `json:"id"`
 	Email       string     `json:"email,omitempty"`
@@ -20,6 +22,8 @@ type User struct {
 	ProfileType string     `json:"profile_type,omitempty"`
 }
 
+//--------------------------------------------------------------------------------------|
+
 type UserData struct {
 	ID        int64      `json:"id"`
 	FirstName string     `json:"first_name"`
@@ -29,6 +33,8 @@ type UserData struct {
 	UUID      string     `json:"-"`
 	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (u *User) ValidateData() error {
 	if err := u.isEmpty(); err != nil {
@@ -57,6 +63,8 @@ func (u *User) ValidateData() error {
 	return nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (u *User) isEmpty() error {
 	if len(strings.TrimSpace(u.Email)) == 0 {
 		return fmt.Errorf("email is empty")
@@ -69,6 +77,8 @@ func (u *User) isEmpty() error {
 	}
 	return nil
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (u *User) DisplayName() string {
 	if u.Nickname != "" {

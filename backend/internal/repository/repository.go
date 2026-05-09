@@ -13,6 +13,9 @@ import (
 	userrepo "social-network/internal/repository/user"
 )
 
+//--------------------------------------------------------------------------------------|
+
+
 type Repository struct {
 	User          models.UserRepo
 	Session       models.SessionRepo
@@ -23,6 +26,8 @@ type Repository struct {
 	Notifications models.NotificationRepo
 	DB            *sql.DB
 }
+
+//--------------------------------------------------------------------------------------|
 
 func NewRepo(db *sql.DB) *Repository {
 	return &Repository{

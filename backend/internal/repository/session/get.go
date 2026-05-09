@@ -8,6 +8,8 @@ import (
 	"social-network/internal/models"
 )
 
+//--------------------------------------------------------------------------------------|
+
 func (r *SessionRepo) GetUserID(uuid string) (int64, error) {
 	query := `SELECT user_id
 			FROM sessions
@@ -24,7 +26,7 @@ func (r *SessionRepo) GetUserID(uuid string) (int64, error) {
 	return id, nil
 }
 
-// --------------------------------------------------------------------|
+//--------------------------------------------------------------------------------------|
 
 func (r *SessionRepo) GetUUID(id int64) (string, error) {
 	query := `SELECT uuid

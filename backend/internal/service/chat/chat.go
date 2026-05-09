@@ -15,6 +15,8 @@ type ChatService struct {
 	followRepo models.FollowRepo
 }
 
+//--------------------------------------------------------------------------------------|
+
 func NewChatService(repo ChatRepository, userRepo models.UserRepo, followRepo models.FollowRepo) *ChatService {
 	return &ChatService{
 		repo:       repo,

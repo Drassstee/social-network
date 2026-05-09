@@ -7,7 +7,8 @@ import (
 	"social-network/internal/models"
 )
 
-// --------------------------------------------------------------------|
+//--------------------------------------------------------------------------------------|
+
 
 func (us *UserService) GetAvatar(userID int64) (string, error) {
 	if userID < 1 {
@@ -31,7 +32,7 @@ func (us *UserService) GetAvatar(userID int64) (string, error) {
 	return avatarURL, nil
 }
 
-// --------------------------------------------------------------------|
+//--------------------------------------------------------------------------------------|
 
 func (us *UserService) UploadAvatar(ctx context.Context, a *models.Avatar) error {
 	filePath, err := us.uploader.UploadImage(ctx, a.UserID, a.Header.Filename, a.File)

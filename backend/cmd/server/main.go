@@ -14,7 +14,7 @@ import (
 	"social-network/internal/utils"
 )
 
-
+//--------------------------------------------------------------------------------------|
 
 func main() {
 	dbPath := utils.Getenv("DB_PATH", "social_network.db")

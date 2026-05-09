@@ -10,14 +10,20 @@ import (
 	"social-network/internal/web"
 )
 
+//--------------------------------------------------------------------------------------|
+
 type PostHandler struct {
 	serv     models.PostService
 	uploader models.ImageUploader
 }
 
+//--------------------------------------------------------------------------------------|
+
 func NewPostHandler(serv models.PostService, uploader models.ImageUploader) *PostHandler {
 	return &PostHandler{serv: serv, uploader: uploader}
 }
+
+//--------------------------------------------------------------------------------------|
 
 type postsListResponse struct {
 	Posts   []models.Post `json:"posts"`
@@ -32,6 +38,8 @@ type createPostRequest struct {
 type createPostResponse struct {
 	Post *models.Post `json:"post"`
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (h *PostHandler) GetPosts(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	limit := web.QueryInt(r, "limit", 10)
@@ -50,6 +58,8 @@ func (h *PostHandler) GetPosts(w http.ResponseWriter, r *http.Request, identity 
 	web.JSONResponse(w, http.StatusOK, postsListResponse{Posts: posts, HasMore: hasMore})
 	return nil
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	if identity == nil {
@@ -78,6 +88,8 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request, identit
 	web.JSONResponse(w, http.StatusCreated, createPostResponse{Post: p})
 	return nil
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (h *PostHandler) handleMultipartCreatePost(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	err := r.ParseMultipartForm(int64(web.MaxImageSize))
@@ -112,6 +124,8 @@ func (h *PostHandler) handleMultipartCreatePost(w http.ResponseWriter, r *http.R
 	web.JSONResponse(w, http.StatusCreated, createPostResponse{Post: p})
 	return nil
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (h *PostHandler) CreateComment(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	if identity == nil {

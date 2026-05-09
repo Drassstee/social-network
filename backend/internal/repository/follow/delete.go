@@ -2,6 +2,8 @@ package follow
 
 import "social-network/internal/models"
 
+//--------------------------------------------------------------------------------------|
+
 func (r *FollowRepo) DeleteFollow(f models.Follow) error {
 	query := `DELETE FROM follows WHERE follower_id = ? AND following_id = ?`
 

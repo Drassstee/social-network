@@ -10,7 +10,6 @@ import (
 
 //--------------------------------------------------------------------------------------|
 
-// GroupService encapsulates group business rules.
 type GroupService struct {
 	Repo         models.GroupRepo
 	NotifService models.NotificationService
@@ -21,7 +20,6 @@ type GroupService struct {
 
 //--------------------------------------------------------------------------------------|
 
-// NewGroupService creates a new GroupService.
 func NewGroupService(repo models.GroupRepo, notif models.NotificationService, hub models.Hub, userRepo models.UserRepo, db *sql.DB) *GroupService {
 	return &GroupService{Repo: repo, NotifService: notif, Hub: hub, UserRepo: userRepo, DB: db}
 }
@@ -357,7 +355,6 @@ func (s *GroupService) CreateEvent(ctx context.Context, event *models.GroupEvent
 
 //--------------------------------------------------------------------------------------|
 
-// GetGroupEvents returns all events for a group.
 func (s *GroupService) GetGroupEvents(ctx context.Context, groupID, userID int64) ([]models.GroupEvent, error) {
 	group, err := s.Repo.GetGroupByID(ctx, groupID)
 	if err != nil {
@@ -378,7 +375,6 @@ func (s *GroupService) GetGroupEvents(ctx context.Context, groupID, userID int64
 
 //--------------------------------------------------------------------------------------|
 
-// RespondToEvent records a going/not_going RSVP. Only members can respond.
 func (s *GroupService) RespondToEvent(ctx context.Context, eventID, userID int64, response string) error {
 	event, err := s.Repo.GetEventByID(ctx, eventID)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -411,7 +407,6 @@ func (s *GroupService) RespondToEvent(ctx context.Context, eventID, userID int64
 // Group Messages
 //--------------------------------------------------------------------------------------|
 
-// SendGroupMessage sends a message to a group. Only members can send.
 func (s *GroupService) SendGroupMessage(ctx context.Context, groupID, senderID int64, body string, imageURL *string) (*models.GroupMessage, error) {
 	isMember, err := s.Repo.IsMember(ctx, groupID, senderID)
 	if err != nil {
@@ -458,14 +453,15 @@ func (s *GroupService) GetGroupMessages(ctx context.Context, groupID, userID int
 	return s.Repo.GetGroupMessages(ctx, groupID, limit, offset)
 }
 
-// GetUnreadCounts returns unread counts for all groups.
+//--------------------------------------------------------------------------------------|
+
 func (s *GroupService) GetUnreadCounts(ctx context.Context, userID int64) ([]models.GroupUnreadCount, error) {
 	return s.Repo.GetUnreadCounts(ctx, userID)
 }
 
-// MarkAsRead marks all current messages in a group as read for the user.
+//--------------------------------------------------------------------------------------|
+
 func (s *GroupService) MarkAsRead(ctx context.Context, groupID, userID int64) error {
-	// Find the latest message ID
 	msgs, err := s.Repo.GetGroupMessages(ctx, groupID, 1, 0)
 	if err != nil || len(msgs) == 0 {
 		return err

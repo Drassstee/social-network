@@ -2,6 +2,8 @@ package session
 
 import "social-network/internal/models"
 
+//--------------------------------------------------------------------------------------|
+
 func (r *SessionRepo) CreateSession(s *models.Session) error {
 	query := `INSERT INTO sessions (uuid, user_id, expires_at) VALUES (?, ?, ?)`
 

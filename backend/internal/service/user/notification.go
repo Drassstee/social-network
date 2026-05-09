@@ -6,6 +6,8 @@ import (
 	"social-network/internal/models"
 )
 
+//--------------------------------------------------------------------------------------|
+
 func (us *UserService) RespondToFollowRequest(f models.Follow) error {
 	if f.FollowerID < 1 || f.FollowingID < 1 {
 		return fmt.Errorf("notification: %w: incorrect user id", models.ErrInvalidData)

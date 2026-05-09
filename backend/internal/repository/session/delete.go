@@ -1,5 +1,7 @@
 package session
 
+//--------------------------------------------------------------------------------------|
+
 func (r *SessionRepo) DeleteSession(uuid string) error {
 	query := `DELETE FROM sessions WHERE uuid = ?`
 
@@ -7,7 +9,7 @@ func (r *SessionRepo) DeleteSession(uuid string) error {
 	return err
 }
 
-// --------------------------------------------------------------------|
+//--------------------------------------------------------------------------------------|
 
 func (r *SessionRepo) DeleteAllSessions(id int64) error {
 	query := `DELETE FROM sessions WHERE user_id = ?`

@@ -7,19 +7,25 @@ import (
 	"social-network/internal/models"
 )
 
+//--------------------------------------------------------------------------------------|
+
 type PostRepo struct {
 	db *sql.DB
 }
+
+//--------------------------------------------------------------------------------------|
 
 func NewPostRepo(db *sql.DB) *PostRepo {
 	return &PostRepo{db: db}
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (r *PostRepo) List(requesterID int64, groupID int64, limit, offset int) ([]models.Post, bool, error) {
 	if limit < 1 {
 		limit = 20
 	}
-	
+
 	query := `
 SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.group_id, p.created_at, u.id, u.first_name, u.last_name, u.avatar_url
 FROM posts p
@@ -59,7 +65,7 @@ LIMIT ? OFFSET ?
 			p.GroupID = grpID.Int64
 		}
 		p.CreatedAt, _ = parseSQLiteTime(created)
-		
+
 		posts = append(posts, p)
 	}
 	hasMore := len(posts) > limit
@@ -68,6 +74,8 @@ LIMIT ? OFFSET ?
 	}
 	return posts, hasMore, nil
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (r *PostRepo) Insert(authorID int64, content, imageURL, privacy string, groupID int64, allowedUsers []int64) (*models.Post, error) {
 	tx, err := r.db.Begin()
@@ -81,7 +89,7 @@ func (r *PostRepo) Insert(authorID int64, content, imageURL, privacy string, gro
 		gID = &groupID
 	}
 
-	res, err := tx.Exec(`INSERT INTO posts (author_id, content, image_url, privacy, group_id) VALUES (?, ?, ?, ?, ?)`, 
+	res, err := tx.Exec(`INSERT INTO posts (author_id, content, image_url, privacy, group_id) VALUES (?, ?, ?, ?, ?)`,
 		authorID, content, imageURL, privacy, gID)
 	if err != nil {
 		return nil, err
@@ -130,6 +138,8 @@ WHERE p.id = ?
 	return &p, nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (r *PostRepo) GetPosts(authorID int64, requesterID int64) ([]models.Post, error) {
 	rows, err := r.db.Query(`
 SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.group_id, p.created_at, u.id, u.first_name, u.last_name, u.avatar_url
@@ -172,6 +182,8 @@ ORDER BY datetime(p.created_at) DESC
 	return posts, nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (r *PostRepo) GetGroupPosts(groupID int64, requesterID int64) ([]models.Post, error) {
 	// Check if user is member of the group
 	var count int
@@ -211,15 +223,17 @@ ORDER BY datetime(p.created_at) DESC
 			p.GroupID = gID.Int64
 		}
 		p.CreatedAt, _ = parseSQLiteTime(created)
-		
+
 		// Load comments
 		comments, _ := r.GetComments(p.ID)
 		p.Comments = comments
-		
+
 		posts = append(posts, p)
 	}
 	return posts, nil
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (r *PostRepo) InsertComment(authorID int64, postID int64, content, imageURL string) (*models.Comment, error) {
 	res, err := r.db.Exec(`INSERT INTO comments (post_id, author_id, content, image_url) VALUES (?, ?, ?, ?)`,
@@ -248,6 +262,8 @@ WHERE c.id = ?
 	c.CreatedAt, _ = parseSQLiteTime(created)
 	return &c, nil
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (r *PostRepo) GetComments(postID int64) ([]models.Comment, error) {
 	rows, err := r.db.Query(`
@@ -279,6 +295,8 @@ ORDER BY datetime(c.created_at) ASC
 	}
 	return comments, nil
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (r *PostRepo) GetCommentsBatch(postIDs []int64) (map[int64][]models.Comment, error) {
 	if len(postIDs) == 0 {
@@ -326,10 +344,11 @@ ORDER BY datetime(c.created_at) ASC
 	return results, nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 func parseSQLiteTime(s string) (time.Time, error) {
 	if t, err := time.Parse(time.RFC3339, s); err == nil {
 		return t, nil
 	}
 	return time.ParseInLocation("2006-01-02 15:04:05", s, time.UTC)
 }
-

@@ -19,12 +19,11 @@ const (
 
 //--------------------------------------------------------------------------------------|
 
-// Hub maintains the set of active clients and broadcasts messages to the clients.
 type Hub struct {
-	clients    map[int64]*Client // Registered clients by UserID.
-	broadcast  chan []byte       // Inbound messages from the clients.
-	register   chan *Client      // Register requests from the clients.
-	unregister chan *Client      // Unregister requests from clients.
+	clients    map[int64]*Client 
+	broadcast  chan []byte       
+	register   chan *Client      
+	unregister chan *Client      
 
 	mu sync.RWMutex
 
@@ -33,14 +32,12 @@ type Hub struct {
 	GroupRepo  models.GroupRepo
 	FollowRepo FollowRepository
 
-	// Optimization: Cache online group memberships and usernames
 	userCache    *utils.Cache
-	groupMembers map[int64]map[int64]bool // groupID -> set of userIDs
+	groupMembers map[int64]map[int64]bool 
 }
 
 //--------------------------------------------------------------------------------------|
 
-// NewHub creates a new instance of the Hub.
 func NewHub(chatRepo ChatRepository, userRepo UserRepository, groupRepo models.GroupRepo, followRepo FollowRepository) *Hub {
 	return &Hub{
 		broadcast:    make(chan []byte),
@@ -66,13 +63,10 @@ type wsMessage struct {
 
 //--------------------------------------------------------------------------------------|
 
-// Run starts the hub's main event loop. It handles client registration,
-// unregistration, and message broadcasting. It runs until the context is canceled.
 func (h *Hub) Run(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			// Clean up all connections on context cancellation (e.g., server shutdown)
 			h.mu.Lock()
 			for _, client := range h.clients {
 				close(client.send)
@@ -81,32 +75,26 @@ func (h *Hub) Run(ctx context.Context) {
 			h.mu.Unlock()
 			return
 		case client := <-h.register:
-			// Register a new client connection
 			h.mu.Lock()
 			h.clients[client.UserID] = client
 			h.mu.Unlock()
 			go h.updateClientGroupMemberships(client.UserID, true)
-			// Notify others that this user is now online
 			h.broadcastStatusUpdate(client.UserID, true)
 
 		case client := <-h.unregister:
-			// Remove a client connection and close its sending channel
 			h.mu.Lock()
 			if _, ok := h.clients[client.UserID]; ok {
 				delete(h.clients, client.UserID)
 				close(client.send)
 				h.mu.Unlock()
 				
-				// Optimization: Remove user from group tracking in a goroutine
 				go h.updateClientGroupMemberships(client.UserID, false)
-				// Notify others that this user is now offline
 				h.broadcastStatusUpdate(client.UserID, false)
 			} else {
 				h.mu.Unlock()
 			}
 
 		case message := <-h.broadcast:
-			// Process inbound messages from clients
 			h.handleInbound(message)
 		}
 	}
@@ -114,7 +102,6 @@ func (h *Hub) Run(ctx context.Context) {
 
 //--------------------------------------------------------------------------------------|
 
-// handleInbound unmarshals and routes incoming WebSocket messages based on their type.
 func (h *Hub) handleInbound(message []byte) {
 	var wsMsg wsMessage
 	if err := json.Unmarshal(message, &wsMsg); err != nil {
@@ -132,7 +119,6 @@ func (h *Hub) handleInbound(message []byte) {
 	case "stop_typing":
 		h.handleTypingIndicator(wsMsg, false)
 	default:
-		// Broadcast generic messages to all connected clients
 		h.doBroadcast(message)
 	}
 }
@@ -153,8 +139,6 @@ func (h *Hub) handlePrivateMessage(wsMsg wsMessage) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 
-	// 1. Follow check (Audit Requirement)
-	// You can only chat with users you follow or who follow you.
 	f1, _ := h.FollowRepo.IsFollower(wsMsg.Sender, data.ReceiverID)
 	f2, _ := h.FollowRepo.IsFollower(data.ReceiverID, wsMsg.Sender)
 	if !f1 && !f2 {
@@ -249,7 +233,6 @@ func (h *Hub) updateClientGroupMemberships(userID int64, join bool) {
 
 func (h *Hub) updateClientGroupMembershipsLocked(userID int64, join bool, groupIDs ...int64) {
 	if len(groupIDs) == 0 && !join {
-		// If unregistering and we don't have groupIDs, we have to find which groups this user was in.
 		for gID, members := range h.groupMembers {
 			delete(members, userID)
 			if len(members) == 0 {

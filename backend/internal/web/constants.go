@@ -2,7 +2,6 @@ package web
 
 //--------------------------------------------------------------------------------------|
 
-// Cookie and route constants used throughout the web package.
 const (
 	CookieSessionID = "session_id"
 

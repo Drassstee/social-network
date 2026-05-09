@@ -8,15 +8,12 @@ import (
 
 //--------------------------------------------------------------------------------------|
 
-// Signaller defines the interface for sending real-time signals to users (e.g., via WebSocket).
 type Signaller interface {
-	// SendToUser sends the provided data to a specific user.
 	SendToUser(userID int64, data []byte)
 }
 
 //--------------------------------------------------------------------------------------|
 
-// Service implements models.NotificationService.
 type Service struct {
 	repo models.NotificationRepo
 	hub  Signaller
@@ -24,7 +21,6 @@ type Service struct {
 
 //--------------------------------------------------------------------------------------|
 
-// NewService creates a new notifications service.
 func NewService(repo models.NotificationRepo, hub Signaller) *Service {
 	return &Service{
 		repo: repo,
@@ -34,12 +30,9 @@ func NewService(repo models.NotificationRepo, hub Signaller) *Service {
 
 //--------------------------------------------------------------------------------------|
 
-// Notify creates a notification in the database and sends a real-time signal to the target user.
 func (s *Service) Notify(ctx context.Context, userID, actorID int64, actorUsername string, targetType string, targetID int64, notifType string) {
-	// 1. Create DB notification
 	_ = s.repo.CreateNotification(ctx, userID, actorID, targetType, targetID, notifType)
 
-	// 2. Generate a friendly message
 	message := s.generateMessage(actorUsername, targetType, notifType)
 
 	// 3. Send real-time signal via WebSocket

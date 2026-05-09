@@ -8,6 +8,8 @@ import (
 	"social-network/internal/web"
 )
 
+//--------------------------------------------------------------------------------------|
+
 func SetupRoutes(h *handlers.Handler) *http.ServeMux {
 	mux := http.NewServeMux()
 	apimux := http.NewServeMux()

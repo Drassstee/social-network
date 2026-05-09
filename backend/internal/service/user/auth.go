@@ -10,6 +10,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+//--------------------------------------------------------------------------------------|
+
 func (s *UserService) Register(u *models.User) (*models.UserData, error) {
 	if err := u.ValidateData(); err != nil {
 		return nil, fmt.Errorf("%w: %v", models.ErrInvalidData, err)
@@ -56,6 +58,8 @@ func (s *UserService) Register(u *models.User) (*models.UserData, error) {
 	}, nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (s *UserService) Login(email, password string) (*models.UserData, error) {
 	u, err := s.users.GetByEmail(email)
 	if err != nil {
@@ -92,6 +96,8 @@ func (s *UserService) Login(email, password string) (*models.UserData, error) {
 	}, nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (s *UserService) Logout(id int64) error {
 	if id < 1 {
 		return fmt.Errorf("%w: incorrect user id", models.ErrInvalidData)
@@ -104,6 +110,8 @@ func (s *UserService) Logout(id int64) error {
 
 	return s.sessions.DeleteSession(uid)
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (s *UserService) DeleteUser(id int64) error {
 	if id < 1 {

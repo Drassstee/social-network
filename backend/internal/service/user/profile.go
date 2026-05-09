@@ -41,9 +41,10 @@ func (s *UserService) GetProfile(targetID, userID int64) (*models.Profile, error
 		// Check for any existing follow relationship
 		status, err := s.follows.GetFollowStatus(userID, targetID)
 		if err == nil && status != "" {
-			if status == "accept" {
+			switch status {
+case "accept":
 				p.FollowStatus = "following"
-			} else if status == "pending" {
+			case "pending":
 				p.FollowStatus = "pending"
 			}
 		}

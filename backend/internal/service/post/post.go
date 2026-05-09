@@ -8,19 +8,27 @@ import (
 	"social-network/internal/utils"
 )
 
+//--------------------------------------------------------------------------------------|
+
 const (
 	maxPostContent = 16000
 	defaultLimit   = 20
 	maxLimit       = 100
 )
 
+//--------------------------------------------------------------------------------------|
+
 type PostService struct {
 	repo models.PostRepo
 }
 
+//--------------------------------------------------------------------------------------|
+
 func NewPostService(repo models.PostRepo) *PostService {
 	return &PostService{repo: repo}
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (s *PostService) ListPosts(requesterID int64, groupID int64, limit, offset int) ([]models.Post, bool, error) {
 	if limit <= 0 {
@@ -62,6 +70,8 @@ func (s *PostService) ListPosts(requesterID int64, groupID int64, limit, offset 
 	return posts, hasMore, nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (s *PostService) CreatePost(authorID int64, content, imageURL, privacy string, groupID int64, allowedUsers []int64) (*models.Post, error) {
 	content = strings.TrimSpace(content)
 	if authorID == 0 {
@@ -80,6 +90,8 @@ func (s *PostService) CreatePost(authorID int64, content, imageURL, privacy stri
 	return p, err
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (s *PostService) CreateComment(authorID int64, postID int64, content, imageURL string) (*models.Comment, error) {
 	content = strings.TrimSpace(content)
 	if authorID == 0 || postID == 0 {
@@ -94,6 +106,8 @@ func (s *PostService) CreateComment(authorID int64, postID int64, content, image
 	}
 	return c, err
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (s *PostService) GetComments(postID int64) ([]models.Comment, error) {
 	comments, err := s.repo.GetComments(postID)

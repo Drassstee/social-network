@@ -10,6 +10,8 @@ import (
 	"social-network/internal/service/user"
 )
 
+//--------------------------------------------------------------------------------------|
+
 type Service struct {
 	User          models.UserService
 	Post          models.PostService
@@ -17,6 +19,8 @@ type Service struct {
 	Chat          models.ChatService
 	Notifications models.NotificationService
 }
+
+//--------------------------------------------------------------------------------------|
 
 func NewService(r *repository.Repository, hub *chatsvc.Hub, uploader models.ImageUploader) *Service {
 	notifSvc := notifications.NewService(r.Notifications, hub)

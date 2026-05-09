@@ -4,6 +4,8 @@ import (
 	"context"
 )
 
+//--------------------------------------------------------------------------------------|
+
 type UserService interface {
 	Register(*User) (*UserData, error)
 	Login(string, string) (*UserData, error)
@@ -28,6 +30,8 @@ type UserService interface {
 	GetAvatar(int64) (string, error)
 }
 
+//--------------------------------------------------------------------------------------|
+
 type UserRepo interface {
 	CreateUser(*User) (int64, error)
 	UpdateUser(*User) error
@@ -45,6 +49,8 @@ type UserRepo interface {
 	GetByIDs(ids []int64) ([]User, error)
 }
 
+//--------------------------------------------------------------------------------------|
+
 type SessionRepo interface {
 	CreateSession(*Session) error
 	DeleteSession(string) error
@@ -53,6 +59,8 @@ type SessionRepo interface {
 	GetUserID(string) (int64, error)
 	GetUUID(int64) (string, error)
 }
+
+//--------------------------------------------------------------------------------------|
 
 type FollowRepo interface {
 	CreateFollow(Follow) error
@@ -66,5 +74,7 @@ type FollowRepo interface {
 	FollowExists(int64, int64, string) (bool, error)
 	GetFollowStatus(int64, int64) (string, error)
 }
+
+//--------------------------------------------------------------------------------------|
 
 type UserHandler interface{}

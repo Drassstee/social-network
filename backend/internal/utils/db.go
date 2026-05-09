@@ -8,8 +8,6 @@ import (
 
 //--------------------------------------------------------------------------------------|
 
-// WithTx is a helper function to wrap database operations in a transaction.
-// It handles commit and rollback automatically based on the returned error.
 func WithTx(ctx context.Context, db *sql.DB, fn func(*sql.Tx) error) (err error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {

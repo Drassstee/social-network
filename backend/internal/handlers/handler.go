@@ -12,6 +12,8 @@ import (
 	chatsvc "social-network/internal/service/chat"
 )
 
+//--------------------------------------------------------------------------------------|
+
 type Handler struct {
 	User          *user.UserHandler
 	Post          *post.PostHandler
@@ -19,6 +21,8 @@ type Handler struct {
 	Chat          *chat.ChatHandler
 	Notifications *notifications.Handler
 }
+
+//--------------------------------------------------------------------------------------|
 
 func NewHandler(service *service.Service, hub *chatsvc.Hub, uploader models.ImageUploader) *Handler {
 	return &Handler{

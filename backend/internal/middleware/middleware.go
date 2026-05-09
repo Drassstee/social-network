@@ -9,6 +9,8 @@ import (
 	"social-network/internal/web"
 )
 
+//--------------------------------------------------------------------------------------|
+
 func AuthMiddleware(serv models.UserService, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("session_token")

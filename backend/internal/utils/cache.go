@@ -7,15 +7,13 @@ import (
 
 //--------------------------------------------------------------------------------------|
 
-// CacheItem represents an item stored in the cache with an expiration time.
 type CacheItem struct {
-	Value      interface{}
+	Value      any
 	Expiration int64
 }
 
 //--------------------------------------------------------------------------------------|
 
-// Cache is a simple in-memory key-value store with TTL.
 type Cache struct {
 	items map[string]CacheItem
 	mu    sync.RWMutex
@@ -23,7 +21,6 @@ type Cache struct {
 
 //--------------------------------------------------------------------------------------|
 
-// NewCache creates a new Cache instance.
 func NewCache() *Cache {
 	return &Cache{
 		items: make(map[string]CacheItem),
@@ -32,8 +29,7 @@ func NewCache() *Cache {
 
 //--------------------------------------------------------------------------------------|
 
-// Set adds an item to the cache with a specified TTL.
-func (c *Cache) Set(key string, value interface{}, ttl time.Duration) {
+func (c *Cache) Set(key string, value any, ttl time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -45,8 +41,7 @@ func (c *Cache) Set(key string, value interface{}, ttl time.Duration) {
 
 //--------------------------------------------------------------------------------------|
 
-// Get retrieves an item from the cache. Returns (value, found).
-func (c *Cache) Get(key string) (interface{}, bool) {
+func (c *Cache) Get(key string) (any, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -64,7 +59,6 @@ func (c *Cache) Get(key string) (interface{}, bool) {
 
 //--------------------------------------------------------------------------------------|
 
-// Delete removes an item from the cache.
 func (c *Cache) Delete(key string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -73,7 +67,6 @@ func (c *Cache) Delete(key string) {
 
 //--------------------------------------------------------------------------------------|
 
-// Clear removes all items from the cache.
 func (c *Cache) Clear() {
 	c.mu.Lock()
 	defer c.mu.Unlock()

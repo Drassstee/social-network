@@ -2,6 +2,8 @@ package models
 
 import "time"
 
+//--------------------------------------------------------------------------------------|
+
 type PostAuthor struct {
 	ID        int64  `json:"id"`
 	FirstName string `json:"first_name"`
@@ -32,12 +34,16 @@ type Comment struct {
 	CreatedAt time.Time   `json:"created_at"`
 }
 
+//--------------------------------------------------------------------------------------|
+
 type PostService interface {
 	ListPosts(requesterID int64, groupID int64, limit, offset int) ([]Post, bool, error)
 	CreatePost(authorID int64, content, imageURL, privacy string, groupID int64, allowedUsers []int64) (*Post, error)
 	CreateComment(authorID int64, postID int64, content, imageURL string) (*Comment, error)
 	GetComments(postID int64) ([]Comment, error)
 }
+
+//--------------------------------------------------------------------------------------|
 
 type PostRepo interface {
 	List(requesterID int64, groupID int64, limit, offset int) ([]Post, bool, error)

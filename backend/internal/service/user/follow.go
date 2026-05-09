@@ -7,7 +7,7 @@ import (
 	"social-network/internal/models"
 )
 
-// --------------------------------------------------------------------|
+//--------------------------------------------------------------------------------------|
 
 func (us *UserService) Follow(f models.Follow) (string, error) {
 	if f.FollowerID < 1 || f.FollowingID < 1 {
@@ -59,7 +59,7 @@ func (us *UserService) Follow(f models.Follow) (string, error) {
 	return f.Status, nil
 }
 
-// --------------------------------------------------------------------|
+//--------------------------------------------------------------------------------------|
 
 func (us *UserService) Unfollow(f models.Follow) error {
 	if f.FollowerID < 1 || f.FollowingID < 1 {

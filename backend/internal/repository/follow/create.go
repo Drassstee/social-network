@@ -9,6 +9,8 @@ import (
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
+//--------------------------------------------------------------------------------------|
+
 func (r *FollowRepo) CreateFollow(f models.Follow) error {
 	query := `INSERT INTO follows (follower_id, following_id, status) VALUES (?, ?, ?)`
 

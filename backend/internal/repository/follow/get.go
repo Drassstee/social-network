@@ -7,6 +7,8 @@ import (
 	"social-network/internal/models"
 )
 
+//--------------------------------------------------------------------------------------|
+
 func (r *FollowRepo) GetFollowers(id int64, status string) ([]models.UserData, error) {
 	query := `SELECT u.id, u.first_name, u.last_name, u.avatar_url, u.nickname
 			FROM follows AS f 
@@ -33,7 +35,8 @@ func (r *FollowRepo) GetFollowers(id int64, status string) ([]models.UserData, e
 	return users, nil
 }
 
-// --------------------------------------------------------------------|
+//--------------------------------------------------------------------------------------|
+
 
 func (r *FollowRepo) GetFollowing(id int64, status string) ([]models.UserData, error) {
 	query := `SELECT u.id, u.first_name, u.last_name, u.avatar_url, u.nickname
@@ -61,6 +64,8 @@ func (r *FollowRepo) GetFollowing(id int64, status string) ([]models.UserData, e
 	return users, nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (r *FollowRepo) GetStatus(followerID, followingID int64) (string, error) {
 	var status string
 	err := r.db.QueryRow(`SELECT status FROM follows WHERE follower_id = ? AND following_id = ?`, followerID, followingID).Scan(&status)
@@ -73,4 +78,3 @@ func (r *FollowRepo) GetStatus(followerID, followingID int64) (string, error) {
 	return status, nil
 }
 
-// --------------------------------------------------------------------|

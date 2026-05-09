@@ -1,5 +1,7 @@
 package follow
 
+//--------------------------------------------------------------------------------------|
+
 func (r *FollowRepo) IsFollower(userID, targetID int64) (bool, error) {
 	query := `SELECT EXISTS(
 				SELECT 1 
