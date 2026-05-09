@@ -6,8 +6,6 @@ import (
 	"net/http"
 
 	"social-network/internal/models"
-	"social-network/internal/models/user"
-	"social-network/internal/utils"
 	"social-network/internal/web"
 )
 
@@ -17,27 +15,26 @@ func (h *UserHandler) GetProfile(w http.ResponseWriter, r *http.Request, identit
 	if identity == nil {
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("unauthorized")}
 	}
-	userID := int64(identity.ID)
 
-	targetID, err := utils.GetIDByURL(r, "id")
+	targetID, err := web.PathInt64(r, "id")
 	if err != nil {
 		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
 
-	u, err := h.Users.GetProfile(userID, targetID)
+	profile, err := h.Service.GetProfile(targetID, identity.ID)
 	if err != nil {
-		if errors.Is(err, models.ErrInvalidData) {
-			return web.StatusError{Code: http.StatusBadRequest, Err: err}
-		} else if errors.Is(err, models.ErrNotFound) {
+		if errors.Is(err, models.ErrNotFound) {
 			return web.StatusError{Code: http.StatusNotFound, Err: err}
-		} else if errors.Is(err, models.ErrUserPrivate) {
-			return web.StatusError{Code: http.StatusForbidden, Err: err}
 		}
-
-		return web.StatusError{Code: http.StatusInternalServerError, Err: errors.New("internal server error")}
+		if errors.Is(err, models.ErrUserPrivate) {
+			// Profile is private, we still return the partial data provided by the service
+			web.JSONResponse(w, http.StatusOK, profile)
+			return nil
+		}
+		return web.StatusError{Code: http.StatusInternalServerError, Err: err}
 	}
 
-	utils.RespondJSON(w, http.StatusOK, u)
+	web.JSONResponse(w, http.StatusOK, profile)
 	return nil
 }
 
@@ -47,26 +44,20 @@ func (h *UserHandler) UpdateProfile(w http.ResponseWriter, r *http.Request, iden
 	if identity == nil {
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("unauthorized")}
 	}
-	id := int64(identity.ID)
 
-	var u user.User
-	err := json.NewDecoder(r.Body).Decode(&u)
-	if err != nil {
+	var u models.User
+	if err := json.NewDecoder(r.Body).Decode(&u); err != nil {
 		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
-	u.ID = id
+	u.ID = identity.ID
 
-	err = h.Users.UpdateProfile(&u)
-	if err != nil {
+	if err := h.Service.UpdateProfile(&u); err != nil {
 		if errors.Is(err, models.ErrInvalidData) {
 			return web.StatusError{Code: http.StatusBadRequest, Err: err}
-		} else if errors.Is(err, models.ErrConflict) {
-			return web.StatusError{Code: http.StatusConflict, Err: err}
 		}
-
-		return web.StatusError{Code: http.StatusInternalServerError, Err: errors.New("internal server error")}
+		return web.StatusError{Code: http.StatusInternalServerError, Err: err}
 	}
 
-	utils.RespondJSON(w, http.StatusOK, u)
+	web.JSONResponse(w, http.StatusOK, map[string]string{"message": "profile updated successfully"})
 	return nil
 }

@@ -1,148 +1,90 @@
 package user
 
 import (
+	"context"
 	"fmt"
 
 	"social-network/internal/models"
-	"social-network/internal/models/profile"
-	"social-network/internal/models/user"
+	"social-network/internal/utils"
 )
 
-func (us *UserService) GetProfile(userID, targetID int64) (*profile.Profile, error) {
+func (s *UserService) GetProfile(targetID, userID int64) (*models.Profile, error) {
 	if targetID < 1 {
-		return nil, fmt.Errorf("get profile: %w: incorrect user id", models.ErrInvalidData)
+		return nil, fmt.Errorf("%w: target user id is empty", models.ErrInvalidData)
 	}
 
-	if userID != targetID {
-		isPrivate, err := us.users.IsPrivate(targetID)
+	u, err := s.users.GetByID(context.Background(), targetID)
+	if err != nil {
+		return nil, err
+	}
+
+	p := &models.Profile{
+		UserData: models.UserData{
+			ID:        u.ID,
+			FirstName: u.FirstName,
+			LastName:  u.LastName,
+			Nickname:  u.Nickname,
+			AvatarURL: utils.FormatAvatarURL(u.AvatarURL),
+		},
+		Privacy:   u.ProfileType,
+		BirthDate: u.DOB,
+		AboutMe:   u.AboutMe,
+	}
+
+	if userID == targetID {
+		p.IsMe = true
+	} else {
+		status, err := s.follows.FollowExists(userID, targetID, "accept")
 		if err != nil {
-			return nil, fmt.Errorf("get profile: %w", err)
+			return nil, err
+		}
+		if status {
+			p.FollowStatus = "following"
 		}
 
-		if isPrivate {
-			isFollower, err := us.follows.IsFollower(userID, targetID)
-			if err != nil {
-				return nil, fmt.Errorf("get profile: %w", err)
-			}
-
-			if !isFollower {
-				data, err := us.users.GetByID(targetID)
-				if err != nil {
-					return nil, fmt.Errorf("get profile: %w", err)
-				}
-
-				var u = user.User{
-					ID:          data.ID,
-					FirstName:   data.FirstName,
-					LastName:    data.LastName,
-					ProfileType: data.ProfileType,
-					AvatarURL:   formatAvatarURL(data.AvatarURL),
-				}
-
-				return &profile.Profile{
-					User: &u,
-				}, nil
-			}
+		if u.ProfileType == "private" && p.FollowStatus != "following" {
+			return p, models.ErrUserPrivate
 		}
 	}
 
-	u, err := us.users.GetByID(targetID)
-	if err != nil {
-		return nil, fmt.Errorf("get profile: %w", err)
-	}
-
-	posts, err := us.posts.GetPosts(targetID, userID)
-	if err != nil {
-		return nil, fmt.Errorf("get profile: %w", err)
-	}
-
-	followers, err := us.follows.GetFollowers(targetID, "accept")
-	if err != nil {
-		return nil, fmt.Errorf("get profile: %w", err)
-	}
-
-	following, err := us.follows.GetFollowing(targetID, "accept")
-	if err != nil {
-		return nil, fmt.Errorf("get profile: %w", err)
-	}
-
-	u.AvatarURL = formatAvatarURL(u.AvatarURL)
-
-	return &profile.Profile{
-		User:      u,
-		Posts:     posts,
-		Followers: followers,
-		Following: following,
-	}, nil
+	return p, nil
 }
 
-// --------------------------------------------------------------------|
-
-func (us *UserService) UpdateProfile(u *user.User) error {
-	err := u.ValidateData()
-	if err != nil {
-		return fmt.Errorf("update profile: %w: %w", models.ErrInvalidData, err)
-
-	}
-
-	if u.ProfileType != "public" && u.ProfileType != "private" {
-		return fmt.Errorf("update profile: %w: incorrect profile type", models.ErrInvalidData)
-	}
-
-	exists, err := us.users.EmailExists(u.Email, u.ID)
-	if err != nil {
-		return fmt.Errorf("update profile: %w", err)
-	}
-	if exists {
-		return fmt.Errorf("get profile: %w: email already exists", models.ErrConflict)
-	}
-
-	if err := us.users.UpdateUser(u); err != nil {
-		return fmt.Errorf("update profile: %w", err)
-	}
-	return nil
-}
-
-// --------------------------------------------------------------------|
-
-func (us *UserService) GetUserID(uuid string) (int64, error) {
-	id, err := us.sessions.GetUserID(uuid)
-	if err != nil {
-		return 0, fmt.Errorf("get user id: %w", err)
-	}
-
-	return id, nil
-}
-
-// --------------------------------------------------------------------|
-
-func (us *UserService) GetMe(id int64) (*user.UserData, error) {
+func (s *UserService) GetMe(id int64) (*models.UserData, error) {
 	if id < 1 {
-		return nil, fmt.Errorf("get me: %w: incorrect user id", models.ErrInvalidData)
+		return nil, fmt.Errorf("%w: incorrect user id", models.ErrInvalidData)
 	}
 
-	u, err := us.users.GetByID(id)
+	u, err := s.users.GetByID(context.Background(), id)
 	if err != nil {
-		return nil, fmt.Errorf("get me: %w", err)
+		return nil, err
 	}
 
-	return &user.UserData{
+	return &models.UserData{
 		ID:        u.ID,
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
 		Nickname:  u.Nickname,
-		AvatarURL: formatAvatarURL(u.AvatarURL),
+		AvatarURL: utils.FormatAvatarURL(u.AvatarURL),
 	}, nil
 }
 
-func formatAvatarURL(path string) string {
-	if path == "" {
-		return ""
+func (s *UserService) UpdateProfile(u *models.User) error {
+	if err := u.ValidateData(); err != nil {
+		return fmt.Errorf("%w: %v", models.ErrInvalidData, err)
 	}
-	// If it's already a full URL or starts with /, return as is
-	if path[0] == '/' || path[:4] == "http" {
-		return path
+
+	exists, err := s.users.EmailExists(u.Email, u.ID)
+	if err != nil {
+		return err
 	}
-	// Prefix with api path
-	return "/api/v1/" + path
+	if exists {
+		return fmt.Errorf("%w: email already exists", models.ErrConflict)
+	}
+
+	return s.users.UpdateUser(u)
+}
+
+func (s *UserService) GetUserID(uuid string) (int64, error) {
+	return s.sessions.GetUserID(uuid)
 }

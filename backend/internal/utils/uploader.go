@@ -36,7 +36,7 @@ func NewLocalImageUploader(baseDir, baseURL string) *LocalImageUploader {
 //--------------------------------------------------------------------------------------|
 
 // UploadImage saves the content to local storage and returns the relative URL.
-func (u *LocalImageUploader) UploadImage(ctx context.Context, userID int, filename string, content io.Reader) (string, error) {
+func (u *LocalImageUploader) UploadImage(ctx context.Context, userID int64, filename string, content io.Reader) (string, error) {
 	// 1. Create a unique filename to avoid collisions
 	ext := filepath.Ext(filename)
 	newFilename := fmt.Sprintf("u%d_%d%s", userID, time.Now().UnixNano(), ext)

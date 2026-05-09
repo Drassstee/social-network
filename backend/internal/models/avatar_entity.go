@@ -1,4 +1,4 @@
-package avatar
+package models
 
 import "mime/multipart"
 

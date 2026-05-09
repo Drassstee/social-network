@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import GroupEvents from '../components/GroupEvents.vue'
@@ -13,8 +13,17 @@ const members = ref([])
 const posts = ref([])
 const activeTab = ref('posts') // 'posts', 'members', 'events', 'chat'
 const isLoading = ref(true)
-const isMember = ref(false)
-const isCreator = ref(false)
+const error = ref(null)
+
+const isMember = computed(() => {
+    if (!auth.user || !members.value || !Array.isArray(members.value)) return false
+    return members.value.some(m => Number(m.user_id) === Number(auth.user.id))
+})
+
+const isCreator = computed(() => {
+    if (!auth.user || !group.value || group.value.error) return false
+    return Number(group.value.creator_id) === Number(auth.user.id)
+})
 const joinRequests = ref([])
 const inviteUserId = ref('')
 const feedbackMessage = ref('')
@@ -33,31 +42,41 @@ const newPostImage = ref(null)
 const isPosting = ref(false)
 
 const fetchGroupData = async () => {
+    console.log('Fetching group data for ID:', route.params.id)
     isLoading.value = true
+    error.value = null
     try {
         const [groupRes, membersRes] = await Promise.all([
             fetch(`/api/v1/groups/${route.params.id}`),
             fetch(`/api/v1/groups/${route.params.id}/members`)
         ])
         
-        group.value = await groupRes.json()
-        members.value = await membersRes.json()
-        
-        isMember.value = members.value.some(m => Number(m.user_id) === Number(auth.user?.id))
-        isCreator.value = Number(group.value.creator_id) === Number(auth.user?.id)
-        
-        if (isMember.value) {
-            fetchPosts()
-            if (isCreator.value) fetchJoinRequests()
+        if (!groupRes.ok) {
+            const errData = await groupRes.json()
+            throw new Error(errData.error || `Failed to fetch group: ${groupRes.status}`)
         }
+
+        group.value = await groupRes.json()
+        const membersData = await membersRes.json()
+        members.value = Array.isArray(membersData) ? membersData : []
     } catch (err) {
         console.error('Failed to fetch group data:', err)
+        error.value = err.message
     } finally {
         isLoading.value = false
     }
 }
 
+// Watch for membership/creator status changes to fetch private data
+watch([isMember, isCreator], ([newMember, newCreator]) => {
+    if (newMember || newCreator) {
+        fetchPosts()
+        if (newCreator) fetchJoinRequests()
+    }
+}, { immediate: true })
+
 const fetchPosts = async () => {
+    if (!route.params.id) return
     try {
         const res = await fetch(`/api/v1/posts?group_id=${route.params.id}`)
         const data = await res.json()
@@ -154,50 +173,66 @@ watch(() => route.params.id, fetchGroupData)
 </script>
 
 <template>
-    <div class="group-detail" v-if="group">
+    <div v-if="isLoading" class="loading-container">
+        <div class="glow-text pulse">SYSTEM_SYNC_IN_PROGRESS...</div>
+    </div>
+    
+    <div v-else-if="error" class="error-container">
+        <div class="error-box card-retro">
+            <h2 class="error-title">CRITICAL_ERROR</h2>
+            <p class="error-msg">{{ error }}</p>
+            <button @click="fetchGroupData" class="btn-retro">RETRY_SYNC</button>
+        </div>
+    </div>
+
+    <div class="group-detail" v-else-if="group">
         <div v-if="feedbackMessage" class="feedback-toast" :class="feedbackType">
             {{ feedbackMessage }}
         </div>
         <header class="group-header">
             <div class="group-info">
-                <h1>{{ group.title }}</h1>
-                <p class="description">{{ group.description }}</p>
+                <h1 class="glow-text">{{ group.title }}</h1>
+                <p class="description">MISSION_LOG: {{ group.description }}</p>
             </div>
             <div class="group-actions">
-                <button v-if="!isMember" @click="handleJoinRequest" class="btn btn-primary">Join Group</button>
-                <div v-else class="member-badge">Member</div>
+                <button v-if="!isMember && !isCreator" @click="handleJoinRequest" class="btn-retro">REQUEST_ENTRY</button>
+                <div v-else class="member-badge">{{ isCreator ? 'CREATOR_UNIT' : 'AUTHORIZED_UNIT' }}</div>
             </div>
         </header>
 
         <nav class="group-tabs">
-            <button :class="{ active: activeTab === 'posts' }" @click="activeTab = 'posts'">Posts</button>
-            <button :class="{ active: activeTab === 'members' }" @click="activeTab = 'members'">Members</button>
-            <button v-if="isMember" :class="{ active: activeTab === 'events' }" @click="activeTab = 'events'">Events</button>
-            <button v-if="isMember" :class="{ active: activeTab === 'chat' }" @click="activeTab = 'chat'">Chat</button>
+            <button :class="{ active: activeTab === 'posts' }" @click="activeTab = 'posts'">LOGS</button>
+            <button :class="{ active: activeTab === 'members' }" @click="activeTab = 'members'">ROSTER</button>
+            <button v-if="isMember || isCreator" :class="{ active: activeTab === 'events' }" @click="activeTab = 'events'">OPS</button>
+            <button v-if="isMember || isCreator" :class="{ active: activeTab === 'chat' }" @click="activeTab = 'chat'">COMM_LINK</button>
             <button v-if="isCreator && joinRequests.length" :class="{ active: activeTab === 'requests' }" @click="activeTab = 'requests'">
-                Requests ({{ joinRequests.length }})
+                ENTRY_REQS ({{ joinRequests.length }})
             </button>
         </nav>
 
         <div class="tab-content">
             <!-- Posts Tab -->
             <div v-if="activeTab === 'posts'" class="posts-tab">
-                <div v-if="isMember" class="create-post">
-                    <textarea v-model="newPostContent" placeholder="Share something with the group..."></textarea>
+                <div v-if="isMember || isCreator" class="card-retro create-post">
+                    <textarea v-model="newPostContent" class="input-retro" placeholder="RECORD_TRANSMISSION..."></textarea>
                     <div class="post-controls">
-                        <input type="file" @change="onFileChange" accept="image/*" />
-                        <button @click="handleCreatePost" :disabled="isPosting" class="btn btn-primary">Post</button>
+                        <label class="file-label">
+                          ATTACH_FILE
+                          <input type="file" @change="onFileChange" accept="image/*" class="hidden-input" />
+                        </label>
+                        <button @click="handleCreatePost" :disabled="isPosting" class="btn-retro">TRANSMIT</button>
                     </div>
+                    <p v-if="newPostImage" class="file-name">{{ newPostImage.name }}</p>
                 </div>
 
-                <div v-if="!isMember" class="blocked-content">
-                    <p>Only members can see group posts.</p>
+                <div v-if="!isMember && !isCreator" class="blocked-content">
+                    <p>ENCRYPTED: ONLY AUTHORIZED UNITS CAN VIEW LOGS.</p>
                 </div>
                 <div v-else class="posts-list">
-                    <div v-for="post in posts" :key="post.id" class="post-card">
+                    <div v-for="post in posts" :key="post.id" class="card-retro post-card">
                         <div class="post-header">
-                            <strong>{{ post.author.first_name }} {{ post.author.last_name }}</strong>
-                            <span>{{ new Date(post.created_at).toLocaleString() }}</span>
+                            <strong class="author-name">{{ post.author.first_name }} {{ post.author.last_name }}</strong>
+                            <span class="post-date">{{ new Date(post.created_at).toLocaleString() }}</span>
                         </div>
                         <p class="post-content">{{ post.content }}</p>
                         <img v-if="post.image_url" :src="post.image_url" class="post-image" />
@@ -207,14 +242,18 @@ watch(() => route.params.id, fetchGroupData)
 
             <!-- Members Tab -->
             <div v-if="activeTab === 'members'" class="members-tab">
-                <div v-if="isMember" class="invite-section">
-                    <input v-model="inviteUserId" placeholder="User ID to invite" type="number" />
-                    <button @click="handleInvite(parseInt(inviteUserId))" class="btn btn-secondary">Invite</button>
-                    <p class="hint">Tip: Enter User ID to invite them to this group.</p>
+                <div v-if="isMember || isCreator" class="invite-section card-retro">
+                    <h3>INVITE_NEW_UNIT</h3>
+                    <div class="invite-controls">
+                      <input v-model="inviteUserId" placeholder="USER_ID" type="number" class="input-retro" />
+                      <button @click="handleInvite(parseInt(inviteUserId))" class="btn-retro">INVITE</button>
+                    </div>
                 </div>
-                <div v-for="member in members" :key="member.user_id" class="member-item">
-                    <span class="member-name">{{ member.first_name }} {{ member.last_name }}</span>
-                    <span class="member-role">{{ member.role }}</span>
+                <div class="members-list">
+                  <div v-for="member in members" :key="member.user_id" class="member-item card-retro">
+                      <span class="member-name">{{ member.first_name }} {{ member.last_name }}</span>
+                      <span class="member-role">[{{ member.role }}]</span>
+                  </div>
                 </div>
             </div>
 
@@ -230,11 +269,11 @@ watch(() => route.params.id, fetchGroupData)
 
             <!-- Join Requests Tab -->
             <div v-if="activeTab === 'requests'" class="requests-tab">
-                <div v-for="req in joinRequests" :key="req.id" class="request-item">
-                    <span>{{ req.username }} wants to join</span>
+                <div v-for="req in joinRequests" :key="req.id" class="request-item card-retro">
+                    <span>UNIT_{{ req.username }} ACCESS_REQEUST</span>
                     <div class="actions">
-                        <button @click="respondToRequest(req.id, true)" class="btn btn-small btn-success">Accept</button>
-                        <button @click="respondToRequest(req.id, false)" class="btn btn-small btn-danger">Decline</button>
+                        <button @click="respondToRequest(req.id, true)" class="btn-retro mini success">ALLOW</button>
+                        <button @click="respondToRequest(req.id, false)" class="btn-retro mini danger">DENY</button>
                     </div>
                 </div>
             </div>
@@ -249,113 +288,234 @@ watch(() => route.params.id, fetchGroupData)
 }
 
 .group-header {
-    background: var(--color-charcoal);
+    background: rgba(31, 11, 53, 0.85);
     padding: 30px;
-    border-radius: var(--border-radius);
+    border: 2px solid var(--color-neon-cyan);
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-    border-bottom: 4px solid var(--color-gold);
+    box-shadow: 8px 8px 0 var(--color-neon-magenta);
 }
 
-.group-info h1 {
-    color: var(--color-gold);
+.glow-text {
+    color: var(--color-neon-cyan);
+    text-shadow: var(--shadow-neon-cyan);
     margin: 0 0 10px 0;
 }
 
 .description {
-    color: var(--color-paper);
-    opacity: 0.8;
+    color: var(--color-neon-yellow);
+    font-family: 'VT323', monospace;
+    font-size: 1.4rem;
+}
+
+.member-badge {
+    color: var(--color-neon-yellow);
+    border: 1px solid var(--color-neon-yellow);
+    padding: 5px 15px;
+    font-family: 'VT323', monospace;
+    text-shadow: 0 0 5px var(--color-neon-yellow);
 }
 
 .group-tabs {
     display: flex;
     gap: 10px;
     margin-bottom: 20px;
-    border-bottom: 2px solid var(--color-gold);
-    padding-bottom: 10px;
+    border-bottom: 2px solid var(--color-neon-magenta);
+    padding-bottom: 5px;
+    flex-wrap: wrap;
 }
 
 .group-tabs button {
     background: none;
     border: none;
-    color: var(--color-charcoal);
+    color: var(--color-neon-cyan);
     padding: 10px 20px;
     cursor: pointer;
     font-weight: bold;
-    transition: all 0.3s;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 0.7rem;
+    transition: all 0.2s;
+}
+
+.group-tabs button:hover {
+  color: var(--color-neon-magenta);
+  text-shadow: 0 0 5px var(--color-neon-magenta);
 }
 
 .group-tabs button.active {
-    background: var(--color-gold);
-    color: var(--color-charcoal);
-    border-radius: var(--border-radius);
+    background: var(--color-neon-cyan);
+    color: var(--color-dark-bg);
 }
 
 .create-post {
-    background: var(--color-paper);
-    padding: 20px;
-    border-radius: var(--border-radius);
     margin-bottom: 20px;
-}
-
-.create-post textarea {
-    width: 100%;
-    min-height: 100px;
-    background: transparent;
-    border: 1px solid var(--color-gold);
-    padding: 10px;
-    color: var(--color-charcoal);
-    margin-bottom: 10px;
 }
 
 .post-controls {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-top: 15px;
 }
 
+.file-label {
+    cursor: pointer;
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid var(--color-neon-cyan);
+    padding: 8px 15px;
+    color: var(--color-neon-cyan);
+    font-family: 'VT323', monospace;
+    font-size: 1.2rem;
+}
+
+.hidden-input { display: none; }
+
 .post-card {
-    background: var(--color-paper);
-    padding: 20px;
-    border-radius: var(--border-radius);
-    margin-bottom: 15px;
-    border: 1px solid rgba(0,0,0,0.1);
+    margin-bottom: 20px;
 }
 
 .post-header {
     display: flex;
     justify-content: space-between;
     margin-bottom: 10px;
-    font-size: 0.9rem;
+    font-family: 'VT323', monospace;
+}
+
+.author-name {
+    color: var(--color-neon-magenta);
+    font-size: 1.2rem;
+}
+
+.post-date {
+    color: var(--color-neon-yellow);
+}
+
+.post-content {
+    font-family: 'VT323', monospace;
+    font-size: 1.3rem;
+    color: white;
+    background: rgba(0,0,0,0.2);
+    padding: 10px;
 }
 
 .post-image {
     max-width: 100%;
+    max-height: 400px;
+    object-fit: contain;
     margin-top: 10px;
-    border-radius: var(--border-radius);
+    border: 1px solid var(--color-neon-cyan);
+    display: block;
 }
 
-.member-item, .request-item {
+.invite-section {
+  margin-bottom: 20px;
+}
+
+.invite-section h3 {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.8rem;
+  margin-bottom: 15px;
+  color: var(--color-neon-magenta);
+}
+
+.invite-controls {
+  display: flex;
+  gap: 15px;
+}
+
+.members-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.member-item {
     display: flex;
-    justify-content: space-between;
-    background: var(--color-paper);
+    flex-direction: column;
     padding: 15px;
-    border-radius: var(--border-radius);
-    margin-bottom: 10px;
+    border-radius: 0;
+}
+
+.member-name {
+    color: var(--color-neon-cyan);
+    font-family: 'VT323', monospace;
+    font-size: 1.2rem;
 }
 
 .member-role {
-    font-style: italic;
-    color: var(--color-gold);
+    font-family: 'VT323', monospace;
+    color: var(--color-neon-yellow);
 }
 
-.btn-small {
+.request-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    margin-bottom: 10px;
+}
+
+.request-item span {
+  font-family: 'VT323', monospace;
+  font-size: 1.2rem;
+  color: var(--color-neon-yellow);
+}
+
+.btn-retro.mini {
     padding: 5px 10px;
-    margin-left: 5px;
+    font-size: 0.6rem;
 }
 
-.btn-success { background: #4CAF50; color: white; }
-.btn-danger { background: #f44336; color: white; }
+.btn-retro.mini.success { border-color: #00ff00; color: #00ff00; }
+.btn-retro.mini.danger { border-color: #ff0000; color: #ff0000; }
+
+.blocked-content {
+  text-align: center;
+  padding: 50px;
+  border: 2px dashed var(--color-neon-magenta);
+  color: var(--color-neon-magenta);
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.8rem;
+}
+.loading-container, .error-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+    text-align: center;
+}
+
+.pulse {
+    animation: pulse 1.5s infinite;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 1rem;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+}
+
+.error-box {
+    padding: 40px;
+    border-color: #ff0000;
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
+}
+
+.error-title {
+    color: #ff0000;
+    text-shadow: 0 0 10px #ff0000;
+    font-family: 'Press Start 2P', cursive;
+    margin-bottom: 20px;
+}
+
+.error-msg {
+    color: var(--color-neon-yellow);
+    font-family: 'VT323', monospace;
+    font-size: 1.5rem;
+    margin-bottom: 30px;
+}
 </style>

@@ -1,0 +1,4 @@
+uploads/
+data/
+*.db
+*.db-journal

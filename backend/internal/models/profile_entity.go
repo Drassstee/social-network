@@ -1,0 +1,29 @@
+package models
+
+import "time"
+
+type Profile struct {
+	UserData     UserData   `json:"user_data"`
+	Followers    []UserData `json:"followers"`
+	Following    []UserData `json:"following"`
+	Posts        []Post     `json:"posts"`
+	IsMe         bool       `json:"is_me"`
+	FollowStatus string     `json:"follow_status"`
+	Privacy      string     `json:"privacy"`
+	BirthDate    *time.Time `json:"birth_date"`
+	AboutMe      string     `json:"about_me"`
+}
+
+// UserProfile is used for the profile view
+type UserProfile struct {
+	ID           int64      `json:"id"`
+	FirstName    string     `json:"first_name"`
+	LastName     string     `json:"last_name"`
+	Nickname     string     `json:"nickname"`
+	AvatarURL    string     `json:"avatar_url"`
+	Privacy      string     `json:"privacy"`
+	BirthDate    *time.Time `json:"birth_date"`
+	AboutMe      string     `json:"about_me"`
+	IsMe         bool       `json:"is_me"`
+	FollowStatus string     `json:"follow_status"`
+}

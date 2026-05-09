@@ -69,71 +69,71 @@ const getIcon = (type) => {
 <template>
   <div class="notifications-view">
     <header class="view-header">
-      <h1 class="view-title">Notifications</h1>
-      <div v-if="store.unreadCount > 0" class="unread-banner">
-        You have {{ store.unreadCount }} new notifications
-        <button @click="store.markAllAsRead" class="btn-text">Mark all as read</button>
+      <h1 class="view-title">SYSTEM_ALERTS</h1>
+      <div v-if="store.unreadCount > 0" class="unread-banner card-retro">
+        <span>CRITICAL: {{ store.unreadCount }} NEW_ALERTS_DETECTED</span>
+        <button @click="store.markAllAsRead" class="btn-retro mini">CLEAR_ALL</button>
       </div>
     </header>
 
     <div class="notifications-list">
-      <div v-if="store.loading" class="loading">Loading notifications...</div>
-      <div v-else-if="store.notifications.length === 0" class="card-traditional no-notifications">
-        <p>No notifications yet.</p>
+      <div v-if="store.loading" class="loading">SCANNING_NETWORK...</div>
+      <div v-else-if="store.notifications.length === 0" class="card-retro no-notifications">
+        <p>STATUS_IDLE: NO_PENDING_NOTIFICATIONS.</p>
       </div>
       
       <div v-for="notif in store.notifications" :key="notif.id" 
-           :class="['card-traditional notif-card', { 'unread': !notif.is_read }]">
+           :class="['card-retro notif-card', { 'unread': !notif.is_read }]">
         <div class="notif-content">
           <div class="notif-icon">{{ getIcon(notif.notification_type) }}</div>
           <div class="notif-text">
             <span v-if="notif.notification_type === 'follow_request'">
-              <strong>{{ notif.actor_username }}</strong> sent you a follow request.
+              <strong class="actor">{{ notif.actor_username }}</strong> INITIATED_FOLLOW_SEQUENCE.
             </span>
             <span v-else-if="notif.notification_type === 'invite'">
-              <strong>{{ notif.actor_username }}</strong> invited you to join a group.
+              <strong class="actor">{{ notif.actor_username }}</strong> DISPATCHED_INVITE TO: <strong>{{ notif.target_title }}</strong>.
             </span>
             <span v-else-if="notif.notification_type === 'request'">
-              <strong>{{ notif.actor_username }}</strong> wants to join your group.
+              <strong class="actor">{{ notif.actor_username }}</strong> REQUESTS ACCESS TO: <strong>{{ notif.target_title }}</strong>.
             </span>
             <span v-else-if="notif.notification_type === 'event'">
-              New event in group: <strong>{{ notif.target_title || 'Group Event' }}</strong>
+              NEW_MISSION_OBJECTIVE IN <strong>{{ notif.target_title }}</strong>.
             </span>
             <span v-else-if="notif.notification_type === 'accept'">
-              <strong>{{ notif.actor_username }}</strong> accepted your request.
+              <strong class="actor">{{ notif.actor_username }}</strong> JOINED: <strong>{{ notif.target_title }}</strong>.
             </span>
             <span v-else-if="notif.notification_type === 'decline'">
-              <strong>{{ notif.actor_username }}</strong> declined your request.
+              <strong class="actor">{{ notif.actor_username }}</strong> DECLINED ACCESS TO: <strong>{{ notif.target_title }}</strong>.
             </span>
             <span v-else>
-              {{ notif.actor_username }} triggered a {{ notif.notification_type }}.
+              {{ notif.actor_username }} TRIGGERED_{{ notif.notification_type.toUpperCase() }}.
             </span>
-            <div class="notif-time">{{ new Date(notif.created_at).toLocaleString() }}</div>
+            <div class="notif-time">TIMESTAMP: {{ new Date(notif.created_at).toLocaleString() }}</div>
           </div>
         </div>
 
         <div class="notif-actions" v-if="!notif.is_read || ['follow_request', 'invite', 'request'].includes(notif.notification_type)">
           <!-- Follow Request Actions -->
           <template v-if="notif.notification_type === 'follow_request'">
-            <button @click="handleFollowResponse(notif.actor_id, 'accept', notif.id)" class="btn-traditional mini">Accept</button>
-            <button @click="handleFollowResponse(notif.actor_id, 'decline', notif.id)" class="btn-traditional mini ghost">Decline</button>
+            <button @click="handleFollowResponse(notif.actor_id, 'accept', notif.id)" class="btn-retro mini">ALLOW</button>
+            <button @click="handleFollowResponse(notif.actor_id, 'decline', notif.id)" class="btn-retro mini ghost">DENY</button>
           </template>
 
           <!-- Group Invite Actions -->
           <template v-else-if="notif.notification_type === 'invite'">
-            <button @click="handleGroupInvitation(notif.target_id, true, notif.id)" class="btn-traditional mini">Join</button>
-            <button @click="handleGroupInvitation(notif.target_id, false, notif.id)" class="btn-traditional mini ghost">Ignore</button>
+            <button @click="handleGroupInvitation(notif.target_id, true, notif.id)" class="btn-retro mini">ACCEPT</button>
+            <button @click="handleGroupInvitation(notif.target_id, false, notif.id)" class="btn-retro mini ghost">IGNORE</button>
           </template>
 
           <!-- Join Request Actions -->
           <template v-else-if="notif.notification_type === 'request'">
-            <button @click="handleJoinRequest(notif.target_id, true, notif.id)" class="btn-traditional mini">Approve</button>
-            <button @click="handleJoinRequest(notif.target_id, false, notif.id)" class="btn-traditional mini ghost">Deny</button>
+            <button @click="handleJoinRequest(notif.target_id, true, notif.id)" class="btn-retro mini">APPROVE</button>
+            <button @click="handleJoinRequest(notif.target_id, false, notif.id)" class="btn-retro mini ghost">DENY</button>
           </template>
 
           <!-- Info Notifications -->
           <template v-else>
-            <button v-if="!notif.is_read" @click="store.markAsRead(notif.id)" class="btn-text">Dismiss</button>
+            <button v-if="!notif.is_read" @click="store.markAsRead(notif.id)" class="btn-retro mini ghost">DISMISS</button>
           </template>
         </div>
       </div>
@@ -142,40 +142,60 @@ const getIcon = (type) => {
 </template>
 
 <style scoped>
+.notifications-view {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
 .view-header {
-  margin-bottom: 30px;
+  margin-bottom: 40px;
+}
+
+.view-title {
+  font-size: 2.5rem;
+  color: var(--color-neon-cyan);
+  text-shadow: var(--shadow-neon-cyan);
+  margin-bottom: 20px;
 }
 
 .unread-banner {
-  background: rgba(212, 175, 55, 0.1);
-  padding: 10px 20px;
-  border-radius: var(--border-radius);
-  margin-top: 10px;
+  background: rgba(255, 255, 0, 0.1);
+  border-color: var(--color-neon-yellow);
+  padding: 15px 25px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.9rem;
+  font-family: 'VT323', monospace;
+  font-size: 1.4rem;
+  color: var(--color-neon-yellow);
+  box-shadow: 5px 5px 0 var(--color-neon-yellow);
 }
 
-.btn-text {
-  background: none;
-  border: none;
-  color: var(--color-gold);
-  cursor: pointer;
-  font-weight: 600;
-  text-decoration: underline;
+.loading {
+  color: var(--color-neon-cyan);
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.8rem;
+  text-align: center;
+  padding: 40px;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  50% { opacity: 0.5; }
 }
 
 .notifications-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
 }
 
 .no-notifications {
   text-align: center;
-  padding: 40px;
-  color: #888;
+  padding: 60px;
+  color: var(--color-neon-magenta);
+  font-family: 'VT323', monospace;
+  font-size: 1.5rem;
 }
 
 .notif-card {
@@ -183,59 +203,71 @@ const getIcon = (type) => {
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  transition: all 0.3s ease;
-  border-left: 4px solid transparent;
+  padding: 20px;
+  border-left-width: 8px;
+  transition: all 0.2s;
 }
 
 .notif-card.unread {
-  background: rgba(212, 175, 55, 0.05);
-  border-left-color: var(--color-gold);
+  background: rgba(0, 255, 255, 0.05);
+  border-left-color: var(--color-neon-cyan);
 }
 
 .notif-content {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 25px;
 }
 
 .notif-icon {
-  font-size: 1.8rem;
-  min-width: 40px;
+  font-size: 2.2rem;
+  min-width: 50px;
   text-align: center;
+  filter: drop-shadow(0 0 5px currentColor);
 }
 
 .notif-text {
-  font-size: 1rem;
+  font-family: 'VT323', monospace;
+  font-size: 1.3rem;
+  color: white;
+}
+
+.actor {
+  color: var(--color-neon-magenta);
+  text-shadow: 0 0 5px var(--color-neon-magenta);
 }
 
 .notif-time {
-  font-size: 0.8rem;
-  color: #888;
-  margin-top: 4px;
+  font-size: 0.9rem;
+  color: var(--color-neon-yellow);
+  margin-top: 5px;
 }
 
 .notif-actions {
   display: flex;
-  gap: 10px;
+  gap: 15px;
 }
 
-.btn-traditional.mini {
-  padding: 6px 15px;
-  font-size: 0.85rem;
+.btn-retro.mini {
+  padding: 8px 15px;
+  font-size: 0.7rem;
 }
 
-.btn-traditional.ghost {
-  background: none;
-  color: #666;
-  border: 1px solid #ddd;
-  box-shadow: none;
+.btn-retro.ghost {
+  border-color: var(--color-grid-line);
+  color: #888;
 }
 
-@media (max-width: 600px) {
+.btn-retro.ghost:hover {
+  border-color: var(--color-neon-magenta);
+  color: var(--color-neon-magenta);
+}
+
+@media (max-width: 768px) {
   .notif-card {
     flex-direction: column;
     align-items: flex-start;
-    gap: 15px;
+    gap: 20px;
   }
   .notif-actions {
     width: 100%;

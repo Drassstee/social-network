@@ -1,20 +1,23 @@
 package user
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
 	"social-network/internal/models"
-	"social-network/internal/models/user"
 )
 
-func (r *UserRepo) GetByID(id int64) (*user.User, error) {
-	query := `SELECT id, email, first_name, last_name, date_of_birth, nickname, about_me, profile_type, avatar_url
+// --------------------------------------------------------------------|
+
+func (r *UserRepo) GetByID(ctx context.Context, id int64) (*models.User, error) {
+	query := `SELECT id, email, first_name, last_name, date_of_birth, 
+			COALESCE(nickname, ''), COALESCE(about_me, ''), profile_type, COALESCE(avatar_url, '')
 			FROM users
 			WHERE id = ?`
 
-	var u user.User
-	err := r.db.QueryRow(query, id).Scan(&u.ID, &u.Email, &u.FirstName, &u.LastName, &u.DOB, &u.Nickname, &u.AboutMe, &u.ProfileType, &u.AvatarURL)
+	var u models.User
+	err := r.db.QueryRowContext(ctx, query, id).Scan(&u.ID, &u.Email, &u.FirstName, &u.LastName, &u.DOB, &u.Nickname, &u.AboutMe, &u.ProfileType, &u.AvatarURL)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("%w: user not found", models.ErrNotFound)
@@ -26,13 +29,14 @@ func (r *UserRepo) GetByID(id int64) (*user.User, error) {
 
 // --------------------------------------------------------------------|
 
-func (r *UserRepo) GetByEmail(email string) (*user.User, error) {
-	query := `SELECT id, first_name, last_name, password
+func (r *UserRepo) GetByEmail(email string) (*models.User, error) {
+	query := `SELECT id, first_name, last_name, password, email, 
+			COALESCE(nickname, ''), COALESCE(avatar_url, ''), date_of_birth, COALESCE(about_me, ''), profile_type
 			FROM users
 			WHERE email = ?`
 
-	var u user.User
-	err := r.db.QueryRow(query, email).Scan(&u.ID, &u.FirstName, &u.LastName, &u.Password)
+	var u models.User
+	err := r.db.QueryRow(query, email).Scan(&u.ID, &u.FirstName, &u.LastName, &u.Password, &u.Email, &u.Nickname, &u.AvatarURL, &u.DOB, &u.AboutMe, &u.ProfileType)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("%w: invalid email or password", models.ErrInvalidData)
@@ -55,7 +59,7 @@ func (r *UserRepo) GetProfileType(id int64) (string, error) {
 // --------------------------------------------------------------------|
 
 func (r *UserRepo) GetAvatarURL(id int64) (string, error) {
-	query := `SELECT avatar_url FROM users WHERE id = ?`
+	query := `SELECT COALESCE(avatar_url, '') FROM users WHERE id = ?`
 
 	var url string
 	err := r.db.QueryRow(query, id).Scan(&url)
@@ -64,9 +68,9 @@ func (r *UserRepo) GetAvatarURL(id int64) (string, error) {
 
 // --------------------------------------------------------------------|
 
-func (r *UserRepo) GetByIDs(ids []int64) ([]user.User, error) {
+func (r *UserRepo) GetByIDs(ids []int64) ([]models.User, error) {
 	if len(ids) == 0 {
-		return []user.User{}, nil
+		return []models.User{}, nil
 	}
 
 	placeholders := ""
@@ -79,7 +83,9 @@ func (r *UserRepo) GetByIDs(ids []int64) ([]user.User, error) {
 		args[i] = id
 	}
 
-	query := `SELECT id, email, first_name, last_name, date_of_birth, avatar_url, nickname, about_me, profile_type FROM users WHERE id IN (` + placeholders + `)`
+	query := `SELECT id, email, first_name, last_name, date_of_birth, 
+			COALESCE(avatar_url, ''), COALESCE(nickname, ''), COALESCE(about_me, ''), profile_type 
+			FROM users WHERE id IN (` + placeholders + `)`
 
 	rows, err := r.db.Query(query, args...)
 	if err != nil {
@@ -87,9 +93,9 @@ func (r *UserRepo) GetByIDs(ids []int64) ([]user.User, error) {
 	}
 	defer rows.Close()
 
-	var users []user.User
+	var users []models.User
 	for rows.Next() {
-		var u user.User
+		var u models.User
 		if err := rows.Scan(&u.ID, &u.Email, &u.FirstName, &u.LastName, &u.DOB, &u.AvatarURL, &u.Nickname, &u.AboutMe, &u.ProfileType); err != nil {
 			return nil, err
 		}

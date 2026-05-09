@@ -9,21 +9,15 @@ const props = defineProps(['groupId'])
 const chatStore = useChatStore()
 const authStore = useAuthStore()
 
-const messages = ref([])
 const newMessage = ref('')
 const messageContainer = ref(null)
 const showEmojiPicker = ref(false)
 const imageFile = ref(null)
 
 const fetchMessages = async () => {
-    try {
-        const res = await fetch(`/api/v1/groups/${props.groupId}/messages`)
-        const data = await res.json()
-        messages.value = data || []
-        scrollToBottom()
-    } catch (err) {
-        console.error('Failed to fetch group messages:', err)
-    }
+    chatStore.activeGroupID = parseInt(props.groupId)
+    await chatStore.fetchGroupMessages(props.groupId)
+    scrollToBottom()
 }
 
 const scrollToBottom = async () => {
@@ -69,26 +63,21 @@ const handleSendMessage = async () => {
 onMounted(() => {
     fetchMessages()
     
-    const unsubscribe = chatStore.$onAction(({ name, args }) => {
-        if (name === 'addGroupMessage') {
-            const msg = args[0]
-            if (msg.group_id === parseInt(props.groupId)) {
-                if (!messages.value.some(m => m.id === msg.id)) {
-                    messages.value.push(msg)
-                    scrollToBottom()
-                }
-            }
-        }
-    })
+    // Auto-scroll on new messages
+    watch(() => chatStore.groupMessages[props.groupId], () => {
+        scrollToBottom()
+    }, { deep: true })
     
-    onUnmounted(unsubscribe)
+    onUnmounted(() => {
+        chatStore.activeGroupID = null
+    })
 })
 </script>
 
 <template>
-    <div class="group-chat card-traditional">
+    <div class="group-chat card-retro">
         <div class="messages-container" ref="messageContainer">
-            <div v-for="msg in messages" :key="msg.id" 
+            <div v-for="msg in (chatStore.groupMessages[props.groupId] || [])" :key="msg.id" 
                  :class="['message', { 'own': msg.sender_id === authStore.user?.id }]">
                 <div class="msg-bubble">
                     <div class="msg-header">
@@ -107,22 +96,22 @@ onMounted(() => {
             </div>
 
             <div class="input-area">
-                <button type="button" @click="showEmojiPicker = !showEmojiPicker" class="icon-btn">😊</button>
+                <button type="button" @click="showEmojiPicker = !showEmojiPicker" class="icon-btn">💾</button>
                 <label class="icon-btn">
-                    🖼️
+                    📎
                     <input type="file" @change="handleFileChange" accept="image/*" hidden />
                 </label>
                 <div class="input-wrapper">
                     <input 
                         v-model="newMessage" 
                         @keyup.enter="handleSendMessage" 
-                        placeholder="Type a group message..." 
-                        class="input-traditional"
+                        placeholder="SYNDICATE_COMMS..." 
+                        class="input-retro"
                         @focus="showEmojiPicker = false"
                     />
-                    <div v-if="imageFile" class="file-preview">📎 {{ imageFile.name }}</div>
+                    <div v-if="imageFile" class="file-preview">ATTACHED: {{ imageFile.name }}</div>
                 </div>
-                <button @click="handleSendMessage" class="btn-traditional mini">Send</button>
+                <button @click="handleSendMessage" class="btn-retro mini">TRANSMIT</button>
             </div>
         </div>
     </div>
@@ -133,10 +122,10 @@ onMounted(() => {
     height: 600px;
     display: flex;
     flex-direction: column;
-    background: var(--color-washi-white);
+    background: rgba(11, 12, 16, 0.5);
     padding: 0;
     overflow: hidden;
-    border: 1px solid rgba(0,0,0,0.1);
+    border: 2px solid var(--color-neon-magenta);
 }
 
 .messages-container {
@@ -145,8 +134,12 @@ onMounted(() => {
     padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 20px;
     scroll-behavior: smooth;
+    background-image: 
+      linear-gradient(rgba(255, 0, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 0, 255, 0.05) 1px, transparent 1px);
+    background-size: 30px 30px;
 }
 
 .message {
@@ -160,37 +153,43 @@ onMounted(() => {
 }
 
 .msg-bubble {
-    background: white;
-    padding: 12px 15px;
-    border-radius: 15px;
+    background: rgba(31, 11, 53, 0.9);
+    padding: 12px 18px;
+    border: 1px solid var(--color-neon-magenta);
     max-width: 80%;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    box-shadow: 4px 4px 0 rgba(255, 0, 255, 0.2);
+    font-family: 'VT323', monospace;
+    font-size: 1.3rem;
+    color: white;
 }
 
 .message.own .msg-bubble {
-    background: var(--color-gold);
-    color: var(--color-charcoal);
+    border-color: var(--color-neon-cyan);
+    box-shadow: -4px 4px 0 rgba(0, 255, 255, 0.2);
 }
 
 .msg-header {
     display: flex;
     justify-content: space-between;
     gap: 15px;
-    font-size: 0.7rem;
+    font-size: 0.8rem;
     margin-bottom: 5px;
-    opacity: 0.6;
+    color: var(--color-neon-yellow);
 }
 
 .chat-img {
     max-width: 100%;
-    border-radius: 8px;
+    max-height: 250px;
+    object-fit: contain;
+    border: 1px solid var(--color-neon-cyan);
     margin-bottom: 8px;
+    display: block;
 }
 
 .input-controls {
     position: relative;
-    border-top: 1px solid #eee;
-    background: white;
+    border-top: 2px solid var(--color-grid-line);
+    background: rgba(31, 11, 53, 0.8);
 }
 
 .emoji-picker-container {
@@ -204,7 +203,7 @@ onMounted(() => {
     padding: 15px;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 }
 
 .input-wrapper {
@@ -214,26 +213,32 @@ onMounted(() => {
 }
 
 .file-preview {
-    font-size: 0.7rem;
-    color: var(--color-gold);
-    margin-top: 2px;
+    font-size: 0.8rem;
+    color: var(--color-neon-yellow);
+    font-family: 'VT323', monospace;
+    margin-top: 5px;
 }
 
 .icon-btn {
     background: none;
-    border: none;
-    font-size: 1.3rem;
+    border: 1px solid var(--color-neon-cyan);
+    color: var(--color-neon-cyan);
+    font-size: 1.2rem;
     cursor: pointer;
-    padding: 5px;
-    border-radius: 50%;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
 }
 
 .icon-btn:hover {
-    background: #f0f0f0;
+    background: rgba(0, 255, 255, 0.1);
+    box-shadow: 0 0 5px var(--color-neon-cyan);
 }
 
-.btn-traditional.mini {
+.btn-retro.mini {
     padding: 8px 15px;
-    font-size: 0.85rem;
+    font-size: 0.7rem;
 }
 </style>

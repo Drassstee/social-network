@@ -5,33 +5,32 @@ import (
 	"errors"
 	"net/http"
 
-	Serv "social-network/internal/handlers/user"
 	"social-network/internal/models"
-	"social-network/internal/utils"
+	"social-network/internal/web"
 )
 
-func AuthMiddleware(serv Serv.UserServ, next http.HandlerFunc) http.HandlerFunc {
+func AuthMiddleware(serv models.UserService, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie("session_token")
 		if errors.Is(err, http.ErrNoCookie) || cookie.Value == "" {
 			msg := map[string]string{"error": "no cookie"}
-			utils.RespondJSON(w, http.StatusUnauthorized, msg)
+			web.JSONResponse(w, http.StatusUnauthorized, msg)
 			return
 		}
 
 		id, err := serv.GetUserID(cookie.Value)
 		if errors.Is(err, models.ErrNotFound) {
 			msg := map[string]string{"error": "unauthorized"}
-			utils.RespondJSON(w, http.StatusUnauthorized, msg)
+			web.JSONResponse(w, http.StatusUnauthorized, msg)
 			return
 		} else if err != nil {
 			msg := map[string]string{"error": "internal server error"}
-			utils.RespondJSON(w, http.StatusInternalServerError, msg)
+			web.JSONResponse(w, http.StatusInternalServerError, msg)
 			return
 		}
 
 		identity := &models.UserIdentity{
-			ID: int(id),
+			ID: id,
 		}
 
 		ctx := context.WithValue(r.Context(), models.UserKey, identity)

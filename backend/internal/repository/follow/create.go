@@ -5,12 +5,11 @@ import (
 	"fmt"
 
 	"social-network/internal/models"
-	"social-network/internal/models/follow"
 
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
-func (r *FollowRepo) CreateFollow(f follow.Follow) error {
+func (r *FollowRepo) CreateFollow(f models.Follow) error {
 	query := `INSERT INTO follows (follower_id, following_id, status) VALUES (?, ?, ?)`
 
 	_, err := r.db.Exec(query, f.FollowerID, f.FollowingID, f.Status)

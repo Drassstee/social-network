@@ -60,7 +60,6 @@ func MapError(err error) int {
 		errors.Is(err, models.ErrInvalidPostTitle) ||
 		errors.Is(err, models.ErrInvalidPostBody) ||
 		errors.Is(err, models.ErrInvalidCommentBody) ||
-		errors.Is(err, models.ErrInvalidCategoryName) ||
 		errors.Is(err, models.ErrImageTooBig) ||
 		errors.Is(err, models.ErrInvalidImageFormat) ||
 		errors.Is(err, models.ErrCommentDepthExceeded) {

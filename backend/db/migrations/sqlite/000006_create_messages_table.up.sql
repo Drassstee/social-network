@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    sender_id TEXT NOT NULL,
-    receiver_id TEXT NOT NULL,
+    sender_id INTEGER NOT NULL,
+    receiver_id INTEGER NOT NULL,
     body TEXT NOT NULL,
     image_url TEXT,
     created_at DATETIME NOT NULL DEFAULT (datetime('now')),

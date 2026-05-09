@@ -1,4 +1,4 @@
-package follow
+package models
 
 type Follow struct {
 	FollowerID  int64  `json:"follower_id,omitempty"`

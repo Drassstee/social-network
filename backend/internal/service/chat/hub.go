@@ -21,10 +21,10 @@ const (
 
 // Hub maintains the set of active clients and broadcasts messages to the clients.
 type Hub struct {
-	clients    map[int]*Client // Registered clients by UserID.
-	broadcast  chan []byte     // Inbound messages from the clients.
-	register   chan *Client    // Register requests from the clients.
-	unregister chan *Client    // Unregister requests from clients.
+	clients    map[int64]*Client // Registered clients by UserID.
+	broadcast  chan []byte       // Inbound messages from the clients.
+	register   chan *Client      // Register requests from the clients.
+	unregister chan *Client      // Unregister requests from clients.
 
 	mu sync.RWMutex
 
@@ -35,7 +35,7 @@ type Hub struct {
 
 	// Optimization: Cache online group memberships and usernames
 	userCache    *utils.Cache
-	groupMembers map[int]map[int]bool // groupID -> set of userIDs
+	groupMembers map[int64]map[int64]bool // groupID -> set of userIDs
 }
 
 //--------------------------------------------------------------------------------------|
@@ -46,13 +46,13 @@ func NewHub(chatRepo ChatRepository, userRepo UserRepository, groupRepo models.G
 		broadcast:    make(chan []byte),
 		register:     make(chan *Client),
 		unregister:   make(chan *Client),
-		clients:      make(map[int]*Client),
+		clients:      make(map[int64]*Client),
 		ChatRepo:     chatRepo,
 		UserRepo:     userRepo,
 		GroupRepo:    groupRepo,
 		FollowRepo:   followRepo,
 		userCache:    utils.NewCache(),
-		groupMembers: make(map[int]map[int]bool),
+		groupMembers: make(map[int64]map[int64]bool),
 	}
 }
 
@@ -60,7 +60,7 @@ func NewHub(chatRepo ChatRepository, userRepo UserRepository, groupRepo models.G
 
 type wsMessage struct {
 	Type   string          `json:"type"`
-	Sender int             `json:"sender,omitempty"`
+	Sender int64           `json:"sender,omitempty"`
 	Data   json.RawMessage `json:"data"`
 }
 
@@ -84,12 +84,8 @@ func (h *Hub) Run(ctx context.Context) {
 			// Register a new client connection
 			h.mu.Lock()
 			h.clients[client.UserID] = client
-
-			// Optimization: Pre-load group memberships for faster broadcasting
-			// We do this in a goroutine to avoid blocking the hub loop
-			go h.updateClientGroupMemberships(client.UserID, true)
-
 			h.mu.Unlock()
+			go h.updateClientGroupMemberships(client.UserID, true)
 			// Notify others that this user is now online
 			h.broadcastStatusUpdate(client.UserID, true)
 
@@ -99,11 +95,10 @@ func (h *Hub) Run(ctx context.Context) {
 			if _, ok := h.clients[client.UserID]; ok {
 				delete(h.clients, client.UserID)
 				close(client.send)
-
-				// Optimization: Remove user from group tracking
-				h.updateClientGroupMembershipsLocked(client.UserID, false)
-
 				h.mu.Unlock()
+				
+				// Optimization: Remove user from group tracking in a goroutine
+				go h.updateClientGroupMemberships(client.UserID, false)
 				// Notify others that this user is now offline
 				h.broadcastStatusUpdate(client.UserID, false)
 			} else {
@@ -146,7 +141,7 @@ func (h *Hub) handleInbound(message []byte) {
 
 func (h *Hub) handlePrivateMessage(wsMsg wsMessage) {
 	var data struct {
-		ReceiverID int     `json:"receiver_id"`
+		ReceiverID int64   `json:"receiver_id"`
 		Body       string  `json:"body"`
 		ImageURL   *string `json:"image_url"`
 	}
@@ -160,8 +155,8 @@ func (h *Hub) handlePrivateMessage(wsMsg wsMessage) {
 
 	// 1. Follow check (Audit Requirement)
 	// You can only chat with users you follow or who follow you.
-	f1, _ := h.FollowRepo.IsFollower(int64(wsMsg.Sender), int64(data.ReceiverID))
-	f2, _ := h.FollowRepo.IsFollower(int64(data.ReceiverID), int64(wsMsg.Sender))
+	f1, _ := h.FollowRepo.IsFollower(wsMsg.Sender, data.ReceiverID)
+	f2, _ := h.FollowRepo.IsFollower(data.ReceiverID, wsMsg.Sender)
 	if !f1 && !f2 {
 		log.Printf("Chat blocked: user %d does not follow user %d", wsMsg.Sender, data.ReceiverID)
 		h.sendToUser(wsMsg.Sender, "error", map[string]string{"message": "you can only chat with followers/following"})
@@ -182,7 +177,7 @@ func (h *Hub) handlePrivateMessage(wsMsg wsMessage) {
 
 func (h *Hub) handleGroupMessage(wsMsg wsMessage) {
 	var data struct {
-		GroupID  int     `json:"group_id"`
+		GroupID  int64   `json:"group_id"`
 		Body     string  `json:"body"`
 		ImageURL *string `json:"image_url"`
 	}
@@ -226,7 +221,7 @@ func (h *Hub) handleGroupMessage(wsMsg wsMessage) {
 
 //--------------------------------------------------------------------------------------|
 
-func (h *Hub) updateClientGroupMemberships(userID int, join bool) {
+func (h *Hub) updateClientGroupMemberships(userID int64, join bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 
@@ -243,7 +238,7 @@ func (h *Hub) updateClientGroupMemberships(userID int, join bool) {
 
 //--------------------------------------------------------------------------------------|
 
-func (h *Hub) updateClientGroupMembershipsLocked(userID int, join bool, groupIDs ...int) {
+func (h *Hub) updateClientGroupMembershipsLocked(userID int64, join bool, groupIDs ...int64) {
 	if len(groupIDs) == 0 && !join {
 		// If unregistering and we don't have groupIDs, we have to find which groups this user was in.
 		// For simplicity, we can just iterate over all groups in the map.
@@ -259,7 +254,7 @@ func (h *Hub) updateClientGroupMembershipsLocked(userID int, join bool, groupIDs
 	for _, gID := range groupIDs {
 		if join {
 			if h.groupMembers[gID] == nil {
-				h.groupMembers[gID] = make(map[int]bool)
+				h.groupMembers[gID] = make(map[int64]bool)
 			}
 			h.groupMembers[gID][userID] = true
 		} else {
@@ -277,7 +272,7 @@ func (h *Hub) updateClientGroupMembershipsLocked(userID int, join bool, groupIDs
 
 func (h *Hub) handleTypingIndicator(wsMsg wsMessage, isTyping bool) {
 	var data struct {
-		ReceiverID int    `json:"receiver_id"`
+		ReceiverID int64  `json:"receiver_id"`
 		SenderName string `json:"sender_name"`
 	}
 	if err := json.Unmarshal(wsMsg.Data, &data); err != nil {
@@ -303,16 +298,16 @@ func (h *Hub) handleTypingIndicator(wsMsg wsMessage, isTyping bool) {
 
 //--------------------------------------------------------------------------------------|
 
-func (h *Hub) broadcastStatusUpdate(userID int, online bool) {
+func (h *Hub) broadcastStatusUpdate(userID int64, online bool) {
 	// Fetch username for the user (using cache if available)
 	username := ""
 	cacheKey := fmt.Sprintf("u:%d", userID)
 	if val, found := h.userCache.Get(cacheKey); found {
 		username = val.(string)
 	} else if h.UserRepo != nil {
-		_, cancel := context.WithTimeout(context.Background(), dbTimeout)
+		ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 		defer cancel()
-		user, err := h.UserRepo.GetByID(int64(userID))
+		user, err := h.UserRepo.GetByID(ctx, userID)
 		if err == nil && user != nil {
 			username = user.FirstName + " " + user.LastName
 			if username == " " {
@@ -334,7 +329,7 @@ func (h *Hub) broadcastStatusUpdate(userID int, online bool) {
 
 //--------------------------------------------------------------------------------------|
 
-func (h *Hub) sendToUser(userID int, msgType string, data any) {
+func (h *Hub) sendToUser(userID int64, msgType string, data any) {
 	payload := map[string]any{
 		"type": msgType,
 		"data": data,
@@ -361,7 +356,8 @@ func (h *Hub) doBroadcast(message []byte) {
 	for _, client := range h.clients {
 		select {
 		case client.send <- message:
-		default:
+		case <-time.After(1 * time.Second):
+			log.Printf("Dropped broadcast message for user %d: slow client", client.UserID)
 		}
 	}
 }
@@ -369,7 +365,7 @@ func (h *Hub) doBroadcast(message []byte) {
 //--------------------------------------------------------------------------------------|
 
 // SendToUserJSON encodes the payload as JSON and delivers it to a specific user's WebSocket.
-func (h *Hub) SendToUserJSON(userID int, payload interface{}) {
+func (h *Hub) SendToUserJSON(userID int64, payload interface{}) {
 	b, err := json.Marshal(payload)
 	if err != nil {
 		log.Printf("Failed to marshal payload for user %d: %v", userID, err)
@@ -381,14 +377,14 @@ func (h *Hub) SendToUserJSON(userID int, payload interface{}) {
 //--------------------------------------------------------------------------------------|
 
 // SendToUser sends a raw byte message to a specific user if they are connected.
-func (h *Hub) SendToUser(userID int, message []byte) {
+func (h *Hub) SendToUser(userID int64, message []byte) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	if client, ok := h.clients[userID]; ok {
 		select {
 		case client.send <- message:
-		default:
-			// Non-blocking send
+		case <-time.After(1 * time.Second):
+			log.Printf("Dropped message for user %d: channel full", userID)
 		}
 	}
 }
@@ -396,12 +392,25 @@ func (h *Hub) SendToUser(userID int, message []byte) {
 //--------------------------------------------------------------------------------------|
 
 // GetOnlineUsers returns a slice of IDs for all currently connected users.
-func (h *Hub) GetOnlineUsers() []int {
+func (h *Hub) GetOnlineUsers() []int64 {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	online := make([]int, 0, len(h.clients))
+	online := make([]int64, 0, len(h.clients))
 	for userID := range h.clients {
 		online = append(online, userID)
 	}
 	return online
+}
+
+//--------------------------------------------------------------------------------------|
+
+// UpdateUserGroups triggers a refresh of a user's group memberships in the hub.
+func (h *Hub) UpdateUserGroups(userID int64) {
+	h.mu.RLock()
+	_, online := h.clients[userID]
+	h.mu.RUnlock()
+
+	if online {
+		go h.updateClientGroupMemberships(userID, true)
+	}
 }

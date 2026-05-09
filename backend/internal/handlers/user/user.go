@@ -4,41 +4,17 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"social-network/internal/models/avatar"
-	"social-network/internal/models/follow"
-	"social-network/internal/models/profile"
-	"social-network/internal/models/user"
+	"social-network/internal/models"
 )
 
 var errInternalServer = map[string]string{"error": "internal server error"}
 
 type UserHandler struct {
-	Users UserServ
+	Service models.UserService
 }
 
-type UserServ interface {
-	Register(*user.User) (*user.UserData, error)
-	Login(string, string) (*user.UserData, error)
-	Logout(int64) error
-	DeleteUser(int64) error
-
-	GetProfile(int64, int64) (*profile.Profile, error)
-	GetMe(int64) (*user.UserData, error)
-	UpdateProfile(*user.User) error
-	GetUserID(string) (int64, error)
-
-	Follow(follow.Follow) (string, error)
-	Unfollow(follow.Follow) error
-
-	GetNotification(int64) ([]user.UserData, error)
-	RespondToFollowRequest(follow.Follow) error
-
-	UploadAvatar(*avatar.Avatar) error
-	GetAvatar(int64) (string, error)
-}
-
-func NewUserHandler(serv UserServ) *UserHandler {
-	return &UserHandler{Users: serv}
+func NewUserHandler(us models.UserService) *UserHandler {
+	return &UserHandler{Service: us}
 }
 
 type errJSON struct {

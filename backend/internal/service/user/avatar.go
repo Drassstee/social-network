@@ -1,13 +1,10 @@
 package user
 
 import (
+	"context"
 	"fmt"
-	"io"
-	"os"
-	"path/filepath"
 
 	"social-network/internal/models"
-	"social-network/internal/models/avatar"
 )
 
 // --------------------------------------------------------------------|
@@ -36,22 +33,11 @@ func (us *UserService) GetAvatar(userID int64) (string, error) {
 
 // --------------------------------------------------------------------|
 
-func (us *UserService) UploadAvatar(a *avatar.Avatar) error {
-	ext := filepath.Ext(a.Header.Filename)
-	if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
-		return fmt.Errorf("upload avatar: %w: invalid file type", models.ErrInvalidData)
-	}
-
-	dir := fmt.Sprintf("uploads/avatars/%d", a.UserID)
-	os.MkdirAll(dir, 0750)
-
-	filePath := fmt.Sprintf("%s/avatar%s", dir, ext)
-	dst, err := os.Create(filePath)
+func (us *UserService) UploadAvatar(ctx context.Context, a *models.Avatar) error {
+	filePath, err := us.uploader.UploadImage(ctx, a.UserID, a.Header.Filename, a.File)
 	if err != nil {
 		return fmt.Errorf("upload avatar: %w", err)
 	}
-	defer dst.Close()
-	io.Copy(dst, a.File)
 
 	err = us.users.UpdateAvatar(a.UserID, filePath)
 	if err != nil {

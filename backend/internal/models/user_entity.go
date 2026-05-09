@@ -1,4 +1,4 @@
-package user
+package models
 
 import (
 	"fmt"
@@ -6,12 +6,6 @@ import (
 	"strings"
 	"time"
 )
-
-type contextKey string
-
-const Key contextKey = "user_id"
-
-
 
 type User struct {
 	ID          int64      `json:"id"`
@@ -35,8 +29,6 @@ type UserData struct {
 	UUID      string     `json:"-"`
 	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 }
-
-
 
 func (u *User) ValidateData() error {
 	if err := u.isEmpty(); err != nil {
@@ -64,8 +56,6 @@ func (u *User) ValidateData() error {
 	}
 	return nil
 }
-
-
 
 func (u *User) isEmpty() error {
 	if len(strings.TrimSpace(u.Email)) == 0 {

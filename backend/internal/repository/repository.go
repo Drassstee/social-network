@@ -15,8 +15,8 @@ import (
 
 type Repository struct {
 	User          models.UserRepo
-	Session       *session.SessionRepo
-	Follow        *follow.FollowRepo
+	Session       models.SessionRepo
+	Follow        models.FollowRepo
 	Post          models.PostRepo
 	Group         models.GroupRepo
 	Chat          models.ChatRepo
@@ -28,7 +28,7 @@ func NewRepo(db *sql.DB) *Repository {
 	return &Repository{
 		User:          userrepo.NewUserRepo(db),
 		Session:       session.NewSessionRepo(db),
-		Follow:        follow.NewSessionRepo(db),
+		Follow:        follow.NewFollowRepo(db),
 		Post:          postrepo.NewPostRepo(db),
 		Group:         grouprepo.NewGroupRepository(db),
 		Chat:          chatrepo.NewChatRepository(db),

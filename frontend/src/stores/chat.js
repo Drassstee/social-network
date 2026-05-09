@@ -1,12 +1,16 @@
 import { defineStore } from 'pinia'
 import { useNotificationStore } from './notifications'
+import { useAuthStore } from './auth'
 
 export const useChatStore = defineStore('chat', {
   state: () => ({
     socket: null,
     onlineUsers: [],
-    messages: {},
+    messages: {}, // userID -> messages[]
+    groupMessages: {}, // groupID -> messages[]
+    unreadCounts: {}, // identifier (u_ID or g_ID) -> count
     activeChatUser: null,
+    activeGroupID: null,
     connected: false,
   }),
   actions: {
@@ -30,9 +34,22 @@ export const useChatStore = defineStore('chat', {
       this.socket.onclose = () => {
         this.connected = false
         this.socket = null
-        setTimeout(() => this.connect(), 3000)
+        if (this.isAuthenticated()) {
+          setTimeout(() => this.connect(), 3000)
+        }
       }
-
+    },
+    disconnect() {
+      if (this.socket) {
+        this.socket.onclose = null
+        this.socket.close()
+        this.socket = null
+        this.connected = false
+      }
+    },
+    isAuthenticated() {
+      const authStore = useAuthStore()
+      return authStore.isAuthenticated
     },
     async fetchOnlineUsers() {
       try {
@@ -71,11 +88,21 @@ export const useChatStore = defineStore('chat', {
       }
     },
     addMessage(msg) {
-      const otherID = msg.receiver_id === this.activeChatUser?.id ? msg.receiver_id : msg.sender_id
+      const authStore = useAuthStore()
+      const myID = authStore.user?.id
+      
+      const otherID = msg.sender_id === myID ? msg.receiver_id : msg.sender_id
+      
       if (!this.messages[otherID]) {
         this.messages[otherID] = []
       }
       this.messages[otherID].push(msg)
+
+      // Increment unread if not active chat
+      if (msg.sender_id !== myID && (!this.activeChatUser || this.activeChatUser.id !== otherID)) {
+        const key = `u_${otherID}`
+        this.unreadCounts[key] = (this.unreadCounts[key] || 0) + 1
+      }
     },
     sendMessage(receiverID, body, imageURL = null) {
       if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return
@@ -95,13 +122,44 @@ export const useChatStore = defineStore('chat', {
         const response = await fetch(`/api/v1/chat/messages?user_id=${userID}&limit=50&offset=0`)
         const data = await response.json()
         this.messages[userID] = data || []
+        
+        // Clear unread
+        delete this.unreadCounts[`u_${userID}`]
       } catch (err) {
         console.error('Failed to fetch messages:', err)
       }
     },
     addGroupMessage(msg) {
-        // This action triggers $onAction listeners in components like GroupChat.vue
-        return msg
+      const authStore = useAuthStore()
+      const myID = authStore.user?.id
+      
+      const groupID = msg.group_id
+      if (!this.groupMessages[groupID]) {
+        this.groupMessages[groupID] = []
+      }
+      
+      if (!this.groupMessages[groupID].some(m => m.id === msg.id)) {
+        this.groupMessages[groupID].push(msg)
+      }
+
+      // Increment unread if not active group
+      if (Number(msg.sender_id) !== Number(myID) && Number(this.activeGroupID) !== Number(groupID)) {
+        const key = `g_${groupID}`
+        this.unreadCounts[key] = (this.unreadCounts[key] || 0) + 1
+      }
+      return msg
+    },
+    async fetchGroupMessages(groupID) {
+      try {
+        const response = await fetch(`/api/v1/groups/${groupID}/messages`)
+        const data = await response.json()
+        this.groupMessages[groupID] = data || []
+        
+        // Clear unread
+        delete this.unreadCounts[`g_${groupID}`]
+      } catch (err) {
+        console.error('Failed to fetch group messages:', err)
+      }
     },
     sendGroupMessage(groupID, body, imageURL = null) {
         if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return
@@ -115,6 +173,12 @@ export const useChatStore = defineStore('chat', {
             }
         }
         this.socket.send(JSON.stringify(payload))
+    },
+    getUnreadCount(id, type = 'u') {
+      return this.unreadCounts[`${type}_${id}`] || 0
+    },
+    get totalUnread() {
+      return Object.values(this.unreadCounts).reduce((a, b) => a + b, 0)
     }
   }
 })

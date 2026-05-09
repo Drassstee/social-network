@@ -1,9 +1,7 @@
 package chat
 
 import (
-	"context"
 	"errors"
-	"io"
 	"net/http"
 	"social-network/internal/models"
 	chatsvc "social-network/internal/service/chat"
@@ -14,33 +12,20 @@ import (
 
 // ChatHandler handles HTTP requests for chat messages and online users.
 type ChatHandler struct {
-	Repo     models.ChatRepo
+	Service  models.ChatService
 	Hub      *chatsvc.Hub
-	UserRepo   models.UserRepo
-	FollowRepo models.FollowRepo
-	Uploader   ImageUploader
+	Uploader models.ImageUploader
 }
 
 //--------------------------------------------------------------------------------------|
 
 // NewChatHandler creates a new instance of the chat handler.
-func NewChatHandler(repo models.ChatRepo, hub *chatsvc.Hub, userRepo models.UserRepo, followRepo models.FollowRepo, uploader ImageUploader) *ChatHandler {
+func NewChatHandler(service models.ChatService, hub *chatsvc.Hub, uploader models.ImageUploader) *ChatHandler {
 	return &ChatHandler{
-		Repo:       repo,
-		Hub:        hub,
-		UserRepo:   userRepo,
-		FollowRepo: followRepo,
-		Uploader:   uploader,
+		Service:  service,
+		Hub:      hub,
+		Uploader: uploader,
 	}
-}
-
-//--------------------------------------------------------------------------------------|
-
-// ImageUploader defines the interface for uploading chat images.
-// This abstraction allows the ChatHandler to remain independent of the specific
-// storage implementation (e.g., local disk, cloud storage).
-type ImageUploader interface {
-	UploadImage(ctx context.Context, userID int, filename string, content io.Reader) (string, error)
 }
 
 //--------------------------------------------------------------------------------------|
@@ -74,7 +59,7 @@ func (h *ChatHandler) UploadImage(w http.ResponseWriter, r *http.Request, identi
 
 // GetMessages returns a list of private messages between two users.
 func (h *ChatHandler) GetMessages(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
-	otherUserID := web.QueryInt(r, "user_id", 0)
+	otherUserID := web.QueryInt64(r, "user_id", 0)
 	if otherUserID == 0 {
 		return web.StatusError{Code: http.StatusBadRequest, Err: errors.New("Invalid user ID")}
 	}
@@ -82,7 +67,7 @@ func (h *ChatHandler) GetMessages(w http.ResponseWriter, r *http.Request, identi
 	limit := web.QueryInt(r, "limit", 10)
 	offset := web.QueryInt(r, "offset", 0)
 
-	messages, err := h.Repo.GetMessages(r.Context(), identity.ID, otherUserID, limit, offset)
+	messages, err := h.Service.GetChatHistory(r.Context(), identity.ID, otherUserID, limit, offset)
 	if err != nil {
 		return err
 	}
@@ -96,39 +81,9 @@ func (h *ChatHandler) GetMessages(w http.ResponseWriter, r *http.Request, identi
 // GetOnlineUsers returns a list of all currently connected users.
 func (h *ChatHandler) GetOnlineUsers(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	onlineIDs := h.Hub.GetOnlineUsers()
-
-	users, err := h.UserRepo.GetByIDs(convertIntsToInt64s(onlineIDs))
+	onlineUsers, err := h.Service.GetChatableOnlineUsers(r.Context(), identity.ID, onlineIDs)
 	if err != nil {
 		return err
-	}
-
-	// Transform models.User to the simplified OnlineUser struct for API response
-	type OnlineUser struct {
-		ID       int    `json:"id"`
-		Username string `json:"username"`
-	}
-
-	onlineUsers := make([]OnlineUser, 0, len(users))
-	for _, u := range users {
-		if u.ID == int64(identity.ID) {
-			continue // Skip self
-		}
-
-		// Audit Requirement: Only show followers/following
-		isF1, _ := h.FollowRepo.IsFollower(int64(identity.ID), u.ID)
-		isF2, _ := h.FollowRepo.IsFollower(u.ID, int64(identity.ID))
-		if !isF1 && !isF2 {
-			continue
-		}
-
-		name := u.FirstName + " " + u.LastName
-		if name == " " {
-			name = u.Nickname
-		}
-		onlineUsers = append(onlineUsers, OnlineUser{
-			ID:       int(u.ID),
-			Username: name,
-		})
 	}
 
 	web.JSONResponse(w, http.StatusOK, onlineUsers)
@@ -141,12 +96,4 @@ func (h *ChatHandler) GetOnlineUsers(w http.ResponseWriter, r *http.Request, ide
 func (h *ChatHandler) Connect(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	chatsvc.ServeWs(h.Hub, w, r, identity.ID)
 	return nil
-}
-
-func convertIntsToInt64s(ints []int) []int64 {
-	res := make([]int64, len(ints))
-	for i, v := range ints {
-		res[i] = int64(v)
-	}
-	return res
 }

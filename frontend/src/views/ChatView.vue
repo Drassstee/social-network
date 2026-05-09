@@ -77,9 +77,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="chat-container card-traditional">
+  <div class="chat-container card-retro">
     <div class="users-sidebar">
-      <h3 class="sidebar-title">Online Members</h3>
+      <h3 class="sidebar-title">ONLINE_UNITS</h3>
       <div class="users-list">
         <div 
           v-for="user in chat.onlineUsers" 
@@ -90,6 +90,7 @@ onMounted(() => {
         >
           <div class="avatar-sm">{{ user.username?.[0] || '?' }}</div>
           <span class="username">{{ user.username }}</span>
+          <div v-if="chat.getUnreadCount(user.id) > 0" class="badge mini">{{ chat.getUnreadCount(user.id) }}</div>
           <div class="online-indicator"></div>
         </div>
       </div>
@@ -98,7 +99,7 @@ onMounted(() => {
     <div class="chat-main">
       <template v-if="chat.activeChatUser">
         <div class="chat-header">
-          <h3>{{ chat.activeChatUser.username }}</h3>
+          <h3 class="glow-text">COMM_LINK: {{ chat.activeChatUser.username }}</h3>
         </div>
         
         <div class="messages-area" ref="messagesArea">
@@ -122,28 +123,28 @@ onMounted(() => {
           </div>
           
           <form @submit.prevent="handleSendMessage" class="message-input-form">
-            <button type="button" @click="showEmojiPicker = !showEmojiPicker" class="icon-btn">😊</button>
+            <button type="button" @click="showEmojiPicker = !showEmojiPicker" class="icon-btn">💾</button>
             <label class="icon-btn file-label">
-              🖼️
+              📎
               <input type="file" @change="handleFileChange" accept="image/*" hidden />
             </label>
             <div class="input-wrapper">
               <input 
                 v-model="newMessage" 
                 type="text" 
-                placeholder="Type a message..." 
-                class="input-traditional"
+                placeholder="INPUT_MESSAGE..." 
+                class="input-retro"
                 @focus="showEmojiPicker = false"
               />
-              <div v-if="imageFile" class="file-preview">📎 {{ imageFile.name }}</div>
+              <div v-if="imageFile" class="file-preview">ATTACHED: {{ imageFile.name }}</div>
             </div>
-            <button type="submit" class="btn-traditional">Send</button>
+            <button type="submit" class="btn-retro">TRANSMIT</button>
           </form>
         </div>
       </template>
       <div v-else class="no-chat-selected">
-        <div class="no-chat-icon">💬</div>
-        <p>Select a member to start chatting</p>
+        <div class="no-chat-icon">>_</div>
+        <p>SELECT_UNIT_TO_ESTABLISH_COMM_LINK</p>
       </div>
     </div>
   </div>
@@ -155,23 +156,27 @@ onMounted(() => {
   height: 75vh;
   padding: 0;
   overflow: hidden;
-  border: 1px solid rgba(0,0,0,0.1);
+  background: var(--color-dark-bg);
+  border: 2px solid var(--color-neon-cyan);
+  box-shadow: 10px 10px 0 var(--color-neon-magenta);
 }
 
 .users-sidebar {
   width: 250px;
-  border-right: 1px solid #eee;
+  border-right: 2px solid var(--color-grid-line);
   display: flex;
   flex-direction: column;
-  background: white;
+  background: rgba(0,0,0,0.3);
 }
 
 .sidebar-title {
   padding: 20px;
-  border-bottom: 1px solid #eee;
-  font-size: 1.1rem;
-  background: var(--color-charcoal);
-  color: var(--color-gold);
+  border-bottom: 2px solid var(--color-grid-line);
+  font-size: 0.8rem;
+  font-family: 'Press Start 2P', cursive;
+  background: rgba(31, 11, 53, 0.8);
+  color: var(--color-neon-cyan);
+  text-shadow: 0 0 5px var(--color-neon-cyan);
 }
 
 .users-list {
@@ -185,51 +190,64 @@ onMounted(() => {
   gap: 12px;
   padding: 15px 20px;
   cursor: pointer;
-  transition: background 0.3s;
+  border-bottom: 1px solid var(--color-grid-line);
+  transition: all 0.2s;
+  color: white;
+  font-family: 'VT323', monospace;
+  font-size: 1.2rem;
 }
 
 .user-item:hover {
-  background: #f9f9f9;
+  background: rgba(255, 0, 255, 0.1);
+  color: var(--color-neon-magenta);
 }
 
 .user-item.active {
-  background: rgba(188, 0, 45, 0.05);
-  border-left: 4px solid var(--color-vermilion);
+  background: rgba(0, 255, 255, 0.1);
+  color: var(--color-neon-cyan);
+  border-left: 4px solid var(--color-neon-cyan);
 }
 
 .avatar-sm {
   width: 35px;
   height: 35px;
-  background: var(--color-charcoal);
-  color: var(--color-paper);
-  border-radius: 50%;
+  background: var(--color-dark-bg);
+  color: var(--color-neon-magenta);
+  border: 1px solid var(--color-neon-magenta);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
+  box-shadow: 2px 2px 0 var(--color-neon-cyan);
 }
 
 .online-indicator {
   width: 10px;
   height: 10px;
-  background: #4caf50;
+  background: #00ff00;
   border-radius: 50%;
   margin-left: auto;
-  box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+  box-shadow: 0 0 8px #00ff00;
 }
 
 .chat-main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: var(--color-washi-white);
+  background: rgba(11, 12, 16, 0.5);
 }
 
 .chat-header {
   padding: 15px 25px;
-  border-bottom: 1px solid #eee;
-  background: white;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+  border-bottom: 2px solid var(--color-grid-line);
+  background: rgba(31, 11, 53, 0.5);
+}
+
+.glow-text {
+  color: var(--color-neon-cyan);
+  text-shadow: var(--shadow-neon-cyan);
+  font-family: 'VT323', monospace;
+  font-size: 1.5rem;
 }
 
 .messages-area {
@@ -238,8 +256,12 @@ onMounted(() => {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
   scroll-behavior: smooth;
+  background-image: 
+    linear-gradient(var(--color-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px);
+  background-size: 40px 40px;
 }
 
 .message-wrapper {
@@ -254,26 +276,32 @@ onMounted(() => {
 .message-bubble {
   max-width: 70%;
   padding: 12px 18px;
-  border-radius: 18px;
-  background: white;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  background: rgba(31, 11, 53, 0.9);
+  border: 1px solid var(--color-neon-magenta);
   position: relative;
+  font-family: 'VT323', monospace;
+  font-size: 1.3rem;
+  color: white;
+  box-shadow: 4px 4px 0 rgba(255, 0, 255, 0.3);
 }
 
 .sent .message-bubble {
-  background: var(--color-vermilion);
-  color: white;
+  border-color: var(--color-neon-cyan);
+  box-shadow: -4px 4px 0 rgba(0, 255, 255, 0.3);
 }
 
 .chat-img {
   max-width: 100%;
-  border-radius: 10px;
+  max-height: 300px;
+  object-fit: contain;
+  border: 1px solid var(--color-neon-cyan);
   margin-bottom: 8px;
+  display: block;
 }
 
 .time {
-  font-size: 0.65rem;
-  opacity: 0.6;
+  font-size: 0.8rem;
+  color: var(--color-neon-yellow);
   display: block;
   margin-top: 5px;
   text-align: right;
@@ -281,8 +309,8 @@ onMounted(() => {
 
 .input-controls {
   position: relative;
-  border-top: 1px solid #eee;
-  background: white;
+  border-top: 2px solid var(--color-grid-line);
+  background: rgba(31, 11, 53, 0.8);
 }
 
 .emoji-picker-container {
@@ -296,24 +324,25 @@ onMounted(() => {
   padding: 15px 20px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 15px;
 }
 
 .icon-btn {
   background: none;
-  border: none;
-  font-size: 1.5rem;
+  border: 1px solid var(--color-neon-cyan);
+  color: var(--color-neon-cyan);
+  font-size: 1.2rem;
   cursor: pointer;
-  padding: 5px;
-  border-radius: 50%;
-  transition: background 0.2s;
+  padding: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s;
 }
 
 .icon-btn:hover {
-  background: #f0f0f0;
+  background: rgba(0, 255, 255, 0.1);
+  box-shadow: 0 0 5px var(--color-neon-cyan);
 }
 
 .input-wrapper {
@@ -323,10 +352,10 @@ onMounted(() => {
 }
 
 .file-preview {
-  font-size: 0.75rem;
-  color: var(--color-gold);
-  margin-top: 2px;
-  padding-left: 10px;
+  font-size: 0.8rem;
+  color: var(--color-neon-yellow);
+  font-family: 'VT323', monospace;
+  margin-top: 5px;
 }
 
 .no-chat-selected {
@@ -335,12 +364,24 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #888;
+  color: var(--color-neon-magenta);
+  font-family: 'Press Start 2P', cursive;
+  text-align: center;
+  padding: 20px;
 }
 
 .no-chat-icon {
-  font-size: 4rem;
+  font-size: 5rem;
   margin-bottom: 20px;
-  opacity: 0.2;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+.no-chat-selected p {
+  font-size: 0.8rem;
+  line-height: 1.5;
 }
 </style>

@@ -9,8 +9,8 @@ import (
 
 // Group represents a social group that users can create and join.
 type Group struct {
-	ID          int       `json:"id"`
-	CreatorID   int       `json:"creator_id"`
+	ID          int64     `json:"id"`
+	CreatorID   int64     `json:"creator_id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	MemberCount int       `json:"member_count"`
@@ -21,8 +21,8 @@ type Group struct {
 
 // GroupMember represents a user's membership in a group.
 type GroupMember struct {
-	GroupID  int       `json:"group_id"`
-	UserID   int       `json:"user_id"`
+	GroupID  int64     `json:"group_id"`
+	UserID   int64     `json:"user_id"`
 	Role     string    `json:"role"` // "creator" or "member"
 	JoinedAt time.Time `json:"joined_at"`
 
@@ -36,10 +36,10 @@ type GroupMember struct {
 
 // GroupInvitation represents an invitation from a group member to another user.
 type GroupInvitation struct {
-	ID        int       `json:"id"`
-	GroupID   int       `json:"group_id"`
-	InviterID int       `json:"inviter_id"`
-	InviteeID int       `json:"invitee_id"`
+	ID        int64     `json:"id"`
+	GroupID   int64     `json:"group_id"`
+	InviterID int64     `json:"inviter_id"`
+	InviteeID int64     `json:"invitee_id"`
 	Status    string    `json:"status"` // "pending", "accepted", "declined"
 	CreatedAt time.Time `json:"created_at"`
 
@@ -52,9 +52,9 @@ type GroupInvitation struct {
 
 // GroupJoinRequest represents a request from a user to join a group.
 type GroupJoinRequest struct {
-	ID        int       `json:"id"`
-	GroupID   int       `json:"group_id"`
-	UserID    int       `json:"user_id"`
+	ID        int64     `json:"id"`
+	GroupID   int64     `json:"group_id"`
+	UserID    int64     `json:"user_id"`
 	Status    string    `json:"status"` // "pending", "accepted", "declined"
 	CreatedAt time.Time `json:"created_at"`
 
@@ -66,9 +66,9 @@ type GroupJoinRequest struct {
 
 // GroupEvent represents an event within a group.
 type GroupEvent struct {
-	ID          int       `json:"id"`
-	GroupID     int       `json:"group_id"`
-	CreatorID   int       `json:"creator_id"`
+	ID          int64     `json:"id"`
+	GroupID     int64     `json:"group_id"`
+	CreatorID   int64     `json:"creator_id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	EventTime   time.Time `json:"event_time"`
@@ -83,8 +83,8 @@ type GroupEvent struct {
 
 // GroupEventResponse represents a member's RSVP to a group event.
 type GroupEventResponse struct {
-	EventID  int    `json:"event_id"`
-	UserID   int    `json:"user_id"`
+	EventID  int64  `json:"event_id"`
+	UserID   int64  `json:"user_id"`
 	Response string `json:"response"` // "going" or "not_going"
 
 	Username string `json:"username,omitempty"`
@@ -94,9 +94,9 @@ type GroupEventResponse struct {
 
 // GroupMessage represents a chat message within a group.
 type GroupMessage struct {
-	ID        int       `json:"id"`
-	GroupID   int       `json:"group_id"`
-	SenderID  int       `json:"sender_id"`
+	ID        int64     `json:"id"`
+	GroupID   int64     `json:"group_id"`
+	SenderID  int64     `json:"sender_id"`
 	Body      string    `json:"body"`
 	ImageURL  *string   `json:"image_url,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
@@ -115,59 +115,57 @@ type GroupRepo interface {
 
 	// Group CRUD
 	CreateGroup(ctx context.Context, group *Group) error
-	GetGroupByID(ctx context.Context, id int) (*Group, error)
+	GetGroupByID(ctx context.Context, id int64) (*Group, error)
 	ListGroups(ctx context.Context, limit, offset int) ([]Group, error)
 
 	// Membership
-	AddMember(ctx context.Context, groupID, userID int, role string) error
-	RemoveMember(ctx context.Context, groupID, userID int) error
-	GetMembers(ctx context.Context, groupID int) ([]GroupMember, error)
-	IsMember(ctx context.Context, groupID, userID int) (bool, error)
-	GetMemberGroupIDs(ctx context.Context, userID int) ([]int, error)
+	AddMember(ctx context.Context, groupID, userID int64, role string) error
+	RemoveMember(ctx context.Context, groupID, userID int64) error
+	GetMembers(ctx context.Context, groupID int64) ([]GroupMember, error)
+	IsMember(ctx context.Context, groupID, userID int64) (bool, error)
+	GetMemberGroupIDs(ctx context.Context, userID int64) ([]int64, error)
 
 	// Invitations
 	CreateInvitation(ctx context.Context, inv *GroupInvitation) error
-	GetInvitationByID(ctx context.Context, id int) (*GroupInvitation, error)
-	GetPendingInvitations(ctx context.Context, userID int) ([]GroupInvitation, error)
-	UpdateInvitationStatus(ctx context.Context, id int, status string) error
+	GetInvitationByID(ctx context.Context, id int64) (*GroupInvitation, error)
+	GetPendingInvitations(ctx context.Context, userID int64) ([]GroupInvitation, error)
+	UpdateInvitationStatus(ctx context.Context, id int64, status string) error
 
 	// Join Requests
 	CreateJoinRequest(ctx context.Context, req *GroupJoinRequest) error
-	GetJoinRequestByID(ctx context.Context, id int) (*GroupJoinRequest, error)
-	GetPendingJoinRequests(ctx context.Context, groupID int) ([]GroupJoinRequest, error)
-	UpdateJoinRequestStatus(ctx context.Context, id int, status string) error
+	GetJoinRequestByID(ctx context.Context, id int64) (*GroupJoinRequest, error)
+	GetPendingJoinRequests(ctx context.Context, groupID int64) ([]GroupJoinRequest, error)
+	UpdateJoinRequestStatus(ctx context.Context, id int64, status string) error
 
 	// Events
 	CreateEvent(ctx context.Context, event *GroupEvent) error
-	GetEventByID(ctx context.Context, id int) (*GroupEvent, error)
-	GetGroupEvents(ctx context.Context, groupID int) ([]GroupEvent, error)
+	GetEventByID(ctx context.Context, id int64) (*GroupEvent, error)
+	GetGroupEvents(ctx context.Context, groupID int64) ([]GroupEvent, error)
 	RespondToEvent(ctx context.Context, resp *GroupEventResponse) error
-	GetEventResponses(ctx context.Context, eventID int) ([]GroupEventResponse, error)
 
 	// Group Messages
 	SaveGroupMessage(ctx context.Context, msg *GroupMessage) error
-	GetGroupMessages(ctx context.Context, groupID, limit, offset int) ([]GroupMessage, error)
+	GetGroupMessages(ctx context.Context, groupID int64, limit, offset int) ([]GroupMessage, error)
 }
 
 //--------------------------------------------------------------------------------------|
 
 // GroupService separates groups business logic from transport.
 type GroupService interface {
-	CreateGroup(ctx context.Context, creatorID int, title, description string) (*Group, error)
-	GetGroup(ctx context.Context, id int) (*Group, error)
+	CreateGroup(ctx context.Context, creatorID int64, title, description string) (*Group, error)
+	GetGroup(ctx context.Context, id int64) (*Group, error)
 	ListGroups(ctx context.Context, limit, offset int) ([]Group, error)
-	GetMembers(ctx context.Context, groupID int) ([]GroupMember, error)
-	LeaveGroup(ctx context.Context, groupID, userID int) error
-	InviteUser(ctx context.Context, groupID, inviterID, inviteeID int) error
-	GetPendingInvitations(ctx context.Context, userID int) ([]GroupInvitation, error)
-	RespondToInvitation(ctx context.Context, invitationID, userID int, accept bool) error
-	RequestJoin(ctx context.Context, groupID, userID int) error
-	GetPendingJoinRequests(ctx context.Context, groupID, requestingUserID int) ([]GroupJoinRequest, error)
-	RespondToJoinRequest(ctx context.Context, requestID, creatorID int, accept bool) error
+	GetMembers(ctx context.Context, groupID int64) ([]GroupMember, error)
+	LeaveGroup(ctx context.Context, groupID, userID int64) error
+	InviteUser(ctx context.Context, groupID, inviterID, inviteeID int64) error
+	GetPendingInvitations(ctx context.Context, userID int64) ([]GroupInvitation, error)
+	RespondToInvitation(ctx context.Context, invitationID, userID int64, accept bool) error
+	RequestJoin(ctx context.Context, groupID, userID int64) error
+	GetPendingJoinRequests(ctx context.Context, groupID, requestingUserID int64) ([]GroupJoinRequest, error)
+	RespondToJoinRequest(ctx context.Context, requestID, creatorID int64, accept bool) error
 	CreateEvent(ctx context.Context, event *GroupEvent) error
-	GetGroupEvents(ctx context.Context, groupID int) ([]GroupEvent, error)
-	RespondToEvent(ctx context.Context, eventID, userID int, response string) error
-	GetEventResponses(ctx context.Context, eventID int) ([]GroupEventResponse, error)
-	SendGroupMessage(ctx context.Context, groupID, senderID int, body string, imageURL *string) (*GroupMessage, error)
-	GetGroupMessages(ctx context.Context, groupID, limit, offset int) ([]GroupMessage, error)
+	GetGroupEvents(ctx context.Context, groupID int64) ([]GroupEvent, error)
+	RespondToEvent(ctx context.Context, eventID, userID int64, response string) error
+	SendGroupMessage(ctx context.Context, groupID, senderID int64, body string, imageURL *string) (*GroupMessage, error)
+	GetGroupMessages(ctx context.Context, groupID int64, limit, offset int) ([]GroupMessage, error)
 }

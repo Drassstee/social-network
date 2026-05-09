@@ -11,20 +11,20 @@ import (
 )
 
 type Service struct {
-	User          *user.UserService
-	Post          *servicepost.PostService
+	User          models.UserService
+	Post          models.PostService
 	Group         models.GroupService
 	Chat          models.ChatService
 	Notifications models.NotificationService
 }
 
-func NewService(r *repository.Repository, hub *chatsvc.Hub) *Service {
+func NewService(r *repository.Repository, hub *chatsvc.Hub, uploader models.ImageUploader) *Service {
 	notifSvc := notifications.NewService(r.Notifications, hub)
 	return &Service{
-		User:          user.NewUserService(r.User, r.Session, r.Follow, r.Post, notifSvc),
+		User:          user.NewUserService(r.User, r.Session, r.Follow, r.Post, notifSvc, uploader),
 		Post:          servicepost.NewPostService(r.Post),
-		Group:         groupsvc.NewGroupService(r.Group, notifSvc, r.User, r.DB),
-		Chat:          chatsvc.NewChatService(r.Chat),
+		Group:         groupsvc.NewGroupService(r.Group, notifSvc, hub, r.User, r.DB),
+		Chat:          chatsvc.NewChatService(r.Chat, r.User, r.Follow),
 		Notifications: notifSvc,
 	}
 }

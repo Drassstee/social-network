@@ -5,12 +5,11 @@ import (
 	"fmt"
 
 	"social-network/internal/models"
-	"social-network/internal/models/user"
 
 	sqlite3 "github.com/mattn/go-sqlite3"
 )
 
-func (r *UserRepo) CreateUser(u *user.User) (int64, error) {
+func (r *UserRepo) CreateUser(u *models.User) (int64, error) {
 	query := `INSERT INTO 
 			users (email, first_name, last_name, password, date_of_birth, avatar_url, nickname, about_me) 
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`

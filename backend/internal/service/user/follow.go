@@ -5,10 +5,11 @@ import (
 	"fmt"
 
 	"social-network/internal/models"
-	"social-network/internal/models/follow"
 )
 
-func (us *UserService) Follow(f follow.Follow) (string, error) {
+// --------------------------------------------------------------------|
+
+func (us *UserService) Follow(f models.Follow) (string, error) {
 	if f.FollowerID < 1 || f.FollowingID < 1 {
 		return "", fmt.Errorf("follow: %w: incorrect user id", models.ErrInvalidData)
 	}
@@ -44,7 +45,7 @@ func (us *UserService) Follow(f follow.Follow) (string, error) {
 
 	// Notify the user being followed
 	if f.Status == "pending" {
-		follower, _ := us.users.GetByID(f.FollowerID)
+		follower, _ := us.users.GetByID(context.Background(), f.FollowerID)
 		username := ""
 		if follower != nil {
 			username = follower.Nickname
@@ -52,7 +53,7 @@ func (us *UserService) Follow(f follow.Follow) (string, error) {
 				username = follower.FirstName + " " + follower.LastName
 			}
 		}
-		us.notifications.Notify(context.Background(), int(f.FollowingID), int(f.FollowerID), username, "user", int(f.FollowerID), "follow_request")
+		us.notifications.Notify(context.Background(), f.FollowingID, f.FollowerID, username, "user", f.FollowerID, "follow_request")
 	}
 
 	return f.Status, nil
@@ -60,7 +61,7 @@ func (us *UserService) Follow(f follow.Follow) (string, error) {
 
 // --------------------------------------------------------------------|
 
-func (us *UserService) Unfollow(f follow.Follow) error {
+func (us *UserService) Unfollow(f models.Follow) error {
 	if f.FollowerID < 1 || f.FollowingID < 1 {
 		return fmt.Errorf("follow: %w: incorrect user id", models.ErrInvalidData)
 	}

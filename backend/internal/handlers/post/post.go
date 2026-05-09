@@ -1,27 +1,21 @@
 package post
 
 import (
-	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"social-network/internal/models"
-	servicepost "social-network/internal/service/post"
+	"social-network/internal/web"
 )
 
-type ImageUploader interface {
-	UploadImage(ctx context.Context, userID int, filename string, content io.Reader) (string, error)
-}
-
 type PostHandler struct {
-	serv     *servicepost.PostService
-	uploader ImageUploader
+	serv     models.PostService
+	uploader models.ImageUploader
 }
 
-func NewPostHandler(serv *servicepost.PostService, uploader ImageUploader) *PostHandler {
+func NewPostHandler(serv models.PostService, uploader models.ImageUploader) *PostHandler {
 	return &PostHandler{serv: serv, uploader: uploader}
 }
 
@@ -39,25 +33,21 @@ type createPostResponse struct {
 	Post *models.Post `json:"post"`
 }
 
-type errResponse struct {
-	Error string `json:"error"`
-}
-
 func (h *PostHandler) GetPosts(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	limit := web.QueryInt(r, "limit", 10)
+	offset := web.QueryInt(r, "offset", 0)
 	groupID, _ := strconv.ParseInt(r.URL.Query().Get("group_id"), 10, 64)
 	
 	requesterID := int64(0)
 	if identity != nil {
-		requesterID = int64(identity.ID)
+		requesterID = identity.ID
 	}
 
 	posts, hasMore, err := h.serv.ListPosts(requesterID, groupID, limit, offset)
 	if err != nil {
 		return err
 	}
-	writeJSON(w, http.StatusOK, postsListResponse{Posts: posts, HasMore: hasMore})
+	web.JSONResponse(w, http.StatusOK, postsListResponse{Posts: posts, HasMore: hasMore})
 	return nil
 }
 
@@ -81,16 +71,16 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request, identit
 		return &models.ValidationError{Field: "json", Message: "invalid json"}
 	}
 
-	p, err := h.serv.CreatePost(int64(identity.ID), body.Content, "", body.Privacy, body.GroupID, body.AllowedUsers)
+	p, err := h.serv.CreatePost(identity.ID, body.Content, "", body.Privacy, body.GroupID, body.AllowedUsers)
 	if err != nil {
 		return err
 	}
-	writeJSON(w, http.StatusCreated, createPostResponse{Post: p})
+	web.JSONResponse(w, http.StatusCreated, createPostResponse{Post: p})
 	return nil
 }
 
 func (h *PostHandler) handleMultipartCreatePost(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
-	err := r.ParseMultipartForm(20 << 20) // 20MB
+	err := r.ParseMultipartForm(int64(web.MaxImageSize))
 	if err != nil {
 		return err
 	}
@@ -115,11 +105,11 @@ func (h *PostHandler) handleMultipartCreatePost(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	p, err := h.serv.CreatePost(int64(identity.ID), content, imageURL, privacy, groupID, allowedUsers)
+	p, err := h.serv.CreatePost(identity.ID, content, imageURL, privacy, groupID, allowedUsers)
 	if err != nil {
 		return err
 	}
-	writeJSON(w, http.StatusCreated, createPostResponse{Post: p})
+	web.JSONResponse(w, http.StatusCreated, createPostResponse{Post: p})
 	return nil
 }
 
@@ -132,7 +122,7 @@ func (h *PostHandler) CreateComment(w http.ResponseWriter, r *http.Request, iden
 	var postID int64
 
 	if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
-		err := r.ParseMultipartForm(20 << 20)
+		err := r.ParseMultipartForm(int64(web.MaxImageSize))
 		if err != nil {
 			return err
 		}
@@ -159,17 +149,10 @@ func (h *PostHandler) CreateComment(w http.ResponseWriter, r *http.Request, iden
 		postID = body.PostID
 	}
 
-	c, err := h.serv.CreateComment(int64(identity.ID), postID, content, imageURL)
+	c, err := h.serv.CreateComment(identity.ID, postID, content, imageURL)
 	if err != nil {
 		return err
 	}
-	writeJSON(w, http.StatusCreated, c)
+	web.JSONResponse(w, http.StatusCreated, c)
 	return nil
-}
-
-
-func writeJSON(w http.ResponseWriter, status int, v any) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
 }

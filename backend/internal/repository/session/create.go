@@ -1,11 +1,11 @@
 package session
 
-import "social-network/internal/models/session"
+import "social-network/internal/models"
 
-func (r *SessionRepo) CreateSession(s *session.Session) error {
+func (r *SessionRepo) CreateSession(s *models.Session) error {
 	query := `INSERT INTO sessions (uuid, user_id, expires_at) VALUES (?, ?, ?)`
 
-	_, err := r.db.Exec(query, s.UUID, s.UserID, s.ExpiresAt)
+	_, err := r.db.Exec(query, s.ID, s.UserID, s.ExpiresAt)
 	if err != nil {
 		return err
 	}

@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"social-network/internal/models"
-	"social-network/internal/utils"
 	"social-network/internal/web"
 )
 
@@ -15,15 +14,11 @@ func (h *UserHandler) GetMe(w http.ResponseWriter, r *http.Request, identity *mo
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("unauthorized")}
 	}
 
-	id := int64(identity.ID)
-	data, err := h.Users.GetMe(id)
+	data, err := h.Service.GetMe(identity.ID)
 	if err != nil {
-		if errors.Is(err, models.ErrNotFound) {
-			return web.StatusError{Code: http.StatusNotFound, Err: err}
-		}
-		return web.StatusError{Code: http.StatusInternalServerError, Err: errors.New("internal server error")}
+		return web.StatusError{Code: http.StatusInternalServerError, Err: err}
 	}
 
-	utils.RespondJSON(w, http.StatusOK, data)
+	web.JSONResponse(w, http.StatusOK, data)
 	return nil
 }

@@ -32,20 +32,21 @@ watch(() => route.path, fetchList)
 <template>
   <div class="social-list-view">
     <header class="view-header">
-      <h1 class="view-title">{{ title }}</h1>
-      <p class="view-subtitle">{{ title }} List</p>
+      <h1 class="view-title">{{ title.toUpperCase() }}_DATABASE</h1>
+      <p class="view-subtitle">SCANNING_USER_NETWORK...</p>
     </header>
 
-    <div class="card-traditional">
-      <div v-if="loading" class="loading">Loading...</div>
+    <div class="card-retro">
+      <div v-if="loading" class="loading">FETCHING_DATA...</div>
       <div v-else-if="users.length === 0" class="no-data">
-        No users found in this list.
+        STATUS: NO_USERS_DETECTED_IN_THIS_NODE.
       </div>
       <div v-else class="users-grid">
-        <router-link v-for="user in users" :key="user.id" :to="`/profile/${user.id}`" class="user-card-mini">
-          <div class="avatar-placeholder">{{ user.first_name[0] }}</div>
+        <router-link v-for="user in users" :key="user.id" :to="`/profile/${user.id}`" class="user-card-mini card-retro">
+          <div class="avatar-sm">{{ user.first_name[0] }}</div>
           <div class="user-info-mini">
             <span class="fullname">{{ user.first_name }} {{ user.last_name }}</span>
+            <span class="uid">UID_{{ user.id.toString().padStart(4, '0') }}</span>
           </div>
         </router-link>
       </div>
@@ -60,17 +61,30 @@ watch(() => route.path, fetchList)
 }
 
 .view-title {
-  font-size: 2.2rem;
+  font-size: 3rem;
+  color: var(--color-neon-cyan);
+  text-shadow: var(--shadow-neon-cyan);
 }
 
 .view-subtitle {
-  color: var(--color-vermilion);
+  color: var(--color-neon-magenta);
+  font-family: 'VT323', monospace;
+  font-size: 1.5rem;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: var(--color-neon-cyan);
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.8rem;
 }
 
 .users-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
+  padding: 20px;
 }
 
 .user-card-mini {
@@ -78,28 +92,55 @@ watch(() => route.path, fetchList)
   align-items: center;
   gap: 15px;
   padding: 15px;
-  border: 1px solid #eee;
-  border-radius: 8px;
   text-decoration: none;
-  color: inherit;
-  transition: all 0.3s ease;
+  color: white;
+  transition: all 0.2s;
+  background: rgba(31, 11, 53, 0.5);
 }
 
 .user-card-mini:hover {
-  border-color: var(--color-gold);
-  background: rgba(212, 175, 55, 0.05);
-  transform: translateY(-2px);
+  transform: scale(1.05);
+  box-shadow: 0 0 15px var(--color-neon-cyan);
+  border-color: var(--color-neon-cyan);
+}
+
+.avatar-sm {
+  width: 45px;
+  height: 45px;
+  background: var(--color-dark-bg);
+  border: 1px solid var(--color-neon-magenta);
+  color: var(--color-neon-magenta);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 1.2rem;
+  box-shadow: 2px 2px 0 var(--color-neon-cyan);
+}
+
+.user-info-mini {
+  display: flex;
+  flex-direction: column;
 }
 
 .fullname {
-  font-weight: 600;
-  font-size: 1.1rem;
+  font-weight: 700;
+  font-size: 1.2rem;
+  font-family: 'VT323', monospace;
+  color: var(--color-neon-cyan);
+}
+
+.uid {
+  font-size: 0.8rem;
+  color: var(--color-neon-yellow);
+  font-family: 'VT323', monospace;
 }
 
 .no-data {
   text-align: center;
-  padding: 40px;
-  color: #888;
-  font-style: italic;
+  padding: 60px;
+  color: var(--color-neon-magenta);
+  font-family: 'VT323', monospace;
+  font-size: 1.5rem;
 }
 </style>

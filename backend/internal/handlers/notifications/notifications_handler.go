@@ -65,7 +65,7 @@ func (h *Handler) MarkAsRead(w http.ResponseWriter, r *http.Request, identity *m
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
 	}
 
-	notificationID, err := web.ExtractIDFromPath(r.URL.Path, 2) // /api/notifications/{id}/read
+	notificationID, err := web.PathInt64(r, "id")
 	if err != nil {
 		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}

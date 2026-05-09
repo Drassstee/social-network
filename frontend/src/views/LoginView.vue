@@ -18,53 +18,53 @@ const handleLogin = async () => {
 
 <template>
   <div class="login-container">
-    <div class="card-traditional login-card">
+    <div class="card-retro login-card">
       <div class="card-header">
-        <h2 class="title">Welcome Back</h2>
-        <p class="subtitle">Welcome Back</p>
+        <h2 class="title">AUTH_SYSTEM</h2>
+        <p class="subtitle">INPUT_CREDENTIALS</p>
       </div>
       
       <form @submit.prevent="handleLogin" class="login-form">
         <div class="form-group">
-          <label for="email">Email</label>
+          <label for="email">USER_IDENTIFIER</label>
           <input 
             id="email"
             v-model="email" 
             type="email" 
-            class="input-traditional" 
-            placeholder="example@mail.com"
+            class="input-retro" 
+            placeholder="USER@NET.SYS"
             required
           />
         </div>
         
         <div class="form-group">
-          <label for="password">Password</label>
+          <label for="password">ACCESS_CODE</label>
           <input 
             id="password"
             v-model="password" 
             type="password" 
-            class="input-traditional" 
-            placeholder="••••••••"
+            class="input-retro" 
+            placeholder="********"
             required
           />
         </div>
         
         <div v-if="auth.error" class="error-msg">
-          {{ auth.error }}
+          ERROR: {{ auth.error }}
         </div>
         
         <button 
           type="submit" 
-          class="btn-traditional w-full"
+          class="btn-retro w-full"
           :disabled="auth.loading"
         >
-          {{ auth.loading ? 'Signing in...' : 'Sign In' }}
+          {{ auth.loading ? 'INITIALIZING...' : 'EXECUTE_LOGIN' }}
         </button>
       </form>
       
       <div class="card-footer">
-        <span>Don't have an account? </span>
-        <router-link to="/register" class="link-vermilion">Register now</router-link>
+        <span>NEW_USER? </span>
+        <router-link to="/register" class="link-retro">REGISTER_ID</router-link>
       </div>
     </div>
   </div>
@@ -81,7 +81,12 @@ const handleLogin = async () => {
 .login-card {
   width: 100%;
   max-width: 450px;
-  animation: fadeInDown 0.8s ease-out;
+  animation: glitch-in 0.5s ease-out;
+}
+
+@keyframes glitch-in {
+  0% { transform: scale(0.9); opacity: 0; filter: hue-rotate(90deg); }
+  100% { transform: scale(1); opacity: 1; filter: hue-rotate(0deg); }
 }
 
 .card-header {
@@ -90,14 +95,16 @@ const handleLogin = async () => {
 }
 
 .title {
-  font-size: 2rem;
+  font-size: 2.2rem;
   margin-bottom: 5px;
+  color: var(--color-neon-cyan);
+  text-shadow: var(--shadow-neon-cyan);
 }
 
 .subtitle {
-  color: var(--color-vermilion);
-  font-family: 'Noto Serif JP', serif;
-  font-size: 1.2rem;
+  color: var(--color-neon-magenta);
+  font-family: 'VT323', monospace;
+  font-size: 1.5rem;
 }
 
 .login-form {
@@ -113,50 +120,43 @@ const handleLogin = async () => {
 }
 
 label {
-  font-weight: 500;
-  color: var(--color-charcoal);
-  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-neon-cyan);
+  font-size: 1.1rem;
+  font-family: 'VT323', monospace;
 }
 
 .w-full {
   width: 100%;
   padding: 15px;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
 }
 
 .error-msg {
-  color: var(--color-vermilion);
-  background: rgba(188, 0, 45, 0.1);
+  color: var(--color-neon-yellow);
+  background: rgba(255, 255, 0, 0.1);
   padding: 10px;
-  border-radius: var(--border-radius);
-  font-size: 0.85rem;
+  border: 1px solid var(--color-neon-yellow);
+  font-size: 1.1rem;
   text-align: center;
+  font-family: 'VT323', monospace;
 }
 
 .card-footer {
   margin-top: 30px;
   text-align: center;
-  font-size: 0.9rem;
+  font-size: 1.1rem;
+  font-family: 'VT323', monospace;
 }
 
-.link-vermilion {
-  color: var(--color-vermilion);
+.link-retro {
+  color: var(--color-neon-magenta);
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 700;
 }
 
-.link-vermilion:hover {
+.link-retro:hover {
+  text-shadow: 0 0 5px var(--color-neon-magenta);
   text-decoration: underline;
-}
-
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 </style>

@@ -9,14 +9,14 @@ import (
 
 // Notification represents a system alert for a user.
 type Notification struct {
-	ID               int       `json:"id"`
-	UserID           int       `json:"user_id"`
-	ActorID          int       `json:"actor_id"`
+	ID               int64     `json:"id"`
+	UserID           int64     `json:"user_id"`
+	ActorID          int64     `json:"actor_id"`
 	ActorUsername    string    `json:"actor_username,omitempty"` // Joined field
 	TargetType       string    `json:"target_type"`              // 'post', 'comment', 'group', etc.
-	TargetID         int       `json:"target_id"`
+	TargetID         int64     `json:"target_id"`
 	TargetTitle      string    `json:"target_title,omitempty"` // Joined field (e.g. post title)
-	LinkID           int       `json:"link_id,omitempty"`      // ID to link to (e.g. post_id for comment)
+	LinkID           int64     `json:"link_id,omitempty"`      // ID to link to (e.g. post_id for comment)
 	NotificationType string    `json:"notification_type"`      // 'like', 'comment', 'invite', etc.
 	IsRead           bool      `json:"is_read"`
 	CreatedAt        time.Time `json:"created_at"`
@@ -27,20 +27,20 @@ type Notification struct {
 // NotificationRepo defines the interface for notification persistence.
 type NotificationRepo interface {
 	WithTx(tx any) NotificationRepo
-	CreateNotification(ctx context.Context, userID, actorID int, targetType string, targetID int, notificationType string) error
-	GetUserNotifications(ctx context.Context, userID, limit, offset int) ([]Notification, error)
-	GetUnreadCount(ctx context.Context, userID int) (int, error)
-	MarkAsRead(ctx context.Context, notificationID, userID int) error
-	MarkAllAsRead(ctx context.Context, userID int) error
+	CreateNotification(ctx context.Context, userID, actorID int64, targetType string, targetID int64, notificationType string) error
+	GetUserNotifications(ctx context.Context, userID int64, limit, offset int) ([]Notification, error)
+	GetUnreadCount(ctx context.Context, userID int64) (int, error)
+	MarkAsRead(ctx context.Context, notificationID, userID int64) error
+	MarkAllAsRead(ctx context.Context, userID int64) error
 }
 
 //--------------------------------------------------------------------------------------|
 
 // NotificationService defines the interface for high-level notification management.
 type NotificationService interface {
-	Notify(ctx context.Context, userID, actorID int, actorUsername string, targetType string, targetID int, notifType string)
-	GetNotifications(ctx context.Context, userID, limit, offset int) ([]Notification, error)
-	GetUnreadCount(ctx context.Context, userID int) (int, error)
-	MarkAsRead(ctx context.Context, notificationID, userID int) error
-	MarkAllAsRead(ctx context.Context, userID int) error
+	Notify(ctx context.Context, userID, actorID int64, actorUsername string, targetType string, targetID int64, notifType string)
+	GetNotifications(ctx context.Context, userID int64, limit, offset int) ([]Notification, error)
+	GetUnreadCount(ctx context.Context, userID int64) (int, error)
+	MarkAsRead(ctx context.Context, notificationID, userID int64) error
+	MarkAllAsRead(ctx context.Context, userID int64) error
 }

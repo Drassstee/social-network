@@ -11,7 +11,7 @@ import (
 // Signaller defines the interface for sending real-time signals to users (e.g., via WebSocket).
 type Signaller interface {
 	// SendToUser sends the provided data to a specific user.
-	SendToUser(userID int, data []byte)
+	SendToUser(userID int64, data []byte)
 }
 
 //--------------------------------------------------------------------------------------|
@@ -35,7 +35,7 @@ func NewService(repo models.NotificationRepo, hub Signaller) *Service {
 //--------------------------------------------------------------------------------------|
 
 // Notify creates a notification in the database and sends a real-time signal to the target user.
-func (s *Service) Notify(ctx context.Context, userID, actorID int, actorUsername string, targetType string, targetID int, notifType string) {
+func (s *Service) Notify(ctx context.Context, userID, actorID int64, actorUsername string, targetType string, targetID int64, notifType string) {
 	// 1. Create DB notification
 	_ = s.repo.CreateNotification(ctx, userID, actorID, targetType, targetID, notifType)
 
@@ -57,24 +57,24 @@ func (s *Service) Notify(ctx context.Context, userID, actorID int, actorUsername
 
 //--------------------------------------------------------------------------------------|
 
-func (s *Service) GetNotifications(ctx context.Context, userID, limit, offset int) ([]models.Notification, error) {
+func (s *Service) GetNotifications(ctx context.Context, userID int64, limit, offset int) ([]models.Notification, error) {
 	return s.repo.GetUserNotifications(ctx, userID, limit, offset)
 }
 
 //--------------------------------------------------------------------------------------|
 
-func (s *Service) GetUnreadCount(ctx context.Context, userID int) (int, error) {
+func (s *Service) GetUnreadCount(ctx context.Context, userID int64) (int, error) {
 	return s.repo.GetUnreadCount(ctx, userID)
 }
 
 //--------------------------------------------------------------------------------------|
 
-func (s *Service) MarkAsRead(ctx context.Context, notificationID, userID int) error {
+func (s *Service) MarkAsRead(ctx context.Context, notificationID, userID int64) error {
 	return s.repo.MarkAsRead(ctx, notificationID, userID)
 }
 
 //--------------------------------------------------------------------------------------|
 
-func (s *Service) MarkAllAsRead(ctx context.Context, userID int) error {
+func (s *Service) MarkAllAsRead(ctx context.Context, userID int64) error {
 	return s.repo.MarkAllAsRead(ctx, userID)
 }

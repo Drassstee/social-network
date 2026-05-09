@@ -47,120 +47,120 @@ const handleRegister = async () => {
 
 <template>
   <div class="register-container">
-    <div class="card-traditional register-card">
+    <div class="card-retro register-card">
       <div class="card-header">
-        <h2 class="title">Join Our Circle</h2>
-        <p class="subtitle">New Member Registration</p>
+        <h2 class="title">NEW_IDENTITY_WIZARD</h2>
+        <p class="subtitle">ALLOCATE_USER_RESOURCES</p>
       </div>
       
       <form @submit.prevent="handleRegister" class="register-form">
         <div class="form-row">
           <div class="form-group">
-            <label for="first_name">First Name</label>
+            <label for="first_name">GIVEN_NAME</label>
             <input 
               id="first_name"
               v-model="userData.first_name" 
               type="text" 
-              class="input-traditional" 
+              class="input-retro" 
               required
             />
           </div>
           <div class="form-group">
-            <label for="last_name">Last Name</label>
+            <label for="last_name">SURNAME</label>
             <input 
               id="last_name"
               v-model="userData.last_name" 
               type="text" 
-              class="input-traditional" 
+              class="input-retro" 
               required
             />
           </div>
         </div>
 
         <div class="form-group">
-          <label for="email">Email</label>
+          <label for="email">NET_ADDRESS</label>
           <input 
             id="email"
             v-model="userData.email" 
             type="email" 
-            class="input-traditional" 
+            class="input-retro" 
             required
           />
         </div>
         
         <div class="form-group">
-          <label for="password">Password</label>
+          <label for="password">ENCRYPTION_KEY</label>
           <input 
             id="password"
             v-model="userData.password" 
             type="password" 
-            class="input-traditional" 
+            class="input-retro" 
             required
           />
         </div>
 
         <div class="form-group">
-          <label for="dob">Date of Birth</label>
+          <label for="dob">TIMESTAMP_OF_ORIGIN</label>
           <input 
             id="dob"
             v-model="userData.date_of_birth" 
             type="date" 
-            class="input-traditional" 
+            class="input-retro" 
             required
           />
         </div>
 
         <div class="form-divider">
-          <span>Optional Information</span>
+          <span>EXTENDED_PARAMETERS</span>
         </div>
 
         <div class="form-group">
-          <label for="nickname">Nickname (Optional)</label>
+          <label for="nickname">ALIAS (OPTIONAL)</label>
           <input 
             id="nickname"
             v-model="userData.nickname" 
             type="text" 
-            class="input-traditional" 
+            class="input-retro" 
           />
         </div>
 
         <div class="form-group">
-          <label for="avatar">Avatar (Optional)</label>
+          <label for="avatar">VISUAL_UID (OPTIONAL)</label>
           <input 
             id="avatar"
             type="file" 
             @change="handleAvatarChange" 
             accept="image/*"
-            class="input-traditional" 
+            class="input-retro file-input" 
           />
         </div>
 
         <div class="form-group">
-          <label for="about">About Me (Optional)</label>
+          <label for="about">BIO_DATA (OPTIONAL)</label>
           <textarea 
             id="about"
             v-model="userData.about_me" 
-            class="input-traditional textarea" 
+            class="input-retro textarea" 
             rows="3"
           ></textarea>
         </div>
         
         <div v-if="auth.error" class="error-msg">
-          {{ auth.error }}
+          CRITICAL_ERROR: {{ auth.error }}
         </div>
         
         <button 
           type="submit" 
-          class="btn-traditional w-full"
+          class="btn-retro w-full"
           :disabled="auth.loading"
         >
-          {{ auth.loading ? 'Creating account...' : 'Register' }}
+          {{ auth.loading ? 'PROCESSING...' : 'ESTABLISH_ID' }}
         </button>
       </form>
       
       <div class="card-footer">
-        <span>Already have an account? </span>
-        <router-link to="/login" class="link-vermilion">Sign in</router-link>
+        <span>ID_EXISTS? </span>
+        <router-link to="/login" class="link-retro">INITIATE_LOGIN</router-link>
       </div>
     </div>
   </div>
@@ -177,7 +177,12 @@ const handleRegister = async () => {
 .register-card {
   width: 100%;
   max-width: 600px;
-  animation: fadeInUp 0.8s ease-out;
+  animation: slide-in 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@keyframes slide-in {
+  from { transform: translateX(-50px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 }
 
 .card-header {
@@ -186,14 +191,16 @@ const handleRegister = async () => {
 }
 
 .title {
-  font-size: 2rem;
+  font-size: 2.2rem;
   margin-bottom: 5px;
+  color: var(--color-neon-cyan);
+  text-shadow: var(--shadow-neon-cyan);
 }
 
 .subtitle {
-  color: var(--color-vermilion);
-  font-family: 'Noto Serif JP', serif;
-  font-size: 1.2rem;
+  color: var(--color-neon-magenta);
+  font-family: 'VT323', monospace;
+  font-size: 1.5rem;
 }
 
 .register-form {
@@ -219,14 +226,15 @@ const handleRegister = async () => {
   align-items: center;
   text-align: center;
   margin: 10px 0;
-  color: #888;
-  font-size: 0.85rem;
+  color: var(--color-neon-yellow);
+  font-family: 'VT323', monospace;
+  font-size: 1.2rem;
 }
 
 .form-divider::before, .form-divider::after {
   content: '';
   flex: 1;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--color-grid-line);
 }
 
 .form-divider:not(:empty)::before {
@@ -238,51 +246,53 @@ const handleRegister = async () => {
 }
 
 label {
-  font-weight: 500;
-  color: var(--color-charcoal);
-  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-neon-cyan);
+  font-size: 1rem;
+  font-family: 'VT323', monospace;
 }
 
 .textarea {
   resize: vertical;
 }
 
+.file-input {
+  font-size: 1rem;
+  padding: 8px;
+}
+
 .w-full {
   width: 100%;
   padding: 15px;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
 }
 
 .error-msg {
-  color: var(--color-vermilion);
-  background: rgba(188, 0, 45, 0.1);
+  color: var(--color-neon-yellow);
+  background: rgba(255, 255, 0, 0.1);
   padding: 10px;
-  border-radius: var(--border-radius);
-  font-size: 0.85rem;
+  border: 1px solid var(--color-neon-yellow);
+  font-size: 1.1rem;
   text-align: center;
+  font-family: 'VT323', monospace;
 }
 
 .card-footer {
   margin-top: 30px;
   text-align: center;
-  font-size: 0.9rem;
+  font-size: 1.1rem;
+  font-family: 'VT323', monospace;
 }
 
-.link-vermilion {
-  color: var(--color-vermilion);
+.link-retro {
+  color: var(--color-neon-magenta);
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 700;
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.link-retro:hover {
+  text-shadow: 0 0 5px var(--color-neon-magenta);
+  text-decoration: underline;
 }
 
 @media (max-width: 600px) {

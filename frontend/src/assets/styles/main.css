@@ -1,18 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+JP:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
 
 :root {
-  /* Japanese Traditional Palette */
-  --color-vermilion: #BC002D;
-  --color-charcoal: #2D2926;
-  --color-gold: #D4AF37;
-  --color-paper: #F5F5F1;
-  --color-ink: #1A1A1A;
-  --color-washi-white: #FCFAFA;
-  --color-accent-brown: #5D4037;
+  /* 80s Synthwave Palette */
+  --color-neon-magenta: #ff00ff;
+  --color-neon-cyan: #00ffff;
+  --color-neon-yellow: #ffff00;
+  --color-dark-bg: #0b0c10;
+  --color-deep-purple: #1f0b35;
+  --color-grid-line: rgba(0, 255, 255, 0.2);
   
-  /* Layout Transitions */
-  --shadow-japanese: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1);
-  --border-radius: 4px;
+  --shadow-neon-magenta: 0 0 10px #ff00ff, 0 0 20px #ff00ff;
+  --shadow-neon-cyan: 0 0 10px #00ffff, 0 0 20px #00ffff;
+  --border-radius: 2px; /* 80s style was blocky */
 }
 
 * {
@@ -22,125 +21,144 @@
 }
 
 body {
-  font-family: 'Noto Sans JP', sans-serif;
-  background-color: var(--color-paper);
-  color: var(--color-ink);
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
+  font-family: 'VT323', monospace;
+  background-color: var(--color-dark-bg);
+  color: var(--color-neon-cyan);
+  line-height: 1.4;
+  overflow-x: hidden;
+  text-transform: uppercase; /* Classic 80s UI feel */
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Noto Serif JP', serif;
-  color: var(--color-charcoal);
-  font-weight: 700;
+  font-family: 'Press Start 2P', cursive;
+  color: var(--color-neon-magenta);
+  text-shadow: var(--shadow-neon-magenta);
+  margin-bottom: 1rem;
 }
 
-/* Base App Layout */
 #app {
   min-height: 100vh;
+  position: relative;
 }
 
-/* Traditional Patterns (Seigaiha) using CSS gradients */
-.bg-seigaiha {
-  background-color: var(--color-paper);
-  background-image: radial-gradient(circle at 100% 150%, var(--color-paper) 24%, var(--color-gold) 25%, var(--color-gold) 28%, var(--color-paper) 29%, var(--color-paper) 36%, var(--color-gold) 36%, var(--color-gold) 40%, transparent 40%),
-    radial-gradient(circle at 0 150%, var(--color-paper) 24%, var(--color-gold) 25%, var(--color-gold) 28%, var(--color-paper) 29%, var(--color-paper) 36%, var(--color-gold) 36%, var(--color-gold) 40%, transparent 40%),
-    radial-gradient(circle at 50% 100%, var(--color-paper) 24%, var(--color-gold) 25%, var(--color-gold) 28%, var(--color-paper) 29%, var(--color-paper) 36%, var(--color-gold) 36%, var(--color-gold) 40%, transparent 40%),
-    radial-gradient(circle at 100% 50%, var(--color-paper) 24%, var(--color-gold) 25%, var(--color-gold) 28%, var(--color-paper) 29%, var(--color-paper) 36%, var(--color-gold) 36%, var(--color-gold) 40%, transparent 40%),
-    radial-gradient(circle at 0 50%, var(--color-paper) 24%, var(--color-gold) 25%, var(--color-gold) 28%, var(--color-paper) 29%, var(--color-paper) 36%, var(--color-gold) 36%, var(--color-gold) 40%, transparent 40%);
-  background-size: 80px 40px;
-  opacity: 0.05;
+/* Synthwave Grid Background */
+.bg-synthwave-grid {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+  background: linear-gradient(to bottom, #1f0b35 0%, #0b0c10 100%);
+  z-index: -2;
   pointer-events: none;
-  z-index: -1;
 }
 
-/* Utiltity Classes */
-.btn-traditional {
-  background-color: var(--color-vermilion);
-  color: white;
-  border: none;
+.bg-synthwave-grid::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background-image: 
+    linear-gradient(var(--color-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px);
+  background-size: 50px 50px;
+  transform: perspective(500px) rotateX(60deg);
+  transform-origin: center bottom;
+  animation: grid-move 20s linear infinite;
+}
+
+@keyframes grid-move {
+  from { background-position: 0 0; }
+  to { background-position: 0 1000px; }
+}
+
+/* CRT Scanlines Effect */
+.crt-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  z-index: 999;
+  background-size: 100% 4px, 3px 100%;
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+/* Retro UI Components */
+.btn-retro {
+  background-color: transparent;
+  color: var(--color-neon-cyan);
+  border: 2px solid var(--color-neon-cyan);
   padding: 10px 20px;
-  font-family: 'Noto Serif JP', serif;
-  font-weight: 700;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.8rem;
   cursor: pointer;
-  transition: all 0.3s ease;
-  border-radius: var(--border-radius);
-  box-shadow: 2px 2px 0 var(--color-accent-brown);
+  transition: all 0.2s ease;
+  box-shadow: 4px 4px 0 var(--color-neon-magenta);
+  text-transform: uppercase;
 }
 
-.btn-traditional:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0 var(--color-accent-brown);
+.btn-retro:hover {
+  background-color: var(--color-neon-cyan);
+  color: var(--color-dark-bg);
+  box-shadow: 0 0 20px var(--color-neon-cyan);
+  transform: translate(-2px, -2px);
 }
 
-.btn-traditional:active {
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0 var(--color-accent-brown);
+.btn-retro:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
-.input-traditional {
+.input-retro {
   width: 100%;
   padding: 12px;
-  border: 1px solid #ddd;
-  background: var(--color-washi-white);
-  font-family: 'Noto Sans JP', sans-serif;
-  transition: border-color 0.3s ease;
-  border-radius: var(--border-radius);
-}
-
-.input-traditional:focus {
+  border: 2px solid var(--color-neon-magenta);
+  background: rgba(0, 0, 0, 0.8);
+  color: var(--color-neon-yellow);
+  font-family: 'VT323', monospace;
+  font-size: 1.5rem;
   outline: none;
-  border-color: var(--color-vermilion);
+  transition: all 0.3s ease;
 }
 
-.card-traditional {
-  background: var(--color-washi-white);
+.input-retro:focus {
+  border-color: var(--color-neon-cyan);
+  box-shadow: var(--shadow-neon-cyan);
+}
+
+.card-retro {
+  background: rgba(31, 11, 53, 0.85);
   padding: 24px;
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-japanese);
-  border-top: 4px solid var(--color-vermilion);
+  border: 2px solid var(--color-neon-cyan);
+  box-shadow: 8px 8px 0 var(--color-neon-magenta);
+  backdrop-filter: blur(5px);
 }
 
 /* Avatar Components */
 .avatar-placeholder {
   width: 45px;
   height: 45px;
-  background: var(--color-charcoal);
-  color: var(--color-paper);
-  border-radius: 50%;
+  background: var(--color-dark-bg);
+  color: var(--color-neon-yellow);
+  border: 2px solid var(--color-neon-magenta);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Noto Serif JP', serif;
-  font-weight: 700;
-  border: 2px solid var(--color-gold);
-  flex-shrink: 0;
-  user-select: none;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 1.2rem;
+  box-shadow: 2px 2px 0 var(--color-neon-cyan);
 }
 
 .avatar-placeholder.small {
   width: 35px;
   height: 35px;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
-
-.avatar-placeholder.xsmall {
-  width: 28px;
-  height: 28px;
-  font-size: 0.75rem;
-  border-width: 1px;
-}
-
-.avatar-link {
-  text-decoration: none;
-  display: inline-flex;
-}
-
 
 /* Feedback Toast */
 .feedback-toast {
@@ -148,18 +166,15 @@ h1, h2, h3, h4, h5, h6 {
   top: 20px;
   right: 20px;
   padding: 12px 24px;
-  border-radius: var(--border-radius);
-  color: white;
+  background: var(--color-dark-bg);
+  border: 2px solid var(--color-neon-yellow);
+  color: var(--color-neon-yellow);
   z-index: 9999;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: var(--shadow-neon-cyan);
   animation: slideInRight 0.3s ease-out;
-  font-family: 'Noto Sans JP', sans-serif;
-  font-weight: 500;
+  font-family: 'VT323', monospace;
+  font-size: 1.2rem;
 }
-
-.feedback-toast.success { background-color: #2e7d32; }
-.feedback-toast.error { background-color: var(--color-vermilion); }
-.feedback-toast.info { background-color: var(--color-charcoal); }
 
 @keyframes slideInRight {
   from { transform: translateX(100%); opacity: 0; }

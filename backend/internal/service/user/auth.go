@@ -2,148 +2,118 @@ package user
 
 import (
 	"fmt"
-	"net/mail"
-	"strings"
 	"time"
 
 	"social-network/internal/models"
-	"social-network/internal/models/session"
-	"social-network/internal/models/user"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
-
-
-func (us *UserService) Register(u *user.User) (*user.UserData, error) {
-	if len(strings.TrimSpace(u.Password)) == 0 {
-		return nil, fmt.Errorf("register: %w: password is empty", models.ErrInvalidData)
+func (s *UserService) Register(u *models.User) (*models.UserData, error) {
+	if err := u.ValidateData(); err != nil {
+		return nil, fmt.Errorf("%w: %v", models.ErrInvalidData, err)
 	}
 
-	err := u.ValidateData()
+	exists, err := s.users.EmailExists(u.Email, 0)
 	if err != nil {
-		return nil, fmt.Errorf("register: %w: %w", models.ErrInvalidData, err)
+		return nil, err
+	}
+	if exists {
+		return nil, fmt.Errorf("%w: email already exists", models.ErrConflict)
 	}
 
-	password, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
-	u.Password = string(password)
-
-	id, err := us.users.CreateUser(u)
+	hashed, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, fmt.Errorf("register: %w", err)
+		return nil, err
 	}
-	u.ID = id
+	u.Password = string(hashed)
 
-	var s = session.Session{
+	id, err := s.users.CreateUser(u)
+	if err != nil {
+		return nil, err
+	}
+
+	sess := &models.Session{
+		ID:        uuid.NewString(),
 		UserID:    id,
-		UUID:      uuid.NewString(),
+		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 
-	err = us.sessions.CreateSession(&s)
-	if err != nil {
-		return nil, fmt.Errorf("register: %w", err)
+	if err := s.sessions.CreateSession(sess); err != nil {
+		return nil, err
 	}
 
-	return &user.UserData{
-		ID:        u.ID,
+	return &models.UserData{
+		ID:        id,
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
 		Nickname:  u.Nickname,
-		UUID:      s.UUID,
-		ExpiresAt: &s.ExpiresAt,
+		AvatarURL: u.AvatarURL,
+		UUID:      sess.ID,
+		ExpiresAt: &sess.ExpiresAt,
 	}, nil
 }
 
-
-
-func (us *UserService) Login(email, password string) (*user.UserData, error) {
-	if len(strings.TrimSpace(email)) == 0 {
-		return nil, fmt.Errorf("login: %w: email is empty", models.ErrInvalidData)
-	}
-	if len(strings.TrimSpace(password)) == 0 {
-		return nil, fmt.Errorf("login: %w: password is empty", models.ErrInvalidData)
-	}
-	_, err := mail.ParseAddress(email)
+func (s *UserService) Login(email, password string) (*models.UserData, error) {
+	u, err := s.users.GetByEmail(email)
 	if err != nil {
-		return nil, fmt.Errorf("login: %w: incorrect email", models.ErrInvalidData)
+		return nil, fmt.Errorf("%w: %v", models.ErrInvalidData, err)
 	}
 
-	u, err := us.users.GetByEmail(email)
-	if err != nil {
-		return nil, fmt.Errorf("login: %w", err)
+	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)); err != nil {
+		return nil, fmt.Errorf("%w: invalid password", models.ErrInvalidData)
 	}
 
-	if bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)) != nil {
-		return nil, fmt.Errorf("login: %w: invalid email or password", models.ErrInvalidData)
-	}
-
-	var s = session.Session{
+	sess := &models.Session{
+		ID:        uuid.NewString(),
 		UserID:    u.ID,
-		UUID:      uuid.NewString(),
+		CreatedAt: time.Now(),
 		ExpiresAt: time.Now().Add(24 * time.Hour),
 	}
 
-	err = us.sessions.DeleteAllSessions(u.ID)
-	if err != nil {
-		return nil, fmt.Errorf("login: %w", err)
+	if err := s.sessions.DeleteAllSessions(u.ID); err != nil {
+		return nil, err
 	}
 
-	err = us.sessions.CreateSession(&s)
-	if err != nil {
-		return nil, fmt.Errorf("login: %w", err)
+	if err := s.sessions.CreateSession(sess); err != nil {
+		return nil, err
 	}
 
-	return &user.UserData{
+	return &models.UserData{
 		ID:        u.ID,
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
 		Nickname:  u.Nickname,
-		UUID:      s.UUID,
-		ExpiresAt: &s.ExpiresAt,
+		AvatarURL: u.AvatarURL,
+		UUID:      sess.ID,
+		ExpiresAt: &sess.ExpiresAt,
 	}, nil
 }
 
-
-
-func (us *UserService) Logout(id int64) error {
+func (s *UserService) Logout(id int64) error {
 	if id < 1 {
-		return fmt.Errorf("logout: %w: incorrect user id", models.ErrInvalidData)
+		return fmt.Errorf("%w: incorrect user id", models.ErrInvalidData)
 	}
 
-	uuid, err := us.sessions.GetUUID(id)
+	uid, err := s.sessions.GetUUID(id)
 	if err != nil {
-		return fmt.Errorf("logout: %w", err)
+		return err
 	}
 
-	err = us.sessions.DeleteSession(uuid)
-	if err != nil {
-		return fmt.Errorf("logout: %w", err)
-	}
-	return nil
+	return s.sessions.DeleteSession(uid)
 }
 
-
-
-func (us *UserService) DeleteUser(id int64) error {
+func (s *UserService) DeleteUser(id int64) error {
 	if id < 1 {
-		return fmt.Errorf("delete user: %w: incorrect user id", models.ErrInvalidData)
+		return fmt.Errorf("%w: incorrect user id", models.ErrInvalidData)
 	}
 
-	uuid, err := us.sessions.GetUUID(id)
-	if err != nil {
-		return fmt.Errorf("logout: %w", err)
+	uid, err := s.sessions.GetUUID(id)
+	if err == nil {
+		_ = s.sessions.DeleteSession(uid)
 	}
 
-	err = us.sessions.DeleteSession(uuid)
-	if err != nil {
-		return fmt.Errorf("logout: %w", err)
-	}
-
-	err = us.users.DeleteUser(id)
-	if err != nil {
-		return fmt.Errorf("delete user: %w", err)
-	}
-	return nil
+	return s.users.DeleteUser(id)
 }

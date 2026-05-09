@@ -2,7 +2,6 @@ package models
 
 import (
 	"context"
-	"time"
 )
 
 //--------------------------------------------------------------------------------------|
@@ -17,7 +16,7 @@ const UserKey contextKey = "user_identity"
 
 // UserIdentity holds the minimal set of claims for an authenticated user.
 type UserIdentity struct {
-	ID       int    `json:"id"`
+	ID       int64  `json:"id"`
 	Username string `json:"username"`
 }
 
@@ -38,11 +37,3 @@ func WithIdentity(ctx context.Context, identity *UserIdentity) context.Context {
 }
 
 //--------------------------------------------------------------------------------------|
-
-// Session represents an active user session stored in the database.
-type Session struct {
-	ID        string    `json:"id"`
-	UserID    int       `json:"user_id"`
-	CreatedAt time.Time `json:"created_at"`
-	ExpiresAt time.Time `json:"expires_at"`
-}

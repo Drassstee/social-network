@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -25,12 +24,7 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		origin := r.Header.Get("Origin")
-		if origin == "" {
-			return true
-		}
-		// For robustness, ensure origin matches host
-		return strings.Contains(origin, r.Host)
+		return true // Allow all origins for local development
 	},
 }
 
@@ -41,7 +35,7 @@ type Client struct {
 	Hub    *Hub
 	Conn   *websocket.Conn // The websocket connection.
 	send   chan []byte     // Buffered channel of outbound messages.
-	UserID int
+	UserID int64
 }
 
 //--------------------------------------------------------------------------------------|
@@ -76,7 +70,7 @@ func (c *Client) readPump() {
 		// Attach sender ID for server-side routing
 		outbound := struct {
 			Type   string          `json:"type"`
-			Sender int             `json:"sender"`
+			Sender int64           `json:"sender"`
 			Data   json.RawMessage `json:"data"`
 		}{
 			Type:   wsMsg.Type,
@@ -115,13 +109,6 @@ func (c *Client) writePump() {
 			}
 			w.Write(message)
 
-			// Add queued chat messages to the current websocket message.
-			n := len(c.send)
-			for i := 0; i < n; i++ {
-				w.Write([]byte{'\n'})
-				w.Write(<-c.send)
-			}
-
 			if err := w.Close(); err != nil {
 				return
 			}
@@ -138,7 +125,7 @@ func (c *Client) writePump() {
 
 // ServeWs upgrades the HTTP connection to a WebSocket connection, creates a new Client,
 // and starts the read and write pumps to handle real-time communication.
-func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request, userID int) {
+func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request, userID int64) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)

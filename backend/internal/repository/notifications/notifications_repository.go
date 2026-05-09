@@ -43,7 +43,7 @@ func (r *sqlRepository) WithTx(tx any) models.NotificationRepo {
 
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlRepository) CreateNotification(ctx context.Context, userID, actorID int, targetType string, targetID int, notificationType string) error {
+func (r *sqlRepository) CreateNotification(ctx context.Context, userID, actorID int64, targetType string, targetID int64, notificationType string) error {
 	if userID == actorID {
 		return nil
 	}
@@ -57,19 +57,23 @@ func (r *sqlRepository) CreateNotification(ctx context.Context, userID, actorID 
 
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlRepository) GetUserNotifications(ctx context.Context, userID, limit, offset int) ([]models.Notification, error) {
+func (r *sqlRepository) GetUserNotifications(ctx context.Context, userID int64, limit, offset int) ([]models.Notification, error) {
 	query := `
 		SELECT 
-			n.id, n.user_id, n.actor_id, u.nickname as actor_username,
+			n.id, n.user_id, n.actor_id, COALESCE(u.nickname, '') as actor_username,
 			n.target_type, n.target_id,
 			COALESCE(CASE 
-				WHEN n.target_type = 'post' THEN p.title
-				WHEN n.target_type = 'comment' THEN (SELECT p2.title FROM posts p2 JOIN comments c ON c.post_id = p2.id WHERE c.id = n.target_id)
+				WHEN n.target_type = 'post' THEN p.content
+				WHEN n.target_type = 'comment' THEN (SELECT p2.content FROM posts p2 JOIN comments c ON c.post_id = p2.id WHERE c.id = n.target_id)
+				WHEN n.target_type = 'group' THEN (SELECT title FROM groups WHERE id = n.target_id)
+				WHEN n.target_type = 'event' THEN (SELECT title FROM group_events WHERE id = n.target_id)
 				ELSE ''
-			END, 'Deleted post/comment') as target_title,
+			END, 'Deleted resource') as target_title,
 			COALESCE(CASE 
 				WHEN n.target_type = 'post' THEN n.target_id
 				WHEN n.target_type = 'comment' THEN (SELECT post_id FROM comments WHERE id = n.target_id)
+				WHEN n.target_type = 'group' THEN n.target_id
+				WHEN n.target_type = 'event' THEN (SELECT group_id FROM group_events WHERE id = n.target_id)
 				ELSE 0
 			END, 0) as link_id,
 			n.notification_type, n.is_read, n.created_at
@@ -101,7 +105,7 @@ func (r *sqlRepository) GetUserNotifications(ctx context.Context, userID, limit,
 
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlRepository) GetUnreadCount(ctx context.Context, userID int) (int, error) {
+func (r *sqlRepository) GetUnreadCount(ctx context.Context, userID int64) (int, error) {
 	var count int
 	err := r.db.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0`,
@@ -111,7 +115,7 @@ func (r *sqlRepository) GetUnreadCount(ctx context.Context, userID int) (int, er
 
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlRepository) MarkAsRead(ctx context.Context, notificationID, userID int) error {
+func (r *sqlRepository) MarkAsRead(ctx context.Context, notificationID, userID int64) error {
 	_, err := r.db.ExecContext(ctx,
 		`UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?`,
 		notificationID, userID)
@@ -123,7 +127,7 @@ func (r *sqlRepository) MarkAsRead(ctx context.Context, notificationID, userID i
 
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlRepository) MarkAllAsRead(ctx context.Context, userID int) error {
+func (r *sqlRepository) MarkAllAsRead(ctx context.Context, userID int64) error {
 	_, err := r.db.ExecContext(ctx,
 		`UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0`,
 		userID)

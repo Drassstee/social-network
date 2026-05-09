@@ -35,12 +35,12 @@ watch(() => auth.isAuthenticated, (val) => {
 
 <template>
   <div class="layout-wrapper">
-    <div class="bg-seigaiha"></div>
+    <div class="bg-synthwave-grid"></div>
+    <div class="crt-overlay"></div>
     
     <nav class="sidebar">
       <div class="logo">
-        <h1 class="logo-text">Kizuna</h1>
-        <div class="logo-accent">C</div>
+        <h1 class="logo-text">Network</h1>
       </div>
       
       <div v-if="auth.isAuthenticated" class="nav-links">
@@ -55,6 +55,7 @@ watch(() => auth.isAuthenticated, (val) => {
         </router-link>
         <router-link to="/chat" class="nav-item">
           <span class="icon">💬</span> Chat
+          <span v-if="chat.totalUnread > 0" class="badge chat-badge">{{ chat.totalUnread }}</span>
         </router-link>
         <router-link to="/notifications" class="nav-item">
           <span class="icon">🔔</span> Notifications
@@ -66,7 +67,7 @@ watch(() => auth.isAuthenticated, (val) => {
           <div v-else class="avatar-placeholder small">{{ auth.user?.first_name?.[0] || 'U' }}</div>
           <div class="user-info-nav">
             <span class="nav-username">{{ auth.user?.first_name }}</span>
-            <span class="nav-role">Member</span>
+            <span class="nav-role">OPERATOR</span>
           </div>
         </div>
 
@@ -97,15 +98,17 @@ watch(() => auth.isAuthenticated, (val) => {
 
 .sidebar {
   width: 280px;
-  background: var(--color-charcoal);
-  color: var(--color-paper);
+  background: rgba(11, 12, 16, 0.95);
+  color: var(--color-neon-cyan);
   height: 100vh;
   position: sticky;
   top: 0;
   display: flex;
   flex-direction: column;
   padding: 40px 20px;
-  border-right: 4px solid var(--color-gold);
+  border-right: 4px solid var(--color-neon-magenta);
+  box-shadow: 10px 0 20px rgba(255, 0, 255, 0.1);
+  z-index: 10;
 }
 
 .logo {
@@ -114,55 +117,60 @@ watch(() => auth.isAuthenticated, (val) => {
 }
 
 .logo-text {
-  color: var(--color-gold);
-  font-size: 2.5rem;
+  color: var(--color-neon-cyan);
+  font-size: 2.2rem;
   letter-spacing: 2px;
+  text-shadow: var(--shadow-neon-cyan);
 }
 
 .logo-accent {
-  font-size: 3rem;
-  color: var(--color-vermilion);
-  margin-top: -10px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 2.5rem;
+  color: var(--color-neon-magenta);
+  text-shadow: var(--shadow-neon-magenta);
+  margin-top: -5px;
 }
 
 .nav-links {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 10px;
 }
 
 .nav-item {
-  color: var(--color-paper);
+  color: var(--color-neon-cyan);
   text-decoration: none;
-  font-family: 'Noto Serif JP', serif;
-  font-size: 1.1rem;
-  padding: 12px 20px;
-  border-radius: var(--border-radius);
-  transition: all 0.3s ease;
+  font-family: 'VT323', monospace;
+  font-size: 1.4rem;
+  padding: 10px 15px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
 .nav-item:hover, .router-link-active {
-  background: rgba(212, 175, 55, 0.15);
-  color: var(--color-gold);
-  transform: translateX(5px);
+  background: rgba(0, 255, 255, 0.1);
+  border-color: var(--color-neon-cyan);
+  color: var(--color-neon-yellow);
+  transform: translateX(10px);
+  text-shadow: 0 0 5px var(--color-neon-yellow);
 }
 
 .icon {
-  font-size: 1.2rem;
+  font-size: 1.4rem;
+  filter: drop-shadow(0 0 5px var(--color-neon-magenta));
 }
 
 .badge {
-  background: var(--color-vermilion);
+  background: var(--color-neon-magenta);
   color: white;
-  font-size: 0.7rem;
-  padding: 2px 6px;
-  border-radius: 10px;
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border: 1px solid white;
   margin-left: auto;
-  font-family: sans-serif;
-  font-weight: bold;
+  font-family: 'VT323', monospace;
 }
 
 .logout-btn {
@@ -178,16 +186,16 @@ watch(() => auth.isAuthenticated, (val) => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 15px 20px;
+  padding: 15px;
   margin-top: auto;
-  border-top: 1px solid rgba(212, 175, 55, 0.2);
+  border: 1px solid var(--color-neon-cyan);
+  background: rgba(0, 255, 255, 0.05);
 }
 
 .avatar-nav-img {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
-  border: 2px solid var(--color-gold);
+  border: 2px solid var(--color-neon-magenta);
   object-fit: cover;
 }
 
@@ -198,13 +206,14 @@ watch(() => auth.isAuthenticated, (val) => {
 
 .nav-username {
   font-weight: 700;
-  font-size: 0.95rem;
-  color: var(--color-gold);
+  font-size: 1.1rem;
+  color: var(--color-neon-yellow);
 }
 
 .nav-role {
-  font-size: 0.75rem;
-  opacity: 0.7;
+  font-size: 0.8rem;
+  color: var(--color-neon-cyan);
+  opacity: 0.8;
 }
 
 .main-content {
@@ -212,6 +221,7 @@ watch(() => auth.isAuthenticated, (val) => {
   padding: 40px;
   max-width: 1200px;
   margin: 0 auto;
+  position: relative;
 }
 
 .content-container {
@@ -230,7 +240,7 @@ watch(() => auth.isAuthenticated, (val) => {
     position: relative;
     padding: 20px;
     border-right: none;
-    border-bottom: 4px solid var(--color-gold);
+    border-bottom: 4px solid var(--color-neon-magenta);
   }
   
   .logo {

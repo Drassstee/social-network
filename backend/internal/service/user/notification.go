@@ -4,28 +4,9 @@ import (
 	"fmt"
 
 	"social-network/internal/models"
-	"social-network/internal/models/follow"
-	"social-network/internal/models/user"
 )
 
-func (us *UserService) GetNotification(id int64) ([]user.UserData, error) {
-	if id < 1 {
-		return nil, fmt.Errorf("notification: %w: incorrect user id", models.ErrInvalidData)
-	}
-
-	// This now only returns follow requests. 
-	// In the future, we could merge with models.NotificationRepo results.
-	users, err := us.follows.GetFollowers(id, "pending")
-	if err != nil {
-		return nil, fmt.Errorf("notification: %w", err)
-	}
-
-	return users, nil
-}
-
-// --------------------------------------------------------------------|
-
-func (us *UserService) RespondToFollowRequest(f follow.Follow) error {
+func (us *UserService) RespondToFollowRequest(f models.Follow) error {
 	if f.FollowerID < 1 || f.FollowingID < 1 {
 		return fmt.Errorf("notification: %w: incorrect user id", models.ErrInvalidData)
 	}

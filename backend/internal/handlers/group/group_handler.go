@@ -54,7 +54,7 @@ func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request, ident
 
 // GetGroup handles GET /api/groups/{id}.
 func (h *GroupHandler) GetGroup(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
-	groupID, err := web.ExtractIDFromPath(r.URL.Path, 2) // /api/groups/{id}
+	groupID, err := web.PathInt64(r, "id")
 	if err != nil {
 		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
@@ -89,7 +89,7 @@ func (h *GroupHandler) ListGroups(w http.ResponseWriter, r *http.Request, identi
 
 // GetMembers handles GET /api/groups/{id}/members.
 func (h *GroupHandler) GetMembers(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
-	groupID, err := web.ExtractIDFromPath(r.URL.Path, 2)
+	groupID, err := web.PathInt64(r, "id")
 	if err != nil {
 		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
@@ -111,7 +111,7 @@ func (h *GroupHandler) LeaveGroup(w http.ResponseWriter, r *http.Request, identi
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
 	}
 
-	groupID, err := web.ExtractIDFromPath(r.URL.Path, 2)
+	groupID, err := web.PathInt64(r, "id")
 	if err != nil {
 		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
@@ -134,13 +134,13 @@ func (h *GroupHandler) InviteUser(w http.ResponseWriter, r *http.Request, identi
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
 	}
 
-	groupID, err := web.ExtractIDFromPath(r.URL.Path, 2)
+	groupID, err := web.PathInt64(r, "id")
 	if err != nil {
 		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
 
 	var body struct {
-		UserID int `json:"user_id"`
+		UserID int64 `json:"user_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.UserID == 0 {
 		return web.StatusError{Code: http.StatusBadRequest, Err: errors.New("invalid user_id")}
@@ -179,7 +179,7 @@ func (h *GroupHandler) RespondToInvitation(w http.ResponseWriter, r *http.Reques
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
 	}
 
-	invID, err := web.ExtractIDFromPath(r.URL.Path, 3) // /api/groups/invitations/{id}/respond
+	invID, err := web.PathInt64(r, "id")
 	if err != nil {
 		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
@@ -209,7 +209,7 @@ func (h *GroupHandler) RequestJoin(w http.ResponseWriter, r *http.Request, ident
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
 	}
 
-	groupID, err := web.ExtractIDFromPath(r.URL.Path, 2)
+	groupID, err := web.PathInt64(r, "id")
 	if err != nil {
 		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
@@ -230,7 +230,7 @@ func (h *GroupHandler) GetPendingJoinRequests(w http.ResponseWriter, r *http.Req
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
 	}
 
-	groupID, err := web.ExtractIDFromPath(r.URL.Path, 2)
+	groupID, err := web.PathInt64(r, "id")
 	if err != nil {
 		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
@@ -252,7 +252,7 @@ func (h *GroupHandler) RespondToJoinRequest(w http.ResponseWriter, r *http.Reque
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
 	}
 
-	reqID, err := web.ExtractIDFromPath(r.URL.Path, 3) // /api/groups/requests/{id}/respond
+	reqID, err := web.PathInt64(r, "id")
 	if err != nil {
 		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
@@ -282,7 +282,7 @@ func (h *GroupHandler) CreateEvent(w http.ResponseWriter, r *http.Request, ident
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
 	}
 
-	groupID, err := web.ExtractIDFromPath(r.URL.Path, 2)
+	groupID, err := web.PathInt64(r, "id")
 	if err != nil {
 		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
@@ -321,7 +321,7 @@ func (h *GroupHandler) CreateEvent(w http.ResponseWriter, r *http.Request, ident
 
 // GetGroupEvents handles GET /api/groups/{id}/events.
 func (h *GroupHandler) GetGroupEvents(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
-	groupID, err := web.ExtractIDFromPath(r.URL.Path, 2)
+	groupID, err := web.PathInt64(r, "id")
 	if err != nil {
 		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
@@ -343,7 +343,7 @@ func (h *GroupHandler) RespondToEvent(w http.ResponseWriter, r *http.Request, id
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
 	}
 
-	eventID, err := web.ExtractIDFromPath(r.URL.Path, 3) // /api/groups/events/{id}/respond
+	eventID, err := web.PathInt64(r, "id")
 	if err != nil {
 		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
@@ -369,7 +369,7 @@ func (h *GroupHandler) RespondToEvent(w http.ResponseWriter, r *http.Request, id
 
 // GetGroupMessages handles GET /api/groups/{id}/messages.
 func (h *GroupHandler) GetGroupMessages(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
-	groupID, err := web.ExtractIDFromPath(r.URL.Path, 2)
+	groupID, err := web.PathInt64(r, "id")
 	if err != nil {
 		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}

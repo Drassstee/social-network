@@ -13,7 +13,7 @@ func SetupRoutes(h *handlers.Handler) *http.ServeMux {
 	apimux := http.NewServeMux()
 
 	authMW := func(next http.HandlerFunc) http.HandlerFunc {
-		return middleware.AuthMiddleware(h.User.Users, next)
+		return middleware.AuthMiddleware(h.User.Service, next)
 	}
 
 	// Auth

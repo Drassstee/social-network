@@ -29,7 +29,7 @@ func (e *NotFoundError) Error() string {
 
 // AuthorizationError indicates that the user lacks permission for the action.
 type AuthorizationError struct {
-	UserID int
+	UserID int64
 }
 
 func (e *AuthorizationError) Error() string {
@@ -67,9 +67,6 @@ var (
 	ErrInvalidCommentBody    = errors.New("comment body is required")
 	ErrCommentDepthExceeded  = errors.New("maximum comment depth exceeded")
 
-	// Category errors.
-	ErrInvalidCategoryName = errors.New("category name is required")
-
 	// Image errors.
 	ErrImageTooBig        = errors.New("image exceeds maximum allowed size")
 	ErrInvalidImageFormat = errors.New("unsupported image format")
@@ -77,6 +74,12 @@ var (
 	// Database constraint errors.
 	ErrUniqueConstraint     = errors.New("unique constraint violation")
 	ErrForeignKeyConstraint = errors.New("foreign key constraint violation")
+
+	// Generic errors.
+	ErrInvalidData = errors.New("invalid data")
+	ErrUserPrivate = errors.New("profile is private")
+	ErrNotFound    = errors.New("not found")
+	ErrConflict    = errors.New("conflict")
 
 	// Group errors.
 	ErrGroupNotFound       = errors.New("group not found")

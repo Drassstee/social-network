@@ -55,31 +55,32 @@ onMounted(fetchEvents)
 
 <template>
     <div class="group-events">
-        <button @click="showCreateForm = !showCreateForm" class="btn btn-secondary">
-            {{ showCreateForm ? 'Cancel' : 'Create New Event' }}
+        <button @click="showCreateForm = !showCreateForm" class="btn-retro">
+            {{ showCreateForm ? 'ABORT_CONFIG' : 'NEW_MISSION_OBJECTIVE' }}
         </button>
 
-        <div v-if="showCreateForm" class="create-event-form card-traditional">
-            <input v-model="newEvent.title" placeholder="Event Title" required />
-            <textarea v-model="newEvent.description" placeholder="Description"></textarea>
-            <input v-model="newEvent.event_time" type="datetime-local" required />
-            <button @click="handleCreateEvent" class="btn btn-primary">Save Event</button>
+        <div v-if="showCreateForm" class="create-event-form card-retro">
+            <h3 class="form-title">EVENT_PARAMETERS</h3>
+            <input v-model="newEvent.title" class="input-retro" placeholder="MISSION_TITLE" required />
+            <textarea v-model="newEvent.description" class="input-retro" placeholder="BRIEFING_DETAILS"></textarea>
+            <input v-model="newEvent.event_time" type="datetime-local" class="input-retro" required />
+            <button @click="handleCreateEvent" class="btn-retro">SAVE_OBJECTIVE</button>
         </div>
 
         <div class="events-list">
-            <div v-for="event in events" :key="event.id" class="event-card">
-                <h3>{{ event.title }}</h3>
-                <p>{{ event.description }}</p>
+            <div v-for="event in events" :key="event.id" class="event-card card-retro">
+                <h3 class="glow-text">{{ event.title }}</h3>
+                <p class="event-desc">{{ event.description }}</p>
                 <div class="event-meta">
-                    <span>📅 {{ new Date(event.event_time).toLocaleString() }}</span>
+                    <span>TIMELOCK: {{ new Date(event.event_time).toLocaleString() }}</span>
                 </div>
                 <div class="stats">
-                    <span>Going: {{ event.going_count }}</span>
-                    <span>Not Going: {{ event.not_going_count }}</span>
+                    <span class="stat-item">UNITS_CONFIRMED: {{ event.going_count }}</span>
+                    <span class="stat-item">UNITS_REJECTED: {{ event.not_going_count }}</span>
                 </div>
                 <div class="actions">
-                    <button @click="respondToEvent(event.id, 'going')" class="btn btn-small btn-success">Going</button>
-                    <button @click="respondToEvent(event.id, 'not_going')" class="btn btn-small btn-danger">Not Going</button>
+                    <button @click="respondToEvent(event.id, 'going')" class="btn-retro mini success">CONFIRM</button>
+                    <button @click="respondToEvent(event.id, 'not_going')" class="btn-retro mini danger">REJECT</button>
                 </div>
             </div>
         </div>
@@ -87,52 +88,83 @@ onMounted(fetchEvents)
 </template>
 
 <style scoped>
-.create-event-form {
-    margin-top: 20px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+.group-events {
+  margin-top: 20px;
 }
 
-.create-event-form input, .create-event-form textarea {
-    padding: 10px;
-    border: 1px solid var(--color-gold);
-    background: transparent;
+.create-event-form {
+    margin-top: 20px;
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.form-title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.8rem;
+  color: var(--color-neon-magenta);
+  margin-bottom: 10px;
 }
 
 .events-list {
-    margin-top: 20px;
+    margin-top: 30px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
 }
 
 .event-card {
-    background: var(--color-paper);
     padding: 20px;
-    border-radius: var(--border-radius);
-    margin-bottom: 20px;
-    border: 1px solid var(--color-gold);
+    display: flex;
+    flex-direction: column;
+}
+
+.glow-text {
+  color: var(--color-neon-cyan);
+  text-shadow: var(--shadow-neon-cyan);
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+.event-desc {
+  font-family: 'VT323', monospace;
+  font-size: 1.2rem;
+  color: white;
+  margin-bottom: 15px;
+  flex: 1;
 }
 
 .event-meta {
-    font-size: 0.9rem;
-    color: var(--color-charcoal);
-    margin: 10px 0;
+    font-size: 1rem;
+    color: var(--color-neon-yellow);
+    font-family: 'VT323', monospace;
+    margin-bottom: 15px;
 }
 
 .stats {
     display: flex;
-    gap: 20px;
-    margin-bottom: 15px;
-    font-weight: bold;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 20px;
+    font-family: 'VT323', monospace;
+}
+
+.stat-item {
+  font-size: 1.1rem;
+  color: #aaa;
 }
 
 .actions {
     display: flex;
-    gap: 10px;
+    gap: 15px;
 }
 
-.btn-small {
+.btn-retro.mini {
     padding: 8px 15px;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
 }
+
+.btn-retro.mini.success { border-color: #00ff00; color: #00ff00; }
+.btn-retro.mini.danger { border-color: #ff0000; color: #ff0000; }
 </style>

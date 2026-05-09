@@ -54,7 +54,7 @@ func (r *sqlGroupRepository) CreateGroup(ctx context.Context, group *models.Grou
 	if err != nil {
 		return err
 	}
-	group.ID = int(id)
+	group.ID = id
 	
 	err = r.db.QueryRowContext(ctx, `SELECT created_at FROM groups WHERE id = ?`, id).Scan(&group.CreatedAt)
 	return err
@@ -62,7 +62,7 @@ func (r *sqlGroupRepository) CreateGroup(ctx context.Context, group *models.Grou
 
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlGroupRepository) GetGroupByID(ctx context.Context, id int) (*models.Group, error) {
+func (r *sqlGroupRepository) GetGroupByID(ctx context.Context, id int64) (*models.Group, error) {
 	var g models.Group
 	err := r.db.QueryRowContext(ctx,
 		`SELECT id, creator_id, title, description, created_at FROM groups WHERE id = ?`, id,
@@ -101,7 +101,7 @@ func (r *sqlGroupRepository) ListGroups(ctx context.Context, limit, offset int) 
 // Membership
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlGroupRepository) AddMember(ctx context.Context, groupID, userID int, role string) error {
+func (r *sqlGroupRepository) AddMember(ctx context.Context, groupID, userID int64, role string) error {
 	_, err := r.db.ExecContext(ctx,
 		`INSERT INTO group_members (group_id, user_id, role) VALUES (?, ?, ?)`,
 		groupID, userID, role)
@@ -110,7 +110,7 @@ func (r *sqlGroupRepository) AddMember(ctx context.Context, groupID, userID int,
 
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlGroupRepository) RemoveMember(ctx context.Context, groupID, userID int) error {
+func (r *sqlGroupRepository) RemoveMember(ctx context.Context, groupID, userID int64) error {
 	_, err := r.db.ExecContext(ctx,
 		`DELETE FROM group_members WHERE group_id = ? AND user_id = ?`, groupID, userID)
 	return err
@@ -118,9 +118,9 @@ func (r *sqlGroupRepository) RemoveMember(ctx context.Context, groupID, userID i
 
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlGroupRepository) GetMembers(ctx context.Context, groupID int) ([]models.GroupMember, error) {
+func (r *sqlGroupRepository) GetMembers(ctx context.Context, groupID int64) ([]models.GroupMember, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT gm.group_id, gm.user_id, gm.role, gm.joined_at, u.username, u.first_name, u.last_name
+		`SELECT gm.group_id, gm.user_id, gm.role, gm.joined_at, COALESCE(u.nickname, ''), u.first_name, u.last_name
 		 FROM group_members gm
 		 JOIN users u ON gm.user_id = u.id
 		 WHERE gm.group_id = ?
@@ -143,7 +143,7 @@ func (r *sqlGroupRepository) GetMembers(ctx context.Context, groupID int) ([]mod
 
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlGroupRepository) IsMember(ctx context.Context, groupID, userID int) (bool, error) {
+func (r *sqlGroupRepository) IsMember(ctx context.Context, groupID, userID int64) (bool, error) {
 	var count int
 	err := r.db.QueryRowContext(ctx,
 		`SELECT COUNT(*) FROM group_members WHERE group_id = ? AND user_id = ?`,
@@ -153,7 +153,7 @@ func (r *sqlGroupRepository) IsMember(ctx context.Context, groupID, userID int) 
 
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlGroupRepository) GetMemberGroupIDs(ctx context.Context, userID int) ([]int, error) {
+func (r *sqlGroupRepository) GetMemberGroupIDs(ctx context.Context, userID int64) ([]int64, error) {
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT group_id FROM group_members WHERE user_id = ?`, userID)
 	if err != nil {
@@ -161,9 +161,9 @@ func (r *sqlGroupRepository) GetMemberGroupIDs(ctx context.Context, userID int) 
 	}
 	defer rows.Close()
 
-	var ids []int
+	var ids []int64
 	for rows.Next() {
-		var id int
+		var id int64
 		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
@@ -185,11 +185,11 @@ func (r *sqlGroupRepository) CreateInvitation(ctx context.Context, inv *models.G
 
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlGroupRepository) GetInvitationByID(ctx context.Context, id int) (*models.GroupInvitation, error) {
+func (r *sqlGroupRepository) GetInvitationByID(ctx context.Context, id int64) (*models.GroupInvitation, error) {
 	var inv models.GroupInvitation
 	err := r.db.QueryRowContext(ctx,
 		`SELECT gi.id, gi.group_id, gi.inviter_id, gi.invitee_id, gi.status, gi.created_at,
-		        g.title, u.username
+		        g.title, COALESCE(u.nickname, '')
 		 FROM group_invitations gi
 		 JOIN groups g ON gi.group_id = g.id
 		 JOIN users u ON gi.inviter_id = u.id
@@ -204,10 +204,10 @@ func (r *sqlGroupRepository) GetInvitationByID(ctx context.Context, id int) (*mo
 
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlGroupRepository) GetPendingInvitations(ctx context.Context, userID int) ([]models.GroupInvitation, error) {
+func (r *sqlGroupRepository) GetPendingInvitations(ctx context.Context, userID int64) ([]models.GroupInvitation, error) {
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT gi.id, gi.group_id, gi.inviter_id, gi.invitee_id, gi.status, gi.created_at,
-		        g.title, u.username
+		        g.title, COALESCE(u.nickname, '')
 		 FROM group_invitations gi
 		 JOIN groups g ON gi.group_id = g.id
 		 JOIN users u ON gi.inviter_id = u.id
@@ -232,7 +232,7 @@ func (r *sqlGroupRepository) GetPendingInvitations(ctx context.Context, userID i
 
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlGroupRepository) UpdateInvitationStatus(ctx context.Context, id int, status string) error {
+func (r *sqlGroupRepository) UpdateInvitationStatus(ctx context.Context, id int64, status string) error {
 	_, err := r.db.ExecContext(ctx,
 		`UPDATE group_invitations SET status = ? WHERE id = ?`, status, id)
 	return err
@@ -251,10 +251,10 @@ func (r *sqlGroupRepository) CreateJoinRequest(ctx context.Context, req *models.
 
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlGroupRepository) GetJoinRequestByID(ctx context.Context, id int) (*models.GroupJoinRequest, error) {
+func (r *sqlGroupRepository) GetJoinRequestByID(ctx context.Context, id int64) (*models.GroupJoinRequest, error) {
 	var req models.GroupJoinRequest
 	err := r.db.QueryRowContext(ctx,
-		`SELECT gjr.id, gjr.group_id, gjr.user_id, gjr.status, gjr.created_at, u.username
+		`SELECT gjr.id, gjr.group_id, gjr.user_id, gjr.status, gjr.created_at, COALESCE(u.nickname, '')
 		 FROM group_join_requests gjr
 		 JOIN users u ON gjr.user_id = u.id
 		 WHERE gjr.id = ?`, id,
@@ -267,9 +267,9 @@ func (r *sqlGroupRepository) GetJoinRequestByID(ctx context.Context, id int) (*m
 
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlGroupRepository) GetPendingJoinRequests(ctx context.Context, groupID int) ([]models.GroupJoinRequest, error) {
+func (r *sqlGroupRepository) GetPendingJoinRequests(ctx context.Context, groupID int64) ([]models.GroupJoinRequest, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT gjr.id, gjr.group_id, gjr.user_id, gjr.status, gjr.created_at, u.username
+		`SELECT gjr.id, gjr.group_id, gjr.user_id, gjr.status, gjr.created_at, COALESCE(u.nickname, '')
 		 FROM group_join_requests gjr
 		 JOIN users u ON gjr.user_id = u.id
 		 WHERE gjr.group_id = ? AND gjr.status = 'pending'
@@ -292,7 +292,7 @@ func (r *sqlGroupRepository) GetPendingJoinRequests(ctx context.Context, groupID
 
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlGroupRepository) UpdateJoinRequestStatus(ctx context.Context, id int, status string) error {
+func (r *sqlGroupRepository) UpdateJoinRequestStatus(ctx context.Context, id int64, status string) error {
 	_, err := r.db.ExecContext(ctx,
 		`UPDATE group_join_requests SET status = ? WHERE id = ?`, status, id)
 	return err
@@ -312,7 +312,7 @@ func (r *sqlGroupRepository) CreateEvent(ctx context.Context, event *models.Grou
 
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlGroupRepository) GetEventByID(ctx context.Context, id int) (*models.GroupEvent, error) {
+func (r *sqlGroupRepository) GetEventByID(ctx context.Context, id int64) (*models.GroupEvent, error) {
 	var e models.GroupEvent
 	err := r.db.QueryRowContext(ctx,
 		`SELECT ge.id, ge.group_id, ge.creator_id, ge.title, ge.description, ge.event_time, ge.created_at,
@@ -332,7 +332,7 @@ func (r *sqlGroupRepository) GetEventByID(ctx context.Context, id int) (*models.
 
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlGroupRepository) GetGroupEvents(ctx context.Context, groupID int) ([]models.GroupEvent, error) {
+func (r *sqlGroupRepository) GetGroupEvents(ctx context.Context, groupID int64) ([]models.GroupEvent, error) {
 	rows, err := r.db.QueryContext(ctx,
 		`SELECT ge.id, ge.group_id, ge.creator_id, ge.title, ge.description, ge.event_time, ge.created_at,
 		        COALESCE(SUM(CASE WHEN ger.response = 'going' THEN 1 ELSE 0 END), 0),
@@ -370,46 +370,22 @@ func (r *sqlGroupRepository) RespondToEvent(ctx context.Context, resp *models.Gr
 }
 
 //--------------------------------------------------------------------------------------|
-
-func (r *sqlGroupRepository) GetEventResponses(ctx context.Context, eventID int) ([]models.GroupEventResponse, error) {
-	rows, err := r.db.QueryContext(ctx,
-		`SELECT ger.event_id, ger.user_id, ger.response, u.username
-		 FROM group_event_responses ger
-		 JOIN users u ON ger.user_id = u.id
-		 WHERE ger.event_id = ?`, eventID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var responses []models.GroupEventResponse
-	for rows.Next() {
-		var r models.GroupEventResponse
-		if err := rows.Scan(&r.EventID, &r.UserID, &r.Response, &r.Username); err != nil {
-			return nil, err
-		}
-		responses = append(responses, r)
-	}
-	return responses, nil
-}
-
-//--------------------------------------------------------------------------------------|
 // Group Messages
 //--------------------------------------------------------------------------------------|
 
 func (r *sqlGroupRepository) SaveGroupMessage(ctx context.Context, msg *models.GroupMessage) error {
 	return r.db.QueryRowContext(ctx,
 		`INSERT INTO group_messages (group_id, sender_id, body, image_url) VALUES (?, ?, ?, ?) 
-		 RETURNING id, created_at`,
-		msg.GroupID, msg.SenderID, msg.Body, msg.ImageURL,
-	).Scan(&msg.ID, &msg.CreatedAt)
+		 RETURNING id, created_at, (SELECT COALESCE(nickname, '') FROM users WHERE id = ?)`,
+		msg.GroupID, msg.SenderID, msg.Body, msg.ImageURL, msg.SenderID,
+	).Scan(&msg.ID, &msg.CreatedAt, &msg.Username)
 }
 
 //--------------------------------------------------------------------------------------|
 
-func (r *sqlGroupRepository) GetGroupMessages(ctx context.Context, groupID, limit, offset int) ([]models.GroupMessage, error) {
+func (r *sqlGroupRepository) GetGroupMessages(ctx context.Context, groupID int64, limit, offset int) ([]models.GroupMessage, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT gm.id, gm.group_id, gm.sender_id, gm.body, gm.image_url, gm.created_at, u.username
+		`SELECT gm.id, gm.group_id, gm.sender_id, gm.body, COALESCE(gm.image_url, ''), gm.created_at, COALESCE(u.nickname, '')
 		 FROM group_messages gm
 		 JOIN users u ON gm.sender_id = u.id
 		 WHERE gm.group_id = ?

@@ -35,14 +35,14 @@ func main() {
 	hub := chatsvc.NewHub(rep.Chat, rep.User, rep.Group, rep.Follow)
 	go hub.Run(context.Background())
 
-	serv := service.NewService(rep, hub)
-
 	// Initialize Uploader
 	uploadDir := "./uploads"
 	uploadURL := "/api/v1/uploads"
 	uploader := utils.NewLocalImageUploader(uploadDir, uploadURL)
 
-	hdr := handlers.NewHandler(serv, hub, rep.User, rep.Chat, rep.Follow, uploader)
+	serv := service.NewService(rep, hub, uploader)
+
+	hdr := handlers.NewHandler(serv, hub, uploader)
 	mux := config.SetupRoutes(hdr)
 
 	// Serve uploaded images

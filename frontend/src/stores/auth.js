@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { useChatStore } from './chat'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -17,8 +18,13 @@ export const useAuthStore = defineStore('auth', {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),
         })
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.error || 'Login failed')
+        }
+
         const data = await response.json()
-        if (!response.ok) throw new Error(data.error || 'Login failed')
         
         this.user = data
         this.isAuthenticated = true
@@ -46,8 +52,13 @@ export const useAuthStore = defineStore('auth', {
         }
 
         const response = await fetch('/api/v1/register', options)
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.error || 'Registration failed')
+        }
+
         const data = await response.json()
-        if (!response.ok) throw new Error(data.error || 'Registration failed')
         
         this.user = data
         this.isAuthenticated = true
@@ -67,6 +78,9 @@ export const useAuthStore = defineStore('auth', {
       } catch (err) {
         console.error('Logout error:', err)
       } finally {
+        const chatStore = useChatStore()
+        chatStore.disconnect()
+        
         this.user = null
         this.isAuthenticated = false
         localStorage.removeItem('user')

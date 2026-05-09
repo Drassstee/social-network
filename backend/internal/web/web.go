@@ -10,6 +10,7 @@ import (
 	"social-network/internal/models"
 	"social-network/internal/utils"
 	"strings"
+	"time"
 )
 
 //--------------------------------------------------------------------------------------|
@@ -29,8 +30,8 @@ const (
 	// MaxLimit is the maximum allowed items per page to prevent excessive memory usage.
 	MaxLimit = 100
 
-	// MaxImageSize is the maximum allowed size for uploaded images (20MB).
-	MaxImageSize = 20 * 1024 * 1024
+	// MaxImageSize is the maximum allowed size for uploaded images (10MB).
+	MaxImageSize = 10 << 20
 
 	// Path segment indices for ID extraction from relative URLs.
 	SegmentPost         = 1 // e.g., /posts/{id} -> segment 1
@@ -68,11 +69,37 @@ func NewAppHandler(h AppHandler) http.HandlerFunc {
 
 //--------------------------------------------------------------------------------------|
 
-// JSONResponse sends a JSON response with the specified status code.
+// JSONResponse sends a JSON response with the given status code.
 func JSONResponse(w http.ResponseWriter, code int, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(data)
+	if data != nil {
+		if err := json.NewEncoder(w).Encode(data); err != nil {
+			log.Printf("[web] failed to encode JSON response: %v", err)
+		}
+	}
+}
+
+// SetCookie sets a secure session cookie.
+func SetCookie(w http.ResponseWriter, uuid string, expiresAt time.Time) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_token",
+		Value:    uuid,
+		Path:     "/",
+		Expires:  expiresAt,
+		HttpOnly: true,
+		SameSite: http.SameSiteStrictMode,
+	})
+}
+
+// DeleteCookie removes the session cookie.
+func DeleteCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:   "session_token",
+		Value:  "",
+		Path:   "/",
+		MaxAge: -1,
+	})
 }
 
 //--------------------------------------------------------------------------------------|
@@ -130,8 +157,8 @@ func GetLimitOffset(r *http.Request) (int, int) {
 
 //--------------------------------------------------------------------------------------|
 
-// ExtractIDFromPath parses an integer ID from a specific path segment.
-func ExtractIDFromPath(path string, segmentIndex int) (int, error) {
+// ExtractIDFromPath parses an int64 ID from a specific path segment.
+func ExtractIDFromPath(path string, segmentIndex int) (int64, error) {
 	parts := strings.Split(strings.Trim(path, "/"), "/")
 	if len(parts) <= segmentIndex {
 		return 0, errors.New("invalid URL structure")

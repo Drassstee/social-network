@@ -1,38 +1,52 @@
 package models
 
 import (
-	"social-network/internal/models/follow"
-	"social-network/internal/models/session"
-	"social-network/internal/models/user"
+	"context"
 )
 
-type User = user.User
-
 type UserService interface {
-	GetByID(id int64) (*User, error)
-	GetByEmail(email string) (*User, error)
-	GetByIDs(ids []int64) ([]User, error)
+	Register(*User) (*UserData, error)
+	Login(string, string) (*UserData, error)
+	Logout(int64) error
+	DeleteUser(int64) error
+
+	GetByID(int64) (*User, error)
+	GetByEmail(string) (*User, error)
+	GetByIDs([]int64) ([]User, error)
+
+	GetProfile(int64, int64) (*Profile, error)
+	GetMe(int64) (*UserData, error)
+	UpdateProfile(*User) error
+	GetUserID(string) (int64, error)
+
+	Follow(Follow) (string, error)
+	Unfollow(Follow) error
+
+	RespondToFollowRequest(Follow) error
+
+	UploadAvatar(context.Context, *Avatar) error
+	GetAvatar(int64) (string, error)
 }
 
 type UserRepo interface {
-	CreateUser(*user.User) (int64, error)
-	UpdateUser(*user.User) error
+	CreateUser(*User) (int64, error)
+	UpdateUser(*User) error
 	UpdateAvatar(int64, string) error
 	DeleteUser(int64) error
 
-	GetByEmail(string) (*user.User, error)
-	GetByID(int64) (*user.User, error)
+	GetByEmail(string) (*User, error)
+	GetByID(context.Context, int64) (*User, error)
 	GetProfileType(int64) (string, error)
 	GetAvatarURL(int64) (string, error)
 
 	IsPrivate(int64) (bool, error)
 	EmailExists(string, int64) (bool, error)
 	UserExists(int64) (bool, error)
-	GetByIDs(ids []int64) ([]user.User, error)
+	GetByIDs(ids []int64) ([]User, error)
 }
 
 type SessionRepo interface {
-	CreateSession(*session.Session) error
+	CreateSession(*Session) error
 	DeleteSession(string) error
 	DeleteAllSessions(int64) error
 
@@ -41,12 +55,12 @@ type SessionRepo interface {
 }
 
 type FollowRepo interface {
-	CreateFollow(follow.Follow) error
-	DeleteFollow(follow.Follow) error
-	UpdateFollow(follow.Follow) error
+	CreateFollow(Follow) error
+	DeleteFollow(Follow) error
+	UpdateFollow(Follow) error
 
-	GetFollowers(int64, string) ([]user.UserData, error)
-	GetFollowing(int64, string) ([]user.UserData, error)
+	GetFollowers(int64, string) ([]UserData, error)
+	GetFollowing(int64, string) ([]UserData, error)
 
 	IsFollower(int64, int64) (bool, error)
 	FollowExists(int64, int64, string) (bool, error)

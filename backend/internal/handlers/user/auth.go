@@ -11,27 +11,21 @@ import (
 	"time"
 
 	"social-network/internal/models"
-	"social-network/internal/models/user"
-	"social-network/internal/utils"
 	"social-network/internal/web"
 
 	"github.com/google/uuid"
 )
-
-
 
 type LoginData struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-
-
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request, _ *models.UserIdentity) error {
-	var u user.User
+	var u models.User
 
 	if strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
-		err := r.ParseMultipartForm(10 << 20) // 10MB
+		err := r.ParseMultipartForm(int64(web.MaxImageSize))
 		if err != nil {
 			return web.StatusError{Code: http.StatusBadRequest, Err: err}
 		}
@@ -74,7 +68,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request, _ *models
 		}
 	}
 
-	data, err := h.Users.Register(&u)
+	data, err := h.Service.Register(&u)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidData) {
 			return web.StatusError{Code: http.StatusBadRequest, Err: err}
@@ -85,13 +79,11 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request, _ *models
 		return web.StatusError{Code: http.StatusInternalServerError, Err: errors.New("internal server error")}
 	}
 
-	utils.SetCookie(w, data.UUID, *data.ExpiresAt)
+	web.SetCookie(w, data.UUID, *data.ExpiresAt)
 
-	utils.RespondJSON(w, http.StatusCreated, data)
+	web.JSONResponse(w, http.StatusCreated, data)
 	return nil
 }
-
-
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request, _ *models.UserIdentity) error {
 	var d LoginData
@@ -100,7 +92,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request, _ *models.Us
 		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
 
-	data, err := h.Users.Login(d.Email, d.Password)
+	data, err := h.Service.Login(d.Email, d.Password)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidData) {
 			return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("invalid email or password")}
@@ -109,40 +101,36 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request, _ *models.Us
 		return web.StatusError{Code: http.StatusInternalServerError, Err: errors.New("internal server error")}
 	}
 
-	utils.SetCookie(w, data.UUID, *data.ExpiresAt)
+	web.SetCookie(w, data.UUID, *data.ExpiresAt)
 
-	utils.RespondJSON(w, http.StatusOK, data)
+	web.JSONResponse(w, http.StatusOK, data)
 	return nil
 }
-
-
 
 func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	if identity == nil {
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("unauthorized")}
 	}
-	id := int64(identity.ID)
+	id := identity.ID
 
-	err := h.Users.Logout(id)
+	err := h.Service.Logout(id)
 	if err != nil {
 		return web.StatusError{Code: http.StatusInternalServerError, Err: errors.New("internal server error")}
 	}
 
-	utils.DeleteCookie(w)
+	web.DeleteCookie(w)
 
-	utils.RespondJSON(w, http.StatusNoContent, nil)
+	web.JSONResponse(w, http.StatusNoContent, nil)
 	return nil
 }
-
-
 
 func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	if identity == nil {
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("unauthorized")}
 	}
-	id := int64(identity.ID)
+	id := identity.ID
 
-	err := h.Users.DeleteUser(id)
+	err := h.Service.DeleteUser(id)
 	if err != nil {
 		if errors.Is(err, models.ErrInvalidData) {
 			return web.StatusError{Code: http.StatusBadRequest, Err: err}
@@ -150,6 +138,6 @@ func (h *UserHandler) DeleteUser(w http.ResponseWriter, r *http.Request, identit
 		return web.StatusError{Code: http.StatusInternalServerError, Err: errors.New("internal server error")}
 	}
 
-	utils.RespondJSON(w, http.StatusNoContent, nil)
+	web.JSONResponse(w, http.StatusNoContent, nil)
 	return nil
 }
