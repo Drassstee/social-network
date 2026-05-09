@@ -62,8 +62,21 @@ func (s *GroupService) CreateGroup(ctx context.Context, creatorID int64, title, 
 
 //--------------------------------------------------------------------------------------|
 
-// GetGroup returns a group by ID. Verifies that the user is a member if it's not a public listing.
+// GetGroup returns a group by ID. Verifies that the user is a member or the creator.
 func (s *GroupService) GetGroup(ctx context.Context, id, userID int64) (*models.Group, error) {
+	group, err := s.Repo.GetGroupByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, models.ErrGroupNotFound
+		}
+		return nil, err
+	}
+
+	// Creator always has access
+	if group.CreatorID == userID {
+		return group, nil
+	}
+
 	isMember, err := s.Repo.IsMember(ctx, id, userID)
 	if err != nil {
 		return nil, err
@@ -72,12 +85,9 @@ func (s *GroupService) GetGroup(ctx context.Context, id, userID int64) (*models.
 		return nil, models.ErrNotMember
 	}
 
-	group, err := s.Repo.GetGroupByID(ctx, id)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, models.ErrGroupNotFound
-	}
-	return group, err
+	return group, nil
 }
+
 
 //--------------------------------------------------------------------------------------|
 
@@ -92,12 +102,19 @@ func (s *GroupService) ListGroups(ctx context.Context, limit, offset int) ([]mod
 
 // GetMembers returns the members of a group.
 func (s *GroupService) GetMembers(ctx context.Context, groupID, userID int64) ([]models.GroupMember, error) {
-	isMember, err := s.Repo.IsMember(ctx, groupID, userID)
+	group, err := s.Repo.GetGroupByID(ctx, groupID)
 	if err != nil {
 		return nil, err
 	}
-	if !isMember {
-		return nil, models.ErrNotMember
+
+	if group.CreatorID != userID {
+		isMember, err := s.Repo.IsMember(ctx, groupID, userID)
+		if err != nil {
+			return nil, err
+		}
+		if !isMember {
+			return nil, models.ErrNotMember
+		}
 	}
 	return s.Repo.GetMembers(ctx, groupID)
 }
@@ -342,12 +359,19 @@ func (s *GroupService) CreateEvent(ctx context.Context, event *models.GroupEvent
 
 // GetGroupEvents returns all events for a group.
 func (s *GroupService) GetGroupEvents(ctx context.Context, groupID, userID int64) ([]models.GroupEvent, error) {
-	isMember, err := s.Repo.IsMember(ctx, groupID, userID)
+	group, err := s.Repo.GetGroupByID(ctx, groupID)
 	if err != nil {
 		return nil, err
 	}
-	if !isMember {
-		return nil, models.ErrNotMember
+
+	if group.CreatorID != userID {
+		isMember, err := s.Repo.IsMember(ctx, groupID, userID)
+		if err != nil {
+			return nil, err
+		}
+		if !isMember {
+			return nil, models.ErrNotMember
+		}
 	}
 	return s.Repo.GetGroupEvents(ctx, groupID)
 }
@@ -407,6 +431,9 @@ func (s *GroupService) SendGroupMessage(ctx context.Context, groupID, senderID i
 	if err := s.Repo.SaveGroupMessage(ctx, msg); err != nil {
 		return nil, err
 	}
+	// Mark as read for the sender
+	_ = s.Repo.UpdateLastReadID(ctx, groupID, senderID, msg.ID)
+
 	return msg, nil
 }
 
@@ -414,14 +441,36 @@ func (s *GroupService) SendGroupMessage(ctx context.Context, groupID, senderID i
 
 // GetGroupMessages returns paginated messages for a group.
 func (s *GroupService) GetGroupMessages(ctx context.Context, groupID, userID int64, limit, offset int) ([]models.GroupMessage, error) {
-	isMember, err := s.Repo.IsMember(ctx, groupID, userID)
+	group, err := s.Repo.GetGroupByID(ctx, groupID)
 	if err != nil {
 		return nil, err
 	}
-	if !isMember {
-		return nil, models.ErrNotMember
+
+	if group.CreatorID != userID {
+		isMember, err := s.Repo.IsMember(ctx, groupID, userID)
+		if err != nil {
+			return nil, err
+		}
+		if !isMember {
+			return nil, models.ErrNotMember
+		}
 	}
 	return s.Repo.GetGroupMessages(ctx, groupID, limit, offset)
+}
+
+// GetUnreadCounts returns unread counts for all groups.
+func (s *GroupService) GetUnreadCounts(ctx context.Context, userID int64) ([]models.GroupUnreadCount, error) {
+	return s.Repo.GetUnreadCounts(ctx, userID)
+}
+
+// MarkAsRead marks all current messages in a group as read for the user.
+func (s *GroupService) MarkAsRead(ctx context.Context, groupID, userID int64) error {
+	// Find the latest message ID
+	msgs, err := s.Repo.GetGroupMessages(ctx, groupID, 1, 0)
+	if err != nil || len(msgs) == 0 {
+		return err
+	}
+	return s.Repo.UpdateLastReadID(ctx, groupID, userID, msgs[0].ID)
 }
 
 //--------------------------------------------------------------------------------------|

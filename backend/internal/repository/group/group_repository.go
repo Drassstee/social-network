@@ -384,13 +384,14 @@ func (r *sqlGroupRepository) SaveGroupMessage(ctx context.Context, msg *models.G
 //--------------------------------------------------------------------------------------|
 
 func (r *sqlGroupRepository) GetGroupMessages(ctx context.Context, groupID int64, limit, offset int) ([]models.GroupMessage, error) {
-	rows, err := r.db.QueryContext(ctx,
-		`SELECT gm.id, gm.group_id, gm.sender_id, gm.body, COALESCE(gm.image_url, ''), gm.created_at, COALESCE(u.nickname, '')
-		 FROM group_messages gm
-		 JOIN users u ON gm.sender_id = u.id
-		 WHERE gm.group_id = ?
-		 ORDER BY gm.created_at DESC, gm.id DESC
-		 LIMIT ? OFFSET ?`, groupID, limit, offset)
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT m.id, m.group_id, m.sender_id, u.nickname, m.body, m.image_url, m.created_at
+		FROM group_messages m
+		JOIN users u ON m.sender_id = u.id
+		WHERE m.group_id = ?
+		ORDER BY m.created_at DESC, m.id DESC
+		LIMIT ? OFFSET ?`,
+		groupID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -399,10 +400,49 @@ func (r *sqlGroupRepository) GetGroupMessages(ctx context.Context, groupID int64
 	var msgs []models.GroupMessage
 	for rows.Next() {
 		var m models.GroupMessage
-		if err := rows.Scan(&m.ID, &m.GroupID, &m.SenderID, &m.Body, &m.ImageURL, &m.CreatedAt, &m.Username); err != nil {
+		if err := rows.Scan(&m.ID, &m.GroupID, &m.SenderID, &m.Username, &m.Body, &m.ImageURL, &m.CreatedAt); err != nil {
 			return nil, err
 		}
 		msgs = append(msgs, m)
 	}
 	return msgs, nil
+}
+
+//--------------------------------------------------------------------------------------|
+
+// UpdateLastReadID updates the last message ID seen by a user in a group.
+func (r *sqlGroupRepository) UpdateLastReadID(ctx context.Context, groupID, userID, msgID int64) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE group_members SET last_read_msg_id = MAX(last_read_msg_id, ?) 
+		 WHERE group_id = ? AND user_id = ?`,
+		msgID, groupID, userID)
+	return err
+}
+
+//--------------------------------------------------------------------------------------|
+
+// GetUnreadCounts returns unread message counts for all groups the user is a member of.
+func (r *sqlGroupRepository) GetUnreadCounts(ctx context.Context, userID int64) ([]models.GroupUnreadCount, error) {
+	query := `
+		SELECT gm.group_id, COUNT(m.id) as unread_count
+		FROM group_members gm
+		LEFT JOIN group_messages m ON gm.group_id = m.group_id AND m.id > gm.last_read_msg_id
+		WHERE gm.user_id = ?
+		GROUP BY gm.group_id`
+
+	rows, err := r.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var counts []models.GroupUnreadCount
+	for rows.Next() {
+		var c models.GroupUnreadCount
+		if err := rows.Scan(&c.GroupID, &c.UnreadCount); err != nil {
+			return nil, err
+		}
+		counts = append(counts, c)
+	}
+	return counts, nil
 }

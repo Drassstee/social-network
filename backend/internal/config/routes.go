@@ -58,11 +58,15 @@ func SetupRoutes(h *handlers.Handler) *http.ServeMux {
 	apimux.HandleFunc("GET /groups/{id}/events", authMW(web.NewAppHandler(h.Group.GetGroupEvents)))
 	apimux.HandleFunc("POST /groups/events/{id}/respond", authMW(web.NewAppHandler(h.Group.RespondToEvent)))
 	apimux.HandleFunc("GET /groups/{id}/messages", authMW(web.NewAppHandler(h.Group.GetGroupMessages)))
+	apimux.HandleFunc("GET /groups/unread", authMW(web.NewAppHandler(h.Group.GetUnreadCounts)))
+	apimux.HandleFunc("POST /groups/{id}/read", authMW(web.NewAppHandler(h.Group.MarkAsRead)))
 
 	// Chat
 	apimux.HandleFunc("GET /chat/messages", authMW(web.NewAppHandler(h.Chat.GetMessages)))
 	apimux.HandleFunc("POST /chat/upload", authMW(web.NewAppHandler(h.Chat.UploadImage)))
-	apimux.HandleFunc("GET /chat/online", authMW(web.NewAppHandler(h.Chat.GetOnlineUsers)))
+	apimux.HandleFunc("GET /chat/users", authMW(web.NewAppHandler(h.Chat.GetChatableUsers)))
+	apimux.HandleFunc("GET /chat/unread", authMW(web.NewAppHandler(h.Chat.GetUnreadCounts)))
+	apimux.HandleFunc("POST /chat/read", authMW(web.NewAppHandler(h.Chat.MarkAsRead)))
 	apimux.HandleFunc("GET /ws", authMW(web.NewAppHandler(h.Chat.Connect)))
 
 	mux.Handle("/api/v1/", http.StripPrefix("/api/v1", apimux))

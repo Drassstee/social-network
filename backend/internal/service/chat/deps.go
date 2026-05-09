@@ -13,6 +13,10 @@ type ChatRepository interface {
 	SaveMessage(ctx context.Context, senderID, receiverID int64, body string, imageURL *string) (*models.Message, error)
 	// GetMessages retrieves the chat history between two users, ordered by date.
 	GetMessages(ctx context.Context, user1ID, user2ID int64, limit, offset int) ([]models.Message, error)
+	// MarkAsRead marks all messages from sender to receiver as read.
+	MarkAsRead(ctx context.Context, senderID, receiverID int64) error
+	// GetUnreadCounts returns a map of senderID -> unread count for the given user.
+	GetUnreadCounts(ctx context.Context, userID int64) (map[int64]int, error)
 }
 
 //--------------------------------------------------------------------------------------|

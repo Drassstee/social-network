@@ -2,8 +2,10 @@ package models
 
 import "time"
 
+//--------------------------------------------------------------------------------------|
+
 type Profile struct {
-	UserData     UserData   `json:"user_data"`
+	User         UserData   `json:"user"`
 	Followers    []UserData `json:"followers"`
 	Following    []UserData `json:"following"`
 	Posts        []Post     `json:"posts"`
@@ -13,6 +15,8 @@ type Profile struct {
 	BirthDate    *time.Time `json:"birth_date"`
 	AboutMe      string     `json:"about_me"`
 }
+
+//--------------------------------------------------------------------------------------|
 
 // UserProfile is used for the profile view
 type UserProfile struct {

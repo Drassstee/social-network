@@ -18,7 +18,9 @@ type Notification struct {
 	TargetTitle      string    `json:"target_title,omitempty"` // Joined field (e.g. post title)
 	LinkID           int64     `json:"link_id,omitempty"`      // ID to link to (e.g. post_id for comment)
 	NotificationType string    `json:"notification_type"`      // 'like', 'comment', 'invite', etc.
+	Message          string    `json:"message"`                // Human readable message
 	IsRead           bool      `json:"is_read"`
+
 	CreatedAt        time.Time `json:"created_at"`
 }
 

@@ -22,7 +22,8 @@ export const useChatStore = defineStore('chat', {
 
       this.socket.onopen = () => {
         this.connected = true
-        this.fetchOnlineUsers()
+        this.fetchChatableUsers()
+        this.fetchUnreadCounts()
       }
 
       this.socket.onmessage = (event) => {
@@ -53,14 +54,37 @@ export const useChatStore = defineStore('chat', {
     isUserLoggedIn() {
       return !!localStorage.getItem('user')
     },
-    async fetchOnlineUsers() {
+    async fetchChatableUsers() {
       try {
-        const response = await fetch('/api/v1/chat/online')
+        const response = await fetch('/api/v1/chat/users')
         const data = await response.json()
-        this.onlineUsers = data
+        this.onlineUsers = data // This actually contains all chatable users enriched with online status
       } catch (err) {
-        console.error('Failed to fetch online users:', err)
+        console.error('Failed to fetch chatable users:', err)
       }
+    },
+    async fetchUnreadCounts() {
+        try {
+            // Private counts
+            const pResp = await fetch('/api/v1/chat/unread')
+            const pCounts = await pResp.json()
+            for (const [id, count] of Object.entries(pCounts)) {
+                this.unreadCounts[`u_${id}`] = count
+            }
+
+            // Group counts
+            const gResp = await fetch('/api/v1/groups/unread')
+            const gCounts = await gResp.json()
+            if (Array.isArray(gCounts)) {
+                gCounts.forEach(c => {
+                    if (c.unread_count > 0) {
+                        this.unreadCounts[`g_${c.group_id}`] = c.unread_count
+                    }
+                })
+            }
+        } catch (err) {
+            console.error('Failed to fetch unread counts:', err)
+        }
     },
     handleSocketMessage(msg) {
       switch (msg.type) {
@@ -82,15 +106,19 @@ export const useChatStore = defineStore('chat', {
 
     },
     updateUserStatus(data) {
-      const index = this.onlineUsers.findIndex(u => u.id === data.user_id)
-      if (data.online && index === -1) {
-        this.onlineUsers.push({ id: data.user_id, username: data.username })
-      } else if (!data.online && index !== -1) {
-        this.onlineUsers.splice(index, 1)
+      const user = this.onlineUsers.find(u => u.id === data.user_id)
+      if (user) {
+        user.is_online = data.online
+      } else {
+        // If user not in list, we might need to refresh or just add if we want to show non-followers who just came online (optional)
+        // For now, let's just refresh if it's someone we don't know but we might care about
+        // Or better, just add them if online
+        if (data.online) {
+            this.onlineUsers.push({ id: data.user_id, username: data.username, is_online: true })
+        }
       }
     },
     async addMessage(msg) {
-      // Lazy import auth to get current user ID
       const { useAuthStore } = await import('./auth')
       const authStore = useAuthStore()
       const myID = authStore.user?.id
@@ -106,7 +134,18 @@ export const useChatStore = defineStore('chat', {
       if (msg.sender_id !== myID && (!this.activeChatUser || this.activeChatUser.id !== otherID)) {
         const key = `u_${otherID}`
         this.unreadCounts[key] = (this.unreadCounts[key] || 0) + 1
+      } else if (msg.sender_id !== myID) {
+          // If it IS the active chat, mark as read on backend
+          this.markPrivateAsRead(otherID)
       }
+    },
+    async markPrivateAsRead(senderID) {
+        try {
+            await fetch(`/api/v1/chat/read?sender_id=${senderID}`, { method: 'POST' })
+            delete this.unreadCounts[`u_${senderID}`]
+        } catch (err) {
+            console.error('Failed to mark private as read:', err)
+        }
     },
     sendMessage(receiverID, body, imageURL = null) {
       if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return
@@ -128,7 +167,7 @@ export const useChatStore = defineStore('chat', {
         this.messages[userID] = data || []
         
         // Clear unread
-        delete this.unreadCounts[`u_${userID}`]
+        this.markPrivateAsRead(userID)
       } catch (err) {
         console.error('Failed to fetch messages:', err)
       }
@@ -151,8 +190,18 @@ export const useChatStore = defineStore('chat', {
       if (Number(msg.sender_id) !== Number(myID) && Number(this.activeGroupID) !== Number(groupID)) {
         const key = `g_${groupID}`
         this.unreadCounts[key] = (this.unreadCounts[key] || 0) + 1
+      } else if (Number(msg.sender_id) !== Number(myID)) {
+          this.markGroupAsRead(groupID)
       }
       return msg
+    },
+    async markGroupAsRead(groupID) {
+        try {
+            await fetch(`/api/v1/groups/${groupID}/read`, { method: 'POST' })
+            delete this.unreadCounts[`g_${groupID}`]
+        } catch (err) {
+            console.error('Failed to mark group as read:', err)
+        }
     },
     async fetchGroupMessages(groupID) {
       try {
@@ -161,7 +210,7 @@ export const useChatStore = defineStore('chat', {
         this.groupMessages[groupID] = data || []
         
         // Clear unread
-        delete this.unreadCounts[`g_${groupID}`]
+        this.markGroupAsRead(groupID)
       } catch (err) {
         console.error('Failed to fetch group messages:', err)
       }
@@ -183,6 +232,7 @@ export const useChatStore = defineStore('chat', {
       return this.unreadCounts[`${type}_${id}`] || 0
     }
   },
+
   getters: {
     totalUnread: (state) => {
       return Object.values(state.unreadCounts).reduce((a, b) => a + b, 0)

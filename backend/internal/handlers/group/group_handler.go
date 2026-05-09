@@ -400,3 +400,42 @@ func (h *GroupHandler) GetGroupMessages(w http.ResponseWriter, r *http.Request, 
 	web.JSONResponse(w, http.StatusOK, messages)
 	return nil
 }
+
+//--------------------------------------------------------------------------------------|
+
+// GetUnreadCounts handles GET /api/groups/unread.
+func (h *GroupHandler) GetUnreadCounts(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
+	if identity == nil {
+		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
+	}
+
+	counts, err := h.Service.GetUnreadCounts(r.Context(), identity.ID)
+	if err != nil {
+		return err
+	}
+
+	web.JSONResponse(w, http.StatusOK, counts)
+	return nil
+}
+
+//--------------------------------------------------------------------------------------|
+
+// MarkAsRead handles POST /api/groups/{id}/read.
+func (h *GroupHandler) MarkAsRead(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
+	groupID, err := web.PathInt64(r, "id")
+	if err != nil {
+		return web.StatusError{Code: http.StatusBadRequest, Err: err}
+	}
+
+	if identity == nil {
+		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
+	}
+
+	if err := h.Service.MarkAsRead(r.Context(), groupID, identity.ID); err != nil {
+		return err
+	}
+
+	web.JSONResponse(w, http.StatusOK, map[string]string{"status": "ok"})
+	return nil
+}
+

@@ -8,6 +8,8 @@ import (
 	"social-network/internal/utils"
 )
 
+//--------------------------------------------------------------------------------------|
+
 func (s *UserService) GetProfile(targetID, userID int64) (*models.Profile, error) {
 	if targetID < 1 {
 		return nil, fmt.Errorf("%w: target user id is empty", models.ErrInvalidData)
@@ -19,7 +21,7 @@ func (s *UserService) GetProfile(targetID, userID int64) (*models.Profile, error
 	}
 
 	p := &models.Profile{
-		UserData: models.UserData{
+		User: models.UserData{
 			ID:        u.ID,
 			FirstName: u.FirstName,
 			LastName:  u.LastName,
@@ -52,6 +54,8 @@ func (s *UserService) GetProfile(targetID, userID int64) (*models.Profile, error
 	return p, nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (s *UserService) GetMe(id int64) (*models.UserData, error) {
 	if id < 1 {
 		return nil, fmt.Errorf("%w: incorrect user id", models.ErrInvalidData)
@@ -71,6 +75,8 @@ func (s *UserService) GetMe(id int64) (*models.UserData, error) {
 	}, nil
 }
 
+//--------------------------------------------------------------------------------------|
+
 func (s *UserService) UpdateProfile(u *models.User) error {
 	if err := u.ValidateData(); err != nil {
 		return fmt.Errorf("%w: %v", models.ErrInvalidData, err)
@@ -86,6 +92,8 @@ func (s *UserService) UpdateProfile(u *models.User) error {
 
 	return s.users.UpdateUser(u)
 }
+
+//--------------------------------------------------------------------------------------|
 
 func (s *UserService) GetUserID(uuid string) (int64, error) {
 	return s.sessions.GetUserID(uuid)

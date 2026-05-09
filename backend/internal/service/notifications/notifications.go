@@ -39,7 +39,11 @@ func (s *Service) Notify(ctx context.Context, userID, actorID int64, actorUserna
 	// 1. Create DB notification
 	_ = s.repo.CreateNotification(ctx, userID, actorID, targetType, targetID, notifType)
 
-	// 2. Send real-time signal via WebSocket
+	// 2. Generate a friendly message
+	message := s.generateMessage(actorUsername, targetType, notifType)
+
+	// 3. Send real-time signal via WebSocket
+
 	if s.hub != nil {
 		notif := map[string]interface{}{
 			"type": "notification",
@@ -48,6 +52,7 @@ func (s *Service) Notify(ctx context.Context, userID, actorID int64, actorUserna
 				"actor_username": actorUsername,
 				"target_type":    targetType,
 				"target_id":      targetID,
+				"message":        message,
 			},
 		}
 		b, _ := json.Marshal(notif)
@@ -55,10 +60,47 @@ func (s *Service) Notify(ctx context.Context, userID, actorID int64, actorUserna
 	}
 }
 
+
 //--------------------------------------------------------------------------------------|
 
 func (s *Service) GetNotifications(ctx context.Context, userID int64, limit, offset int) ([]models.Notification, error) {
-	return s.repo.GetUserNotifications(ctx, userID, limit, offset)
+	notifs, err := s.repo.GetUserNotifications(ctx, userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range notifs {
+		notifs[i].Message = s.generateMessage(notifs[i].ActorUsername, notifs[i].TargetType, notifs[i].NotificationType)
+	}
+
+	return notifs, nil
+}
+
+//--------------------------------------------------------------------------------------|
+
+func (s *Service) generateMessage(actorUsername, targetType, notifType string) string {
+	switch notifType {
+	case "follow":
+		return actorUsername + " started following you"
+	case "request":
+		if targetType == "group" {
+			return actorUsername + " requested to join your group"
+		}
+		return actorUsername + " sent you a follow request"
+	case "invite":
+		return actorUsername + " invited you to a group"
+	case "accept":
+		if targetType == "group" {
+			return actorUsername + " accepted your join request"
+		}
+		return actorUsername + " accepted your follow request"
+	case "decline":
+		return actorUsername + " declined your request"
+	case "event":
+		return actorUsername + " created a new event in your group"
+	default:
+		return "New notification from " + actorUsername
+	}
 }
 
 //--------------------------------------------------------------------------------------|

@@ -87,29 +87,33 @@ const getIcon = (type) => {
         <div class="notif-content">
           <div class="notif-icon">{{ getIcon(notif.notification_type) }}</div>
           <div class="notif-text">
-            <span v-if="notif.notification_type === 'follow_request'">
-              <strong class="actor">{{ notif.actor_username }}</strong> INITIATED_FOLLOW_SEQUENCE.
-            </span>
-            <span v-else-if="notif.notification_type === 'invite'">
-              <strong class="actor">{{ notif.actor_username }}</strong> DISPATCHED_INVITE TO: <strong>{{ notif.target_title }}</strong>.
-            </span>
-            <span v-else-if="notif.notification_type === 'request'">
-              <strong class="actor">{{ notif.actor_username }}</strong> REQUESTS ACCESS TO: <strong>{{ notif.target_title }}</strong>.
-            </span>
-            <span v-else-if="notif.notification_type === 'event'">
-              NEW_MISSION_OBJECTIVE IN <strong>{{ notif.target_title }}</strong>.
-            </span>
-            <span v-else-if="notif.notification_type === 'accept'">
-              <strong class="actor">{{ notif.actor_username }}</strong> JOINED: <strong>{{ notif.target_title }}</strong>.
-            </span>
-            <span v-else-if="notif.notification_type === 'decline'">
-              <strong class="actor">{{ notif.actor_username }}</strong> DECLINED ACCESS TO: <strong>{{ notif.target_title }}</strong>.
-            </span>
-            <span v-else>
-              {{ notif.actor_username }} TRIGGERED_{{ notif.notification_type.toUpperCase() }}.
-            </span>
+            <span v-if="notif.message" class="notif-message-text">{{ notif.message }}</span>
+            <template v-else>
+              <span v-if="notif.notification_type === 'follow_request'">
+                <strong class="actor">{{ notif.actor_username }}</strong> INITIATED_FOLLOW_SEQUENCE.
+              </span>
+              <span v-else-if="notif.notification_type === 'invite'">
+                <strong class="actor">{{ notif.actor_username }}</strong> DISPATCHED_INVITE TO: <strong>{{ notif.target_title }}</strong>.
+              </span>
+              <span v-else-if="notif.notification_type === 'request'">
+                <strong class="actor">{{ notif.actor_username }}</strong> REQUESTS ACCESS TO: <strong>{{ notif.target_title }}</strong>.
+              </span>
+              <span v-else-if="notif.notification_type === 'event'">
+                NEW_MISSION_OBJECTIVE IN <strong>{{ notif.target_title }}</strong>.
+              </span>
+              <span v-else-if="notif.notification_type === 'accept'">
+                <strong class="actor">{{ notif.actor_username }}</strong> JOINED: <strong>{{ notif.target_title }}</strong>.
+              </span>
+              <span v-else-if="notif.notification_type === 'decline'">
+                <strong class="actor">{{ notif.actor_username }}</strong> DECLINED ACCESS TO: <strong>{{ notif.target_title }}</strong>.
+              </span>
+              <span v-else>
+                {{ notif.actor_username }} TRIGGERED_{{ notif.notification_type.toUpperCase() }}.
+              </span>
+            </template>
             <div class="notif-time">TIMESTAMP: {{ new Date(notif.created_at).toLocaleString() }}</div>
           </div>
+
         </div>
 
         <div class="notif-actions" v-if="!notif.is_read || ['follow_request', 'invite', 'request'].includes(notif.notification_type)">

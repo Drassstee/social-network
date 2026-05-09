@@ -104,6 +104,12 @@ type GroupMessage struct {
 	Username string `json:"username,omitempty"`
 }
 
+// GroupUnreadCount represents the number of unread messages for a user in a group.
+type GroupUnreadCount struct {
+	GroupID     int64 `json:"group_id"`
+	UnreadCount int   `json:"unread_count"`
+}
+
 //--------------------------------------------------------------------------------------|
 // Interfaces
 //--------------------------------------------------------------------------------------|
@@ -146,7 +152,10 @@ type GroupRepo interface {
 	// Group Messages
 	SaveGroupMessage(ctx context.Context, msg *GroupMessage) error
 	GetGroupMessages(ctx context.Context, groupID int64, limit, offset int) ([]GroupMessage, error)
+	UpdateLastReadID(ctx context.Context, groupID, userID, msgID int64) error
+	GetUnreadCounts(ctx context.Context, userID int64) ([]GroupUnreadCount, error)
 }
+
 
 //--------------------------------------------------------------------------------------|
 
@@ -168,4 +177,7 @@ type GroupService interface {
 	RespondToEvent(ctx context.Context, eventID, userID int64, response string) error
 	SendGroupMessage(ctx context.Context, groupID, senderID int64, body string, imageURL *string) (*GroupMessage, error)
 	GetGroupMessages(ctx context.Context, groupID, userID int64, limit, offset int) ([]GroupMessage, error)
+	GetUnreadCounts(ctx context.Context, userID int64) ([]GroupUnreadCount, error)
+	MarkAsRead(ctx context.Context, groupID, userID int64) error
 }
+

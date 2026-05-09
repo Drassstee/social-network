@@ -37,11 +37,22 @@ func (s *ChatService) GetChatHistory(ctx context.Context, user1ID, user2ID int64
 
 //--------------------------------------------------------------------------------------|
 
-func (s *ChatService) GetChatableOnlineUsers(ctx context.Context, userID int64, onlineIDs []int64) ([]models.OnlineUser, error) {
-	if len(onlineIDs) == 0 {
-		return []models.OnlineUser{}, nil
-	}
+// MarkAsRead marks all messages from sender to receiver as read.
+func (s *ChatService) MarkAsRead(ctx context.Context, senderID, receiverID int64) error {
+	return s.repo.MarkAsRead(ctx, senderID, receiverID)
+}
 
+//--------------------------------------------------------------------------------------|
+
+// GetUnreadCounts returns unread counts for a user.
+func (s *ChatService) GetUnreadCounts(ctx context.Context, userID int64) (map[int64]int, error) {
+	return s.repo.GetUnreadCounts(ctx, userID)
+}
+
+//--------------------------------------------------------------------------------------|
+
+// GetChatableUsers returns all users that the current user can chat with.
+func (s *ChatService) GetChatableUsers(ctx context.Context, userID int64) ([]models.OnlineUser, error) {
 	// 1. Fetch all followers and following for the current user
 	followers, err := s.followRepo.GetFollowers(userID, "accept")
 	if err != nil {
@@ -52,39 +63,42 @@ func (s *ChatService) GetChatableOnlineUsers(ctx context.Context, userID int64, 
 		return nil, err
 	}
 
-	// 2. Map IDs for fast lookup
-	canChat := make(map[int64]bool)
+	// 2. Map IDs for fast lookup and deduplication
+	ids := make(map[int64]bool)
 	for _, f := range followers {
-		canChat[f.ID] = true
+		ids[f.ID] = true
 	}
 	for _, f := range following {
-		canChat[f.ID] = true
+		ids[f.ID] = true
 	}
 
-	// 3. Filter online users
-	users, err := s.userRepo.GetByIDs(onlineIDs)
+	if len(ids) == 0 {
+		return []models.OnlineUser{}, nil
+	}
+
+	idList := make([]int64, 0, len(ids))
+	for id := range ids {
+		idList = append(idList, id)
+	}
+
+	// 3. Fetch user details
+	users, err := s.userRepo.GetByIDs(idList)
 	if err != nil {
 		return nil, err
 	}
 
-	onlineUsers := make([]models.OnlineUser, 0)
+	chatable := make([]models.OnlineUser, 0, len(users))
 	for _, u := range users {
-		if u.ID == userID {
-			continue
-		}
-		if !canChat[u.ID] {
-			continue
-		}
-
 		name := u.FirstName + " " + u.LastName
 		if strings.TrimSpace(name) == "" {
 			name = u.Nickname
 		}
-		onlineUsers = append(onlineUsers, models.OnlineUser{
+		chatable = append(chatable, models.OnlineUser{
 			ID:       u.ID,
 			Username: name,
 		})
 	}
 
-	return onlineUsers, nil
+	return chatable, nil
 }
+

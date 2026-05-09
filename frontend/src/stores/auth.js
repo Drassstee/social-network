@@ -6,10 +6,11 @@ export const useAuthStore = defineStore('auth', {
       try {
         const u = localStorage.getItem('user')
         return u ? JSON.parse(u) : null
-      } catch (e) {
+      } catch {
         localStorage.removeItem('user')
         return null
       }
+
     })(),
     isAuthenticated: !!localStorage.getItem('user'),
     loading: false,

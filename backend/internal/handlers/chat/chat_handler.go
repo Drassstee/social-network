@@ -78,15 +78,64 @@ func (h *ChatHandler) GetMessages(w http.ResponseWriter, r *http.Request, identi
 
 //--------------------------------------------------------------------------------------|
 
-// GetOnlineUsers returns a list of all currently connected users.
-func (h *ChatHandler) GetOnlineUsers(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
-	onlineIDs := h.Hub.GetOnlineUsers()
-	onlineUsers, err := h.Service.GetChatableOnlineUsers(r.Context(), identity.ID, onlineIDs)
+// GetChatableUsers returns a list of all users the current user can chat with, along with their online status.
+func (h *ChatHandler) GetChatableUsers(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
+	users, err := h.Service.GetChatableUsers(r.Context(), identity.ID)
 	if err != nil {
 		return err
 	}
 
-	web.JSONResponse(w, http.StatusOK, onlineUsers)
+	onlineIDs := h.Hub.GetOnlineUsers()
+	onlineMap := make(map[int64]bool)
+	for _, id := range onlineIDs {
+		onlineMap[id] = true
+	}
+
+	// Enrich with online status
+	type enrichedUser struct {
+		models.OnlineUser
+		IsOnline bool `json:"is_online"`
+	}
+
+	enriched := make([]enrichedUser, len(users))
+	for i, u := range users {
+		enriched[i] = enrichedUser{
+			OnlineUser: u,
+			IsOnline:   onlineMap[u.ID],
+		}
+	}
+
+	web.JSONResponse(w, http.StatusOK, enriched)
+	return nil
+}
+
+//--------------------------------------------------------------------------------------|
+
+// GetUnreadCounts returns the unread message counts for the authenticated user.
+func (h *ChatHandler) GetUnreadCounts(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
+	counts, err := h.Service.GetUnreadCounts(r.Context(), identity.ID)
+	if err != nil {
+		return err
+	}
+
+	web.JSONResponse(w, http.StatusOK, counts)
+	return nil
+}
+
+//--------------------------------------------------------------------------------------|
+
+// MarkAsRead marks messages from a specific sender as read for the current user.
+func (h *ChatHandler) MarkAsRead(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
+	senderID := web.QueryInt64(r, "sender_id", 0)
+	if senderID == 0 {
+		return web.StatusError{Code: http.StatusBadRequest, Err: errors.New("Invalid sender ID")}
+	}
+
+	if err := h.Service.MarkAsRead(r.Context(), senderID, identity.ID); err != nil {
+		return err
+	}
+
+	web.JSONResponse(w, http.StatusOK, map[string]string{"status": "ok"})
 	return nil
 }
 
@@ -97,3 +146,4 @@ func (h *ChatHandler) Connect(w http.ResponseWriter, r *http.Request, identity *
 	chatsvc.ServeWs(h.Hub, w, r, identity.ID)
 	return nil
 }
+

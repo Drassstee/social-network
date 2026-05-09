@@ -208,13 +208,22 @@ func (h *Hub) handleGroupMessage(wsMsg wsMessage) {
 		return
 	}
 
-	// 3. Broadcast to online members using in-memory tracking
+	// 3. Mark as read for the sender
+	_ = h.GroupRepo.UpdateLastReadID(ctx, data.GroupID, wsMsg.Sender, msg.ID)
+
+	// 4. Broadcast to online members using in-memory tracking
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 
 	if members, ok := h.groupMembers[data.GroupID]; ok {
+		payload := map[string]any{
+			"type": "group_message",
+			"data": msg,
+		}
+		b, _ := json.Marshal(payload)
+		
 		for userID := range members {
-			h.sendToUser(userID, "group_message", msg)
+			h.sendToUserLocked(userID, b)
 		}
 	}
 }
@@ -241,7 +250,6 @@ func (h *Hub) updateClientGroupMemberships(userID int64, join bool) {
 func (h *Hub) updateClientGroupMembershipsLocked(userID int64, join bool, groupIDs ...int64) {
 	if len(groupIDs) == 0 && !join {
 		// If unregistering and we don't have groupIDs, we have to find which groups this user was in.
-		// For simplicity, we can just iterate over all groups in the map.
 		for gID, members := range h.groupMembers {
 			delete(members, userID)
 			if len(members) == 0 {
@@ -280,26 +288,22 @@ func (h *Hub) handleTypingIndicator(wsMsg wsMessage, isTyping bool) {
 		return
 	}
 
-	// Determine message type
 	msgType := "stop_typing"
 	if isTyping {
 		msgType = "typing"
 	}
 
-	// Create typing indicator message
 	typingMsg := map[string]interface{}{
 		"sender_id":   wsMsg.Sender,
 		"sender_name": data.SenderName,
 	}
 
-	// Send to receiver only
 	h.sendToUser(data.ReceiverID, msgType, typingMsg)
 }
 
 //--------------------------------------------------------------------------------------|
 
 func (h *Hub) broadcastStatusUpdate(userID int64, online bool) {
-	// Fetch username for the user (using cache if available)
 	username := ""
 	cacheKey := fmt.Sprintf("u:%d", userID)
 	if val, found := h.userCache.Get(cacheKey); found {
@@ -364,7 +368,6 @@ func (h *Hub) doBroadcast(message []byte) {
 
 //--------------------------------------------------------------------------------------|
 
-// SendToUserJSON encodes the payload as JSON and delivers it to a specific user's WebSocket.
 func (h *Hub) SendToUserJSON(userID int64, payload interface{}) {
 	b, err := json.Marshal(payload)
 	if err != nil {
@@ -376,10 +379,15 @@ func (h *Hub) SendToUserJSON(userID int64, payload interface{}) {
 
 //--------------------------------------------------------------------------------------|
 
-// SendToUser sends a raw byte message to a specific user if they are connected.
 func (h *Hub) SendToUser(userID int64, message []byte) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
+	h.sendToUserLocked(userID, message)
+}
+
+//--------------------------------------------------------------------------------------|
+
+func (h *Hub) sendToUserLocked(userID int64, message []byte) {
 	if client, ok := h.clients[userID]; ok {
 		select {
 		case client.send <- message:
@@ -391,7 +399,6 @@ func (h *Hub) SendToUser(userID int64, message []byte) {
 
 //--------------------------------------------------------------------------------------|
 
-// GetOnlineUsers returns a slice of IDs for all currently connected users.
 func (h *Hub) GetOnlineUsers() []int64 {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
@@ -404,7 +411,6 @@ func (h *Hub) GetOnlineUsers() []int64 {
 
 //--------------------------------------------------------------------------------------|
 
-// UpdateUserGroups triggers a refresh of a user's group memberships in the hub.
 func (h *Hub) UpdateUserGroups(userID int64) {
 	h.mu.RLock()
 	_, online := h.clients[userID]
@@ -414,3 +420,4 @@ func (h *Hub) UpdateUserGroups(userID int64) {
 		go h.updateClientGroupMemberships(userID, true)
 	}
 }
+

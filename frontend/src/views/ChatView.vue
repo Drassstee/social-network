@@ -79,7 +79,7 @@ onMounted(() => {
 <template>
   <div class="chat-container card-retro">
     <div class="users-sidebar">
-      <h3 class="sidebar-title">ONLINE_UNITS</h3>
+      <h3 class="sidebar-title">COMM_UNITS</h3>
       <div class="users-list">
         <div 
           v-for="user in chat.onlineUsers" 
@@ -89,12 +89,18 @@ onMounted(() => {
           @click="selectUser(user)"
         >
           <div class="avatar-sm">{{ user.username?.[0] || '?' }}</div>
-          <span class="username">{{ user.username }}</span>
+          <div class="user-info">
+            <span class="username">{{ user.username }}</span>
+            <span class="status-text" :class="{ online: user.is_online }">
+              {{ user.is_online ? 'ONLINE' : 'OFFLINE' }}
+            </span>
+          </div>
           <div v-if="chat.getUnreadCount(user.id) > 0" class="badge mini">{{ chat.getUnreadCount(user.id) }}</div>
-          <div class="online-indicator"></div>
+          <div class="online-indicator" :class="{ offline: !user.is_online }"></div>
         </div>
       </div>
     </div>
+
     
     <div class="chat-main">
       <template v-if="chat.activeChatUser">
@@ -221,6 +227,22 @@ onMounted(() => {
   box-shadow: 2px 2px 0 var(--color-neon-cyan);
 }
 
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.status-text {
+  font-size: 0.7rem;
+  color: #666;
+}
+
+.status-text.online {
+  color: #00ff00;
+  text-shadow: 0 0 2px #00ff00;
+}
+
 .online-indicator {
   width: 10px;
   height: 10px;
@@ -229,6 +251,12 @@ onMounted(() => {
   margin-left: auto;
   box-shadow: 0 0 8px #00ff00;
 }
+
+.online-indicator.offline {
+  background: #444;
+  box-shadow: none;
+}
+
 
 .chat-main {
   flex: 1;
