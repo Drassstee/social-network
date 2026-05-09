@@ -64,6 +64,7 @@ type FollowRepo interface {
 
 	IsFollower(int64, int64) (bool, error)
 	FollowExists(int64, int64, string) (bool, error)
+	GetFollowStatus(int64, int64) (string, error)
 }
 
 type UserHandler interface{}

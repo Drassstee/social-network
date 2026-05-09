@@ -2,14 +2,11 @@ package web
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"path/filepath"
 	"social-network/internal/models"
-	"social-network/internal/utils"
-	"strings"
 	"time"
 )
 
@@ -32,12 +29,6 @@ const (
 
 	// MaxImageSize is the maximum allowed size for uploaded images (10MB).
 	MaxImageSize = 10 << 20
-
-	// Path segment indices for ID extraction from relative URLs.
-	SegmentPost         = 1 // e.g., /posts/{id} -> segment 1
-	SegmentPostEdit     = 2 // e.g., /posts/edit/{id} -> segment 2
-	SegmentComment      = 1 // e.g., /comments/{id} -> segment 1
-	SegmentNotification = 1 // e.g., /notifications/{id} -> segment 1
 )
 
 //--------------------------------------------------------------------------------------|
@@ -155,19 +146,3 @@ func GetLimitOffset(r *http.Request) (int, int) {
 	return limit, offset
 }
 
-//--------------------------------------------------------------------------------------|
-
-// ExtractIDFromPath parses an int64 ID from a specific path segment.
-func ExtractIDFromPath(path string, segmentIndex int) (int64, error) {
-	parts := strings.Split(strings.Trim(path, "/"), "/")
-	if len(parts) <= segmentIndex {
-		return 0, errors.New("invalid URL structure")
-	}
-
-	id, err := utils.ParseInt(parts[segmentIndex])
-	if err != nil || id <= 0 {
-		return 0, errors.New("invalid or missing ID in path")
-	}
-
-	return id, nil
-}

@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { useNotificationStore } from './notifications'
-import { useAuthStore } from './auth'
 
 export const useChatStore = defineStore('chat', {
   state: () => ({
@@ -27,14 +26,18 @@ export const useChatStore = defineStore('chat', {
       }
 
       this.socket.onmessage = (event) => {
-        const msg = JSON.parse(event.data)
-        this.handleSocketMessage(msg)
+        try {
+          const msg = JSON.parse(event.data)
+          this.handleSocketMessage(msg)
+        } catch (e) {
+          console.error('Failed to parse socket message:', e)
+        }
       }
 
       this.socket.onclose = () => {
         this.connected = false
         this.socket = null
-        if (this.isAuthenticated()) {
+        if (this.isUserLoggedIn()) {
           setTimeout(() => this.connect(), 3000)
         }
       }
@@ -47,9 +50,8 @@ export const useChatStore = defineStore('chat', {
         this.connected = false
       }
     },
-    isAuthenticated() {
-      const authStore = useAuthStore()
-      return authStore.isAuthenticated
+    isUserLoggedIn() {
+      return !!localStorage.getItem('user')
     },
     async fetchOnlineUsers() {
       try {
@@ -87,7 +89,9 @@ export const useChatStore = defineStore('chat', {
         this.onlineUsers.splice(index, 1)
       }
     },
-    addMessage(msg) {
+    async addMessage(msg) {
+      // Lazy import auth to get current user ID
+      const { useAuthStore } = await import('./auth')
       const authStore = useAuthStore()
       const myID = authStore.user?.id
       
@@ -129,7 +133,8 @@ export const useChatStore = defineStore('chat', {
         console.error('Failed to fetch messages:', err)
       }
     },
-    addGroupMessage(msg) {
+    async addGroupMessage(msg) {
+      const { useAuthStore } = await import('./auth')
       const authStore = useAuthStore()
       const myID = authStore.user?.id
       
@@ -176,9 +181,11 @@ export const useChatStore = defineStore('chat', {
     },
     getUnreadCount(id, type = 'u') {
       return this.unreadCounts[`${type}_${id}`] || 0
-    },
-    get totalUnread() {
-      return Object.values(this.unreadCounts).reduce((a, b) => a + b, 0)
+    }
+  },
+  getters: {
+    totalUnread: (state) => {
+      return Object.values(state.unreadCounts).reduce((a, b) => a + b, 0)
     }
   }
 })

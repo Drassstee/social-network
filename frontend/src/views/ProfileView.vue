@@ -64,8 +64,9 @@ const handleFollow = async () => {
     })
     if (response.ok) {
       const data = await response.json()
-      followStatus.value = data.status || 'pending'
-      showFeedback(data.status === 'accept' ? 'Following!' : 'Follow request sent!', 'success')
+      const isAccepted = data.message.includes('accepted') || data.message.includes('following')
+      followStatus.value = isAccepted ? 'accept' : 'pending'
+      showFeedback(isAccepted ? 'Following!' : 'Follow request sent!', 'success')
       fetchProfile(route.params.id)
     }
   } catch (e) { console.error(e) }

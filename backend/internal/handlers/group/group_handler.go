@@ -59,7 +59,11 @@ func (h *GroupHandler) GetGroup(w http.ResponseWriter, r *http.Request, identity
 		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
 
-	group, err := h.Service.GetGroup(r.Context(), groupID)
+	if identity == nil {
+		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
+	}
+
+	group, err := h.Service.GetGroup(r.Context(), groupID, identity.ID)
 	if err != nil {
 		return err
 	}
@@ -94,7 +98,11 @@ func (h *GroupHandler) GetMembers(w http.ResponseWriter, r *http.Request, identi
 		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
 
-	members, err := h.Service.GetMembers(r.Context(), groupID)
+	if identity == nil {
+		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
+	}
+
+	members, err := h.Service.GetMembers(r.Context(), groupID, identity.ID)
 	if err != nil {
 		return err
 	}
@@ -326,7 +334,11 @@ func (h *GroupHandler) GetGroupEvents(w http.ResponseWriter, r *http.Request, id
 		return web.StatusError{Code: http.StatusBadRequest, Err: err}
 	}
 
-	events, err := h.Service.GetGroupEvents(r.Context(), groupID)
+	if identity == nil {
+		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
+	}
+
+	events, err := h.Service.GetGroupEvents(r.Context(), groupID, identity.ID)
 	if err != nil {
 		return err
 	}
@@ -376,7 +388,11 @@ func (h *GroupHandler) GetGroupMessages(w http.ResponseWriter, r *http.Request, 
 
 	limit, offset := web.GetLimitOffset(r)
 
-	messages, err := h.Service.GetGroupMessages(r.Context(), groupID, limit, offset)
+	if identity == nil {
+		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
+	}
+
+	messages, err := h.Service.GetGroupMessages(r.Context(), groupID, identity.ID, limit, offset)
 	if err != nil {
 		return err
 	}

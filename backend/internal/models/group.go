@@ -153,9 +153,9 @@ type GroupRepo interface {
 // GroupService separates groups business logic from transport.
 type GroupService interface {
 	CreateGroup(ctx context.Context, creatorID int64, title, description string) (*Group, error)
-	GetGroup(ctx context.Context, id int64) (*Group, error)
+	GetGroup(ctx context.Context, id, userID int64) (*Group, error)
 	ListGroups(ctx context.Context, limit, offset int) ([]Group, error)
-	GetMembers(ctx context.Context, groupID int64) ([]GroupMember, error)
+	GetMembers(ctx context.Context, groupID, userID int64) ([]GroupMember, error)
 	LeaveGroup(ctx context.Context, groupID, userID int64) error
 	InviteUser(ctx context.Context, groupID, inviterID, inviteeID int64) error
 	GetPendingInvitations(ctx context.Context, userID int64) ([]GroupInvitation, error)
@@ -164,8 +164,8 @@ type GroupService interface {
 	GetPendingJoinRequests(ctx context.Context, groupID, requestingUserID int64) ([]GroupJoinRequest, error)
 	RespondToJoinRequest(ctx context.Context, requestID, creatorID int64, accept bool) error
 	CreateEvent(ctx context.Context, event *GroupEvent) error
-	GetGroupEvents(ctx context.Context, groupID int64) ([]GroupEvent, error)
+	GetGroupEvents(ctx context.Context, groupID, userID int64) ([]GroupEvent, error)
 	RespondToEvent(ctx context.Context, eventID, userID int64, response string) error
 	SendGroupMessage(ctx context.Context, groupID, senderID int64, body string, imageURL *string) (*GroupMessage, error)
-	GetGroupMessages(ctx context.Context, groupID int64, limit, offset int) ([]GroupMessage, error)
+	GetGroupMessages(ctx context.Context, groupID, userID int64, limit, offset int) ([]GroupMessage, error)
 }

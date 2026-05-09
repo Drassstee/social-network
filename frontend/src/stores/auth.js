@@ -1,9 +1,16 @@
 import { defineStore } from 'pinia'
-import { useChatStore } from './chat'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: JSON.parse(localStorage.getItem('user')) || null,
+    user: (() => {
+      try {
+        const u = localStorage.getItem('user')
+        return u ? JSON.parse(u) : null
+      } catch (e) {
+        localStorage.removeItem('user')
+        return null
+      }
+    })(),
     isAuthenticated: !!localStorage.getItem('user'),
     loading: false,
     error: null,
@@ -78,6 +85,7 @@ export const useAuthStore = defineStore('auth', {
       } catch (err) {
         console.error('Logout error:', err)
       } finally {
+        const { useChatStore } = await import('./chat')
         const chatStore = useChatStore()
         chatStore.disconnect()
         

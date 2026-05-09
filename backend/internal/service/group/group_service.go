@@ -62,8 +62,16 @@ func (s *GroupService) CreateGroup(ctx context.Context, creatorID int64, title, 
 
 //--------------------------------------------------------------------------------------|
 
-// GetGroup returns a group by ID.
-func (s *GroupService) GetGroup(ctx context.Context, id int64) (*models.Group, error) {
+// GetGroup returns a group by ID. Verifies that the user is a member if it's not a public listing.
+func (s *GroupService) GetGroup(ctx context.Context, id, userID int64) (*models.Group, error) {
+	isMember, err := s.Repo.IsMember(ctx, id, userID)
+	if err != nil {
+		return nil, err
+	}
+	if !isMember {
+		return nil, models.ErrNotMember
+	}
+
 	group, err := s.Repo.GetGroupByID(ctx, id)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, models.ErrGroupNotFound
@@ -83,7 +91,14 @@ func (s *GroupService) ListGroups(ctx context.Context, limit, offset int) ([]mod
 //--------------------------------------------------------------------------------------|
 
 // GetMembers returns the members of a group.
-func (s *GroupService) GetMembers(ctx context.Context, groupID int64) ([]models.GroupMember, error) {
+func (s *GroupService) GetMembers(ctx context.Context, groupID, userID int64) ([]models.GroupMember, error) {
+	isMember, err := s.Repo.IsMember(ctx, groupID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if !isMember {
+		return nil, models.ErrNotMember
+	}
 	return s.Repo.GetMembers(ctx, groupID)
 }
 
@@ -91,7 +106,7 @@ func (s *GroupService) GetMembers(ctx context.Context, groupID int64) ([]models.
 
 // LeaveGroup removes a user from a group. Creators cannot leave their own group.
 func (s *GroupService) LeaveGroup(ctx context.Context, groupID, userID int64) error {
-	group, err := s.GetGroup(ctx, groupID)
+	group, err := s.Repo.GetGroupByID(ctx, groupID)
 	if err != nil {
 		return err
 	}
@@ -214,7 +229,7 @@ func (s *GroupService) RequestJoin(ctx context.Context, groupID, userID int64) e
 	}
 
 	// Trigger notification to group creator
-	group, err := s.GetGroup(ctx, groupID)
+	group, err := s.Repo.GetGroupByID(ctx, groupID)
 	if err == nil {
 		s.notify(group.CreatorID, userID, "group", req.ID, "request")
 	}
@@ -226,7 +241,7 @@ func (s *GroupService) RequestJoin(ctx context.Context, groupID, userID int64) e
 
 // GetPendingJoinRequests returns all pending join requests for a group.
 func (s *GroupService) GetPendingJoinRequests(ctx context.Context, groupID, requestingUserID int64) ([]models.GroupJoinRequest, error) {
-	group, err := s.GetGroup(ctx, groupID)
+	group, err := s.Repo.GetGroupByID(ctx, groupID)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +263,7 @@ func (s *GroupService) RespondToJoinRequest(ctx context.Context, requestID, crea
 		return err
 	}
 
-	group, err := s.GetGroup(ctx, req.GroupID)
+	group, err := s.Repo.GetGroupByID(ctx, req.GroupID)
 	if err != nil {
 		return err
 	}
@@ -326,7 +341,14 @@ func (s *GroupService) CreateEvent(ctx context.Context, event *models.GroupEvent
 //--------------------------------------------------------------------------------------|
 
 // GetGroupEvents returns all events for a group.
-func (s *GroupService) GetGroupEvents(ctx context.Context, groupID int64) ([]models.GroupEvent, error) {
+func (s *GroupService) GetGroupEvents(ctx context.Context, groupID, userID int64) ([]models.GroupEvent, error) {
+	isMember, err := s.Repo.IsMember(ctx, groupID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if !isMember {
+		return nil, models.ErrNotMember
+	}
 	return s.Repo.GetGroupEvents(ctx, groupID)
 }
 
@@ -391,7 +413,14 @@ func (s *GroupService) SendGroupMessage(ctx context.Context, groupID, senderID i
 //--------------------------------------------------------------------------------------|
 
 // GetGroupMessages returns paginated messages for a group.
-func (s *GroupService) GetGroupMessages(ctx context.Context, groupID int64, limit, offset int) ([]models.GroupMessage, error) {
+func (s *GroupService) GetGroupMessages(ctx context.Context, groupID, userID int64, limit, offset int) ([]models.GroupMessage, error) {
+	isMember, err := s.Repo.IsMember(ctx, groupID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if !isMember {
+		return nil, models.ErrNotMember
+	}
 	return s.Repo.GetGroupMessages(ctx, groupID, limit, offset)
 }
 

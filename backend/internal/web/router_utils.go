@@ -27,6 +27,8 @@ func QueryInt(r *http.Request, key string, defaultVal int) int {
 	return int(QueryInt64(r, key, int64(defaultVal)))
 }
 
+//--------------------------------------------------------------------------------------|
+
 // QueryInt64 extracts an int64 from the URL query parameters with a default value.
 func QueryInt64(r *http.Request, key string, defaultVal int64) int64 {
 	val := r.URL.Query().Get(key)
@@ -41,12 +43,6 @@ func QueryInt64(r *http.Request, key string, defaultVal int64) int64 {
 }
 
 //--------------------------------------------------------------------------------------|
-
-// RouteInt extracts an integer from the path using the provided segment index.
-// Note: This returns int64 to stay consistent with the global ID standard.
-func RouteInt(r *http.Request, segmentIndex int) (int64, error) {
-	return ExtractIDFromPath(r.URL.Path, segmentIndex)
-}
 
 // PathInt64 extracts an int64 from the URL path using Go 1.22 path values.
 func PathInt64(r *http.Request, key string) (int64, error) {

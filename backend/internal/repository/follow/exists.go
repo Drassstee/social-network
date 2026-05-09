@@ -30,3 +30,16 @@ func (r *FollowRepo) FollowExists(followerID, followingID int64, status string) 
 	}
 	return exists == 1, nil
 }
+
+// --------------------------------------------------------------------|
+
+func (r *FollowRepo) GetFollowStatus(followerID, followingID int64) (string, error) {
+	query := `SELECT status FROM follows WHERE follower_id = ? AND following_id = ?`
+
+	var status string
+	err := r.db.QueryRow(query, followerID, followingID).Scan(&status)
+	if err != nil {
+		return "", nil // Return empty if not found, no error needed for this specific logic
+	}
+	return status, nil
+}

@@ -34,12 +34,14 @@ func (s *UserService) GetProfile(targetID, userID int64) (*models.Profile, error
 	if userID == targetID {
 		p.IsMe = true
 	} else {
-		status, err := s.follows.FollowExists(userID, targetID, "accept")
-		if err != nil {
-			return nil, err
-		}
-		if status {
-			p.FollowStatus = "following"
+		// Check for any existing follow relationship
+		status, err := s.follows.GetFollowStatus(userID, targetID)
+		if err == nil && status != "" {
+			if status == "accept" {
+				p.FollowStatus = "following"
+			} else if status == "pending" {
+				p.FollowStatus = "pending"
+			}
 		}
 
 		if u.ProfileType == "private" && p.FollowStatus != "following" {

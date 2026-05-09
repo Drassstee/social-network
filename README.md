@@ -62,7 +62,8 @@ docker compose down
 ## Core Features
 
 ### Real-Time Communication
-- **WebSocket Hub**: Manages live connections and online status tracking.
+- **WebSocket Hub**: Manages live connections with reliable timed-delivery mechanisms to prevent message loss.
+- **Unread Notifications**: Persistent sitewide tracking for missed private and group messages with visual badges.
 - **Private Messaging**: 1:1 chat with real-time delivery and image sharing support.
 - **Live Notifications**: Instant alerts for group invites, join requests, and follow activity.
 

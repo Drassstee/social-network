@@ -28,6 +28,9 @@ watch(() => auth.isAuthenticated, (val) => {
     chat.connect()
     notifStore.fetchUnreadCount()
   } else {
+    chat.disconnect()
+    notifStore.unreadCount = 0
+    notifStore.notifications = []
     router.push('/login')
   }
 })
@@ -37,7 +40,6 @@ watch(() => auth.isAuthenticated, (val) => {
   <div class="layout-wrapper">
     <div class="bg-synthwave-grid"></div>
     <div class="crt-overlay"></div>
-    
     <nav class="sidebar">
       <div class="logo">
         <h1 class="logo-text">Network</h1>
