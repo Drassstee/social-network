@@ -3,17 +3,12 @@ package user
 import (
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"social-network/internal/models"
 	"social-network/internal/web"
-
-	"github.com/google/uuid"
 )
 
 type LoginData struct {
@@ -47,18 +42,9 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request, _ *models
 		file, header, err := r.FormFile("avatar")
 		if err == nil {
 			defer file.Close()
-
-			ext := filepath.Ext(header.Filename)
-			dir := "uploads/avatars/registration"
-			os.MkdirAll(dir, 0750)
-
-			filename := uuid.NewString() + ext
-			filePath := dir + "/" + filename
-			dst, err := os.Create(filePath)
+			imageURL, err := h.Uploader.UploadImage(r.Context(), 0, header.Filename, file)
 			if err == nil {
-				defer dst.Close()
-				io.Copy(dst, file)
-				u.AvatarURL = filePath
+				u.AvatarURL = imageURL
 			}
 		}
 	} else {

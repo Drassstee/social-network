@@ -2,17 +2,18 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useGroupStore } from '../stores/groups'
+import { usePostStore } from '../stores/posts'
 import GroupEvents from '../components/GroupEvents.vue'
 import GroupChat from '../components/GroupChat.vue'
 
 const route = useRoute()
 const auth = useAuthStore()
+const groupStore = useGroupStore()
+const postStore = usePostStore()
 
-const group = ref(null)
 const members = ref([])
-const posts = ref([])
 const activeTab = ref('posts') // 'posts', 'members', 'events', 'chat'
-const isLoading = ref(true)
 const error = ref(null)
 
 const isMember = computed(() => {
@@ -21,20 +22,18 @@ const isMember = computed(() => {
 })
 
 const isCreator = computed(() => {
-    if (!auth.user || !group.value || group.value.error) return false
-    return Number(group.value.creator_id) === Number(auth.user.id)
+    if (!auth.user || !groupStore.currentGroup) return false
+    return Number(groupStore.currentGroup.creator_id) === Number(auth.user.id)
 })
 const joinRequests = ref([])
 const inviteUserId = ref('')
 const feedbackMessage = ref('')
-const feedbackType = ref('info') // 'success', 'error', 'info'
+const feedbackType = ref('info')
 
 const showFeedback = (msg, type = 'info') => {
     feedbackMessage.value = msg
     feedbackType.value = type
-    setTimeout(() => {
-        feedbackMessage.value = ''
-    }, 3000)
+    setTimeout(() => { feedbackMessage.value = '' }, 3000)
 }
 
 const newPostContent = ref('')
@@ -42,54 +41,29 @@ const newPostImage = ref(null)
 const isPosting = ref(false)
 
 const fetchGroupData = async () => {
-    console.log('Fetching group data for ID:', route.params.id)
-    isLoading.value = true
     error.value = null
+    const id = route.params.id
     try {
-        const [groupRes, membersRes] = await Promise.all([
-            fetch(`/api/v1/groups/${route.params.id}`),
-            fetch(`/api/v1/groups/${route.params.id}/members`)
-        ])
-        
-        if (!groupRes.ok) {
-            const errData = await groupRes.json()
-            throw new Error(errData.error || `Failed to fetch group: ${groupRes.status}`)
-        }
-
-        group.value = await groupRes.json()
-        const membersData = await membersRes.json()
+        await groupStore.fetchGroup(id)
+        const membersData = await groupStore.fetchMembers(id)
         members.value = Array.isArray(membersData) ? membersData : []
     } catch (err) {
         console.error('Failed to fetch group data:', err)
         error.value = err.message
-    } finally {
-        isLoading.value = false
     }
 }
 
 // Watch for membership/creator status changes to fetch private data
 watch([isMember, isCreator], ([newMember, newCreator]) => {
     if (newMember || newCreator) {
-        fetchPosts()
+        postStore.fetchPosts(route.params.id)
         if (newCreator) fetchJoinRequests()
     }
 }, { immediate: true })
 
-const fetchPosts = async () => {
-    if (!route.params.id) return
-    try {
-        const res = await fetch(`/api/v1/posts?group_id=${route.params.id}`)
-        const data = await res.json()
-        posts.value = data.posts || []
-    } catch (err) {
-        console.error('Failed to fetch group posts:', err)
-    }
-}
-
 const fetchJoinRequests = async () => {
     try {
-        const res = await fetch(`/api/v1/groups/${route.params.id}/requests`)
-        joinRequests.value = await res.json()
+        joinRequests.value = await groupStore.fetchJoinRequests(route.params.id)
     } catch (err) {
         console.error('Failed to fetch join requests:', err)
     }
@@ -97,7 +71,7 @@ const fetchJoinRequests = async () => {
 
 const handleJoinRequest = async () => {
     try {
-        await fetch(`/api/v1/groups/${route.params.id}/request`, { method: 'POST' })
+        await groupStore.requestJoin(route.params.id)
         showFeedback('Request sent to creator', 'success')
     } catch (err) {
         console.error('Failed to send request:', err)
@@ -107,23 +81,17 @@ const handleJoinRequest = async () => {
 
 const handleCreatePost = async () => {
     if (!newPostContent.value && !newPostImage.value) return
-    
     isPosting.value = true
-    const formData = new FormData()
-    formData.append('content', newPostContent.value)
-    formData.append('group_id', route.params.id)
-    if (newPostImage.value) formData.append('image', newPostImage.value)
-    
     try {
-        const res = await fetch('/api/v1/posts', {
-            method: 'POST',
-            body: formData
-        })
-        if (res.ok) {
-            newPostContent.value = ''
-            newPostImage.value = null
-            fetchPosts()
-        }
+        await postStore.createPost(
+          newPostContent.value,
+          'public',
+          route.params.id,
+          [],
+          newPostImage.value
+        )
+        newPostContent.value = ''
+        newPostImage.value = null
     } catch (err) {
         console.error('Failed to create post:', err)
     } finally {
@@ -133,14 +101,9 @@ const handleCreatePost = async () => {
 
 const respondToRequest = async (requestId, accept) => {
     try {
-        const res = await fetch(`/api/v1/groups/requests/${requestId}/respond`, {
-            method: 'POST',
-            body: JSON.stringify({ accept })
-        })
-        if (res.ok) {
-            fetchJoinRequests()
-            fetchGroupData()
-        }
+        await groupStore.respondToRequest(requestId, accept)
+        fetchJoinRequests()
+        fetchGroupData()
     } catch (err) {
         console.error('Failed to respond to request:', err)
     }
@@ -150,18 +113,11 @@ const onFileChange = (e) => {
     newPostImage.value = e.target.files[0]
 }
 
-
-
 const handleInvite = async (userId) => {
     try {
-        const res = await fetch(`/api/v1/groups/${group.value.id}/invite`, {
-            method: 'POST',
-            body: JSON.stringify({ user_id: userId })
-        })
-        if (res.ok) {
-            showFeedback('Invitation sent!', 'success')
-            inviteUserId.value = ''
-        }
+        await groupStore.inviteUser(groupStore.currentGroup.id, userId)
+        showFeedback('Invitation sent!', 'success')
+        inviteUserId.value = ''
     } catch (err) {
         console.error('Failed to invite user:', err)
         showFeedback('Failed to invite user', 'error')
@@ -173,7 +129,7 @@ watch(() => route.params.id, fetchGroupData)
 </script>
 
 <template>
-    <div v-if="isLoading" class="loading-container">
+    <div v-if="groupStore.loading" class="loading-container">
         <div class="glow-text pulse">SYSTEM_SYNC_IN_PROGRESS...</div>
     </div>
     
@@ -185,14 +141,14 @@ watch(() => route.params.id, fetchGroupData)
         </div>
     </div>
 
-    <div class="group-detail" v-else-if="group">
+    <div class="group-detail" v-else-if="groupStore.currentGroup">
         <div v-if="feedbackMessage" class="feedback-toast" :class="feedbackType">
             {{ feedbackMessage }}
         </div>
         <header class="group-header">
             <div class="group-info">
-                <h1 class="glow-text">{{ group.title }}</h1>
-                <p class="description">MISSION_LOG: {{ group.description }}</p>
+                <h1 class="glow-text">{{ groupStore.currentGroup.title }}</h1>
+                <p class="description">MISSION_LOG: {{ groupStore.currentGroup.description }}</p>
             </div>
             <div class="group-actions">
                 <button v-if="!isMember && !isCreator" @click="handleJoinRequest" class="btn-retro">REQUEST_ENTRY</button>
@@ -229,7 +185,7 @@ watch(() => route.params.id, fetchGroupData)
                     <p>ENCRYPTED: ONLY AUTHORIZED UNITS CAN VIEW LOGS.</p>
                 </div>
                 <div v-else class="posts-list">
-                    <div v-for="post in posts" :key="post.id" class="card-retro post-card">
+                    <div v-for="post in postStore.posts" :key="post.id" class="card-retro post-card">
                         <div class="post-header">
                             <strong class="author-name">{{ post.author.first_name }} {{ post.author.last_name }}</strong>
                             <span class="post-date">{{ new Date(post.created_at).toLocaleString() }}</span>
@@ -259,12 +215,12 @@ watch(() => route.params.id, fetchGroupData)
 
             <!-- Events Tab -->
             <div v-if="activeTab === 'events'" class="events-tab">
-                <GroupEvents :groupId="group.id" />
+                <GroupEvents :groupId="groupStore.currentGroup.id" />
             </div>
 
             <!-- Chat Tab -->
             <div v-if="activeTab === 'chat'" class="chat-tab">
-                <GroupChat :groupId="group.id" />
+                <GroupChat :groupId="groupStore.currentGroup.id" />
             </div>
 
             <!-- Join Requests Tab -->

@@ -2,17 +2,16 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useProfileStore } from '../stores/profile'
 import UserAvatar from '../components/UserAvatar.vue'
 import PostCard from '../components/PostCard.vue'
 
 const route = useRoute()
 const auth = useAuthStore()
-const profile = ref(null)
-const loading = ref(true)
+const profileStore = useProfileStore()
 
-const followStatus = ref('none')
 const isMe = computed(() => {
-  return auth.user && profile.value?.user?.id == auth.user.id
+  return auth.user && profileStore.profile?.user?.id == auth.user.id
 })
 const feedbackMessage = ref('')
 const feedbackType = ref('info')
@@ -25,29 +24,14 @@ const showFeedback = (msg, type = 'info') => {
 
 const isPrivateAndNotFollowed = computed(() => {
   if (isMe.value) return false
-  return profile.value?.user?.profile_type === 'private' && followStatus.value !== 'accept'
+  return profileStore.profile?.privacy === 'private' && profileStore.followStatus !== 'following'
 })
 
 const fetchProfile = async (id) => {
-  loading.value = true
   try {
-    const response = await fetch(`/api/v1/users/${id}`)
-    if (!response.ok) throw new Error('Failed to fetch profile')
-    const data = await response.json()
-    profile.value = data
-    
-    // Determine follow status from backend response
-    if (data.followers?.some(f => f.id === auth.user?.id)) {
-      followStatus.value = 'accept'
-    } else {
-      followStatus.value = 'none'
-    }
-
+    await profileStore.fetchProfile(id, auth.user?.id)
   } catch (e) { 
     console.error(e)
-    profile.value = null
-  } finally {
-    loading.value = false
   }
 }
 
@@ -55,71 +39,45 @@ onMounted(() => fetchProfile(route.params.id))
 watch(() => route.params.id, (newId) => fetchProfile(newId))
 
 const handleFollow = async () => {
-  if (!profile.value) return
   try {
-    const response = await fetch('/api/v1/follow', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ following_id: Number(route.params.id) })
-    })
-    if (response.ok) {
-      const data = await response.json()
-      const isAccepted = data.message.includes('accepted') || data.message.includes('following')
-      followStatus.value = isAccepted ? 'accept' : 'pending'
-      showFeedback(isAccepted ? 'Following!' : 'Follow request sent!', 'success')
-      fetchProfile(route.params.id)
-    }
+    const isAccepted = await profileStore.follow(route.params.id)
+    showFeedback(isAccepted ? 'Following!' : 'Follow request sent!', 'success')
+    fetchProfile(route.params.id)
   } catch (e) { console.error(e) }
 }
 
 const handleUnfollow = async () => {
-  if (!profile.value) return
   try {
-    const response = await fetch('/api/v1/unfollow', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ following_id: Number(route.params.id) })
-    })
-    if (response.ok) {
-      followStatus.value = 'none'
-      showFeedback('Unfollowed', 'success')
-      fetchProfile(route.params.id)
-    }
+    await profileStore.unfollow(route.params.id)
+    showFeedback('Unfollowed', 'success')
+    fetchProfile(route.params.id)
   } catch (e) { console.error(e) }
 }
 
 const togglePrivacy = async () => {
-  if (!profile.value) return
-  const newType = profile.value.user.profile_type === 'public' ? 'private' : 'public'
+  if (!profileStore.profile) return
+  const current = profileStore.profile.user
+  const newType = profileStore.profile.privacy === 'public' ? 'private' : 'public'
   try {
-    const response = await fetch('/api/v1/users', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        profile_type: newType, 
-        email: profile.value.user.email, 
-        first_name: profile.value.user.first_name, 
-        last_name: profile.value.user.last_name, 
-        dob: profile.value.user.dob 
-      })
+    await profileStore.updateProfile({ 
+      ...current,
+      profile_type: newType,
+      email: profileStore.profile.email,
+      dob: profileStore.profile.dob
     })
-    if (response.ok) {
-      profile.value.user.profile_type = newType
-      showFeedback(`Profile is now ${newType}`, 'success')
-    }
+    showFeedback(`Profile is now ${newType}`, 'success')
+    fetchProfile(route.params.id)
   } catch (e) { console.error(e) }
 }
-
 </script>
-
 
 <template>
   <div class="profile-view">
     <div v-if="feedbackMessage" class="feedback-toast" :class="feedbackType">
       {{ feedbackMessage }}
     </div>
-    <div v-if="loading" class="loading">SCANNING DATABASE...</div>
-    <div v-else-if="profile" class="profile-content">
+    <div v-if="profileStore.loading" class="loading">SCANNING DATABASE...</div>
+    <div v-else-if="profileStore.profile" class="profile-content">
       <div class="card-retro profile-header">
         <div class="profile-cover">
           <div class="cover-gradient"></div>
@@ -128,14 +86,14 @@ const togglePrivacy = async () => {
         <div class="profile-info-section">
           <div class="avatar-container-large">
             <UserAvatar 
-              :url="profile.user.avatar_url" 
-              :name="profile.user.first_name" 
+              :url="profileStore.profile.user.avatar_url" 
+              :name="profileStore.profile.user.first_name" 
               size="large" 
             />
           </div>
           <div class="user-details">
-            <h1 class="fullname">{{ profile.user.first_name }} {{ profile.user.last_name }}</h1>
-            <p class="nickname">ID_{{ profile.user.id }} // @{{ profile.user.nickname || 'user' }}</p>
+            <h1 class="fullname">{{ profileStore.profile.user.first_name }} {{ profileStore.profile.user.last_name }}</h1>
+            <p class="nickname">ID_{{ profileStore.profile.user.id }} // @{{ profileStore.profile.user.nickname || 'user' }}</p>
           </div>
           
           <div class="profile-actions">
@@ -144,11 +102,11 @@ const togglePrivacy = async () => {
               @click="togglePrivacy" 
               class="btn-retro ghost"
             >
-              MODE: {{ profile.user.profile_type }}
+              MODE: {{ profileStore.profile.privacy }}
             </button>
             <template v-else>
-              <button v-if="followStatus === 'none'" @click="handleFollow" class="btn-retro">CONNECT</button>
-              <button v-else-if="followStatus === 'pending'" class="btn-retro disabled" disabled>PENDING...</button>
+              <button v-if="profileStore.followStatus === 'none'" @click="handleFollow" class="btn-retro">CONNECT</button>
+              <button v-else-if="profileStore.followStatus === 'pending'" class="btn-retro disabled" disabled>PENDING...</button>
               <button v-else @click="handleUnfollow" class="btn-retro ghost">DISCONNECT</button>
             </template>
           </div>
@@ -156,15 +114,15 @@ const togglePrivacy = async () => {
         
         <div class="stats-row">
           <router-link :to="`/profile/${route.params.id}/followers`" class="stat-item linkable">
-            <span class="stat-value">{{ profile.followers?.length || 0 }}</span>
+            <span class="stat-value">{{ profileStore.profile.followers?.length || 0 }}</span>
             <span class="stat-label">NODES_IN</span>
           </router-link>
           <router-link :to="`/profile/${route.params.id}/following`" class="stat-item linkable">
-            <span class="stat-value">{{ profile.following?.length || 0 }}</span>
+            <span class="stat-value">{{ profileStore.profile.following?.length || 0 }}</span>
             <span class="stat-label">NODES_OUT</span>
           </router-link>
           <div class="stat-item">
-            <span class="stat-value">{{ profile.posts?.length || 0 }}</span>
+            <span class="stat-value">{{ profileStore.profile.posts?.length || 0 }}</span>
             <span class="stat-label">DATA_PACKS</span>
           </div>
         </div>
@@ -180,20 +138,20 @@ const togglePrivacy = async () => {
           <div class="info-grid">
             <div class="info-item">
               <span class="info-label">NET_ADDR:</span>
-              <span class="info-value">{{ profile.user.email }}</span>
+              <span class="info-value">{{ profileStore.profile.email }}</span>
             </div>
-            <div v-if="profile.user.dob" class="info-item">
+            <div v-if="profileStore.profile.dob" class="info-item">
               <span class="info-label">EXP_DATE:</span>
-              <span class="info-value">{{ new Date(profile.user.dob).toLocaleDateString() }}</span>
+              <span class="info-value">{{ new Date(profileStore.profile.dob).toLocaleDateString() }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">PROTOCOL:</span>
-              <span class="info-value text-capitalize">{{ profile.user.profile_type }}</span>
+              <span class="info-value text-capitalize">{{ profileStore.profile.privacy }}</span>
             </div>
           </div>
           <div class="bio-section">
             <h3>LOG_FILE</h3>
-            <p>{{ profile.user.about_me || 'NO DATA RECOVERED.' }}</p>
+            <p>{{ profileStore.profile.about_me || 'NO DATA RECOVERED.' }}</p>
           </div>
         </div>
       </div>
@@ -201,10 +159,10 @@ const togglePrivacy = async () => {
       <div v-if="!isPrivateAndNotFollowed" class="profile-activity">
         <h2>TRANSMISSIONS</h2>
         <div class="posts-list">
-          <div v-if="profile.posts?.length === 0" class="no-posts">
+          <div v-if="profileStore.profile.posts?.length === 0" class="no-posts">
             NO DATA RECORDED.
           </div>
-          <PostCard v-else v-for="post in profile.posts" :key="post.id" :post="post" />
+          <PostCard v-else v-for="post in profileStore.profile.posts" :key="post.id" :post="post" />
         </div>
       </div>
     </div>

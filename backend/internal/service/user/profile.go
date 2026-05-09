@@ -14,8 +14,9 @@ func (s *UserService) GetProfile(targetID, userID int64) (*models.Profile, error
 	if targetID < 1 {
 		return nil, fmt.Errorf("%w: target user id is empty", models.ErrInvalidData)
 	}
+	ctx := context.Background()
 
-	u, err := s.users.GetByID(context.Background(), targetID)
+	u, err := s.users.GetByID(ctx, targetID)
 	if err != nil {
 		return nil, err
 	}
@@ -28,9 +29,10 @@ func (s *UserService) GetProfile(targetID, userID int64) (*models.Profile, error
 			Nickname:  u.Nickname,
 			AvatarURL: utils.FormatAvatarURL(u.AvatarURL),
 		},
-		Privacy:   u.ProfileType,
-		BirthDate: u.DOB,
-		AboutMe:   u.AboutMe,
+		Privacy: u.ProfileType,
+		DOB:     u.DOB,
+		AboutMe: u.AboutMe,
+		Email:   u.Email,
 	}
 
 	if userID == targetID {
@@ -49,6 +51,29 @@ func (s *UserService) GetProfile(targetID, userID int64) (*models.Profile, error
 		if u.ProfileType == "private" && p.FollowStatus != "following" {
 			return p, models.ErrUserPrivate
 		}
+	}
+
+	// Fetch Followers
+	followers, err := s.follows.GetFollowers(targetID, "accept")
+	if err == nil {
+		p.Followers = followers
+	}
+
+	// Fetch Following
+	following, err := s.follows.GetFollowing(targetID, "accept")
+	if err == nil {
+		p.Following = following
+	}
+
+	// Fetch Posts
+	posts, err := s.posts.GetPosts(targetID, userID)
+	if err == nil {
+		for i := range posts {
+			if posts[i].Author != nil {
+				posts[i].Author.AvatarURL = utils.FormatAvatarURL(posts[i].Author.AvatarURL)
+			}
+		}
+		p.Posts = posts
 	}
 
 	return p, nil

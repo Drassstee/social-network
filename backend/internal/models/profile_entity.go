@@ -12,8 +12,9 @@ type Profile struct {
 	IsMe         bool       `json:"is_me"`
 	FollowStatus string     `json:"follow_status"`
 	Privacy      string     `json:"privacy"`
-	BirthDate    *time.Time `json:"birth_date"`
+	DOB          *time.Time `json:"dob"`
 	AboutMe      string     `json:"about_me"`
+	Email        string     `json:"email"`
 }
 
 //--------------------------------------------------------------------------------------|
@@ -26,7 +27,7 @@ type UserProfile struct {
 	Nickname     string     `json:"nickname"`
 	AvatarURL    string     `json:"avatar_url"`
 	Privacy      string     `json:"privacy"`
-	BirthDate    *time.Time `json:"birth_date"`
+	DOB          *time.Time `json:"dob"`
 	AboutMe      string     `json:"about_me"`
 	IsMe         bool       `json:"is_me"`
 	FollowStatus string     `json:"follow_status"`

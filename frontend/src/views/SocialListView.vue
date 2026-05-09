@@ -1,8 +1,10 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { useProfileStore } from '../stores/profile'
 
 const route = useRoute()
+const profileStore = useProfileStore()
 const users = ref([])
 const loading = ref(true)
 const title = ref('')
@@ -13,11 +15,8 @@ const fetchList = async () => {
   title.value = type.charAt(0) + type.slice(1)
   
   try {
-    const response = await fetch(`/api/v1/users/${route.params.id}`)
-    if (response.ok) {
-      const data = await response.json()
-      users.value = data[type] || []
-    }
+    const data = await profileStore.fetchProfile(route.params.id)
+    users.value = data[type] || []
   } catch (e) {
     console.error(e)
   } finally {

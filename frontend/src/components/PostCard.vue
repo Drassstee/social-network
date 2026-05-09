@@ -31,7 +31,7 @@ const handleCreateComment = async () => {
       formData.append('image', commentImage.value)
     }
 
-    const resp = await fetch('/api/v1/posts/comments', {
+    const resp = await fetch('/api/v1/comments', {
       method: 'POST',
       body: formData
     })

@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { api } from '../api/api'
 import { useNotificationStore } from './notifications'
 
 export const useChatStore = defineStore('chat', {
@@ -56,8 +57,7 @@ export const useChatStore = defineStore('chat', {
     },
     async fetchChatableUsers() {
       try {
-        const response = await fetch('/api/v1/chat/users')
-        const data = await response.json()
+        const data = await api.get('/chat/users')
         this.onlineUsers = data // This actually contains all chatable users enriched with online status
       } catch (err) {
         console.error('Failed to fetch chatable users:', err)
@@ -66,15 +66,13 @@ export const useChatStore = defineStore('chat', {
     async fetchUnreadCounts() {
         try {
             // Private counts
-            const pResp = await fetch('/api/v1/chat/unread')
-            const pCounts = await pResp.json()
+            const pCounts = await api.get('/chat/unread')
             for (const [id, count] of Object.entries(pCounts)) {
                 this.unreadCounts[`u_${id}`] = count
             }
 
             // Group counts
-            const gResp = await fetch('/api/v1/groups/unread')
-            const gCounts = await gResp.json()
+            const gCounts = await api.get('/groups/unread')
             if (Array.isArray(gCounts)) {
                 gCounts.forEach(c => {
                     if (c.unread_count > 0) {
@@ -141,11 +139,22 @@ export const useChatStore = defineStore('chat', {
     },
     async markPrivateAsRead(senderID) {
         try {
-            await fetch(`/api/v1/chat/read?sender_id=${senderID}`, { method: 'POST' })
+            await api.post(`/chat/read?sender_id=${senderID}`)
             delete this.unreadCounts[`u_${senderID}`]
         } catch (err) {
             console.error('Failed to mark private as read:', err)
         }
+    },
+    async uploadImage(file) {
+      const formData = new FormData()
+      formData.append('image', file)
+      try {
+        const data = await api.post('/chat/upload', formData)
+        return data.url
+      } catch (err) {
+        console.error('Chat image upload failed:', err)
+        throw err
+      }
     },
     sendMessage(receiverID, body, imageURL = null) {
       if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return
@@ -162,8 +171,7 @@ export const useChatStore = defineStore('chat', {
     },
     async fetchMessages(userID) {
       try {
-        const response = await fetch(`/api/v1/chat/messages?user_id=${userID}&limit=50&offset=0`)
-        const data = await response.json()
+        const data = await api.get(`/chat/messages?user_id=${userID}&limit=50&offset=0`)
         this.messages[userID] = data || []
         
         // Clear unread
@@ -197,7 +205,7 @@ export const useChatStore = defineStore('chat', {
     },
     async markGroupAsRead(groupID) {
         try {
-            await fetch(`/api/v1/groups/${groupID}/read`, { method: 'POST' })
+            await api.post(`/groups/${groupID}/read`)
             delete this.unreadCounts[`g_${groupID}`]
         } catch (err) {
             console.error('Failed to mark group as read:', err)
@@ -205,8 +213,7 @@ export const useChatStore = defineStore('chat', {
     },
     async fetchGroupMessages(groupID) {
       try {
-        const response = await fetch(`/api/v1/groups/${groupID}/messages`)
-        const data = await response.json()
+        const data = await api.get(`/groups/${groupID}/messages`)
         this.groupMessages[groupID] = data || []
         
         // Clear unread

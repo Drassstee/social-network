@@ -10,11 +10,12 @@ import (
 var errInternalServer = map[string]string{"error": "internal server error"}
 
 type UserHandler struct {
-	Service models.UserService
+	Service  models.UserService
+	Uploader models.ImageUploader
 }
 
-func NewUserHandler(us models.UserService) *UserHandler {
-	return &UserHandler{Service: us}
+func NewUserHandler(us models.UserService, uploader models.ImageUploader) *UserHandler {
+	return &UserHandler{Service: us, Uploader: uploader}
 }
 
 type errJSON struct {

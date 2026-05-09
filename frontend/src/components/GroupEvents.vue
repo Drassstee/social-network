@@ -1,7 +1,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useGroupStore } from '../stores/groups'
 
 const props = defineProps(['groupId'])
+const groupStore = useGroupStore()
 const events = ref([])
 const showCreateForm = ref(false)
 const newEvent = ref({
@@ -12,8 +14,7 @@ const newEvent = ref({
 
 const fetchEvents = async () => {
     try {
-        const res = await fetch(`/api/v1/groups/${props.groupId}/events`)
-        events.value = await res.json()
+        events.value = await groupStore.fetchGroupEvents(props.groupId)
     } catch (err) {
         console.error('Failed to fetch events:', err)
     }
@@ -21,18 +22,13 @@ const fetchEvents = async () => {
 
 const handleCreateEvent = async () => {
     try {
-        const res = await fetch(`/api/v1/groups/${props.groupId}/events`, {
-            method: 'POST',
-            body: JSON.stringify({
-                ...newEvent.value,
-                event_time: new Date(newEvent.value.event_time).toISOString()
-            })
+        await groupStore.createEvent(props.groupId, {
+            ...newEvent.value,
+            event_time: new Date(newEvent.value.event_time).toISOString()
         })
-        if (res.ok) {
-            showCreateForm.value = false
-            newEvent.value = { title: '', description: '', event_time: '' }
-            fetchEvents()
-        }
+        showCreateForm.value = false
+        newEvent.value = { title: '', description: '', event_time: '' }
+        fetchEvents()
     } catch (err) {
         console.error('Failed to create event:', err)
     }
@@ -40,10 +36,7 @@ const handleCreateEvent = async () => {
 
 const respondToEvent = async (eventId, response) => {
     try {
-        await fetch(`/api/v1/groups/events/${eventId}/respond`, {
-            method: 'POST',
-            body: JSON.stringify({ response })
-        })
+        await groupStore.respondToEvent(eventId, response)
         fetchEvents()
     } catch (err) {
         console.error('Failed to respond to event:', err)

@@ -32,18 +32,31 @@ func (s *PostService) ListPosts(requesterID int64, groupID int64, limit, offset 
 	if offset < 0 {
 		offset = 0
 	}
-	posts, hasMore, err := s.repo.List(requesterID, 0, limit, offset)
+	posts, hasMore, err := s.repo.List(requesterID, groupID, limit, offset)
 	if err != nil {
 		return nil, false, err
 	}
+
+	// Optimization: Batch fetch comments
+	postIDs := make([]int64, len(posts))
+	for i, p := range posts {
+		postIDs[i] = p.ID
+	}
+	commentsMap, _ := s.repo.GetCommentsBatch(postIDs)
+
 	for i := range posts {
 		if posts[i].Author != nil {
 			posts[i].Author.AvatarURL = utils.FormatAvatarURL(posts[i].Author.AvatarURL)
 		}
-		for j := range posts[i].Comments {
-			if posts[i].Comments[j].Author != nil {
-				posts[i].Comments[j].Author.AvatarURL = utils.FormatAvatarURL(posts[i].Comments[j].Author.AvatarURL)
+		
+		// Assign batch-fetched comments
+		if comments, ok := commentsMap[posts[i].ID]; ok {
+			for j := range comments {
+				if comments[j].Author != nil {
+					comments[j].Author.AvatarURL = utils.FormatAvatarURL(comments[j].Author.AvatarURL)
+				}
 			}
+			posts[i].Comments = comments
 		}
 	}
 	return posts, hasMore, nil

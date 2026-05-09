@@ -24,7 +24,7 @@ func (r *PostRepo) List(requesterID int64, groupID int64, limit, offset int) ([]
 SELECT p.id, p.author_id, p.content, p.image_url, p.privacy, p.group_id, p.created_at, u.id, u.first_name, u.last_name, u.avatar_url
 FROM posts p
 JOIN users u ON p.author_id = u.id
-WHERE (p.group_id IS NULL)
+WHERE ( (? = 0 AND p.group_id IS NULL) OR (p.group_id = ?) )
   AND (
     (p.author_id = ?)
     OR (p.privacy = 'public' AND u.profile_type = 'public')
@@ -34,7 +34,7 @@ WHERE (p.group_id IS NULL)
 ORDER BY datetime(p.created_at) DESC
 LIMIT ? OFFSET ?
 `
-	rows, err := r.db.Query(query, requesterID, requesterID, requesterID, limit+1, offset)
+	rows, err := r.db.Query(query, groupID, groupID, requesterID, requesterID, requesterID, limit+1, offset)
 
 	if err != nil {
 		return nil, false, err
@@ -59,10 +59,6 @@ LIMIT ? OFFSET ?
 			p.GroupID = grpID.Int64
 		}
 		p.CreatedAt, _ = parseSQLiteTime(created)
-		
-		// Load comments for each post
-		comments, _ := r.GetComments(p.ID)
-		p.Comments = comments
 		
 		posts = append(posts, p)
 	}
@@ -282,6 +278,52 @@ ORDER BY datetime(c.created_at) ASC
 		comments = append(comments, c)
 	}
 	return comments, nil
+}
+
+func (r *PostRepo) GetCommentsBatch(postIDs []int64) (map[int64][]models.Comment, error) {
+	if len(postIDs) == 0 {
+		return make(map[int64][]models.Comment), nil
+	}
+
+	placeholders := ""
+	args := make([]interface{}, len(postIDs))
+	for i, id := range postIDs {
+		if i > 0 {
+			placeholders += ","
+		}
+		placeholders += "?"
+		args[i] = id
+	}
+
+	query := `
+SELECT c.id, c.post_id, c.author_id, c.content, c.image_url, c.created_at, u.id, u.first_name, u.last_name, u.avatar_url
+FROM comments c
+JOIN users u ON c.author_id = u.id
+WHERE c.post_id IN (` + placeholders + `)
+ORDER BY datetime(c.created_at) ASC
+`
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	results := make(map[int64][]models.Comment)
+	for rows.Next() {
+		var c models.Comment
+		var a models.PostAuthor
+		var created string
+		var img, avt sql.NullString
+		if err := rows.Scan(&c.ID, &c.PostID, &c.AuthorID, &c.Content, &img, &created, &a.ID, &a.FirstName, &a.LastName, &avt); err != nil {
+			continue
+		}
+		a.AvatarURL = avt.String
+		c.Author = &a
+		c.ImageURL = img.String
+		c.CreatedAt, _ = parseSQLiteTime(created)
+		results[c.PostID] = append(results[c.PostID], c)
+	}
+	return results, nil
 }
 
 func parseSQLiteTime(s string) (time.Time, error) {

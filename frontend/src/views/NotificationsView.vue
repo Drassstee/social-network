@@ -13,43 +13,25 @@ onMounted(async () => {
 
 const handleFollowResponse = async (followerId, status, notificationId) => {
   try {
-    const response = await fetch('/api/v1/notifications/respond', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ follower_id: followerId, status: status })
-    })
-    if (response.ok) {
-      if (notificationId) store.markAsRead(notificationId)
-      store.fetchNotifications()
-    }
+    await store.respondToFollow(followerId, status)
+    if (notificationId) store.markAsRead(notificationId)
+    store.fetchNotifications()
   } catch (err) { console.error(err) }
 }
 
 const handleGroupInvitation = async (invitationId, accept, notificationId) => {
   try {
-    const response = await fetch(`/api/v1/groups/invitations/${invitationId}/respond`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accept: accept })
-    })
-    if (response.ok) {
-      if (notificationId) store.markAsRead(notificationId)
-      store.fetchNotifications()
-    }
+    await store.respondToGroupInvitation(invitationId, accept)
+    if (notificationId) store.markAsRead(notificationId)
+    store.fetchNotifications()
   } catch (err) { console.error(err) }
 }
 
 const handleJoinRequest = async (requestId, accept, notificationId) => {
   try {
-    const response = await fetch(`/api/v1/groups/requests/${requestId}/respond`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ accept: accept })
-    })
-    if (response.ok) {
-      if (notificationId) store.markAsRead(notificationId)
-      store.fetchNotifications()
-    }
+    await store.respondToJoinRequest(requestId, accept)
+    if (notificationId) store.markAsRead(notificationId)
+    store.fetchNotifications()
   } catch (err) { console.error(err) }
 }
 

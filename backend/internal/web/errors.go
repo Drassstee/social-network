@@ -74,8 +74,10 @@ func MapError(err error) int {
 // HandleError centralizes error writing for both JSON and HTML responses.
 func HandleError(w http.ResponseWriter, r *http.Request, err error) {
 	code := MapError(err)
+	isAPI := r.URL.Path == "/api/v1" || (len(r.URL.Path) > 7 && r.URL.Path[:7] == "/api/v1")
+	isJSON := r.Header.Get("Accept") == "application/json" || r.Header.Get("Content-Type") == "application/json"
 
-	if r.Header.Get("Accept") == "application/json" || r.Header.Get("Content-Type") == "application/json" {
+	if isAPI || isJSON {
 		response := map[string]any{"error": err.Error()}
 
 		// Special handling for validation errors to provide field context

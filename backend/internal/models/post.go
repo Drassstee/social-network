@@ -46,5 +46,6 @@ type PostRepo interface {
 	GetGroupPosts(groupID int64, requesterID int64) ([]Post, error)
 	InsertComment(authorID int64, postID int64, content, imageURL string) (*Comment, error)
 	GetComments(postID int64) ([]Comment, error)
+	GetCommentsBatch(postIDs []int64) (map[int64][]Comment, error)
 }
 

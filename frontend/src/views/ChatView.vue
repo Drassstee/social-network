@@ -48,18 +48,12 @@ const handleSendMessage = async () => {
   
   let imageURL = null
   if (imageFile.value) {
-    const formData = new FormData()
-    formData.append('image', imageFile.value)
     try {
-      const resp = await fetch('/api/v1/chat/upload', {
-        method: 'POST',
-        body: formData
-      })
-      if (resp.ok) {
-        const data = await resp.json()
-        imageURL = data.url
-      }
-    } catch (err) { console.error('Upload failed:', err) }
+      imageURL = await chat.uploadImage(imageFile.value)
+    } catch (err) { 
+      console.error('Upload failed:', err)
+      return // Don't send message if upload fails
+    }
   }
 
   chat.sendMessage(chat.activeChatUser.id, newMessage.value, imageURL)

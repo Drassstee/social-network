@@ -69,3 +69,10 @@ func (u *User) isEmpty() error {
 	}
 	return nil
 }
+
+func (u *User) DisplayName() string {
+	if u.Nickname != "" {
+		return u.Nickname
+	}
+	return fmt.Sprintf("%s %s", u.FirstName, u.LastName)
+}

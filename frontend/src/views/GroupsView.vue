@@ -1,9 +1,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useChatStore } from '../stores/chat'
+import { useGroupStore } from '../stores/groups'
 
 const chat = useChatStore()
-const groups = ref([])
+const groupStore = useGroupStore()
 const showCreateModal = ref(false)
 const newGroup = ref({
   title: '',
@@ -18,43 +19,31 @@ const showFeedback = (msg, type = 'info') => {
   setTimeout(() => { feedbackMessage.value = '' }, 3000)
 }
 
-const fetchGroups = async () => {
-  try {
-    const response = await fetch('/api/v1/groups')
-    const data = await response.json()
-    groups.value = data || []
-  } catch (err) {
-    console.error('Failed to fetch groups:', err)
-  }
-}
-
 const handleCreateGroup = async () => {
   try {
-    const response = await fetch('/api/v1/groups', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newGroup.value)
-    })
-    if (response.ok) {
-      showCreateModal.value = false
-      newGroup.value = { title: '', description: '' }
-      fetchGroups()
-    }
+    await groupStore.createGroup(newGroup.value.title, newGroup.value.description)
+    showCreateModal.value = false
+    newGroup.value = { title: '', description: '' }
+    showFeedback('Syndicate initialized!', 'success')
   } catch (err) {
     console.error('Failed to create group:', err)
+    showFeedback(err.message, 'error')
   }
 }
 
 const joinGroup = async (groupId) => {
   try {
-    await fetch(`/api/v1/groups/${groupId}/request`, { method: 'POST' })
+    await groupStore.requestJoin(groupId)
     showFeedback('Join request sent!', 'success')
   } catch (err) {
     console.error('Failed to join group:', err)
+    showFeedback(err.message, 'error')
   }
 }
 
-onMounted(fetchGroups)
+onMounted(() => {
+  groupStore.fetchGroups()
+})
 </script>
 
 <template>
@@ -73,7 +62,7 @@ onMounted(fetchGroups)
     </header>
 
     <div class="groups-grid">
-        <router-link v-for="group in groups" :key="group.id" :to="`/groups/${group.id}`" class="card-retro group-card">
+        <router-link v-for="group in groupStore.groups" :key="group.id" :to="`/groups/${group.id}`" class="card-retro group-card">
           <div class="group-header">
             <div class="group-icon">#</div>
             <div>

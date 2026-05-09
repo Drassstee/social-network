@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { api } from '../api/api'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -10,7 +11,6 @@ export const useAuthStore = defineStore('auth', {
         localStorage.removeItem('user')
         return null
       }
-
     })(),
     isAuthenticated: !!localStorage.getItem('user'),
     loading: false,
@@ -21,22 +21,8 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       this.error = null
       try {
-        const response = await fetch('/api/v1/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(errorData.error || 'Login failed')
-        }
-
-        const data = await response.json()
-        
-        this.user = data
-        this.isAuthenticated = true
-        localStorage.setItem('user', JSON.stringify(data))
+        const data = await api.post('/login', { email, password })
+        this.setUser(data)
         return true
       } catch (err) {
         this.error = err.message
@@ -49,28 +35,8 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       this.error = null
       try {
-        const isFormData = userData instanceof FormData
-        const options = {
-          method: 'POST',
-          body: isFormData ? userData : JSON.stringify(userData),
-        }
-        
-        if (!isFormData) {
-          options.headers = { 'Content-Type': 'application/json' }
-        }
-
-        const response = await fetch('/api/v1/register', options)
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(errorData.error || 'Registration failed')
-        }
-
-        const data = await response.json()
-        
-        this.user = data
-        this.isAuthenticated = true
-        localStorage.setItem('user', JSON.stringify(data))
+        const data = await api.post('/register', userData)
+        this.setUser(data)
         return true
       } catch (err) {
         this.error = err.message
@@ -81,8 +47,7 @@ export const useAuthStore = defineStore('auth', {
     },
     async logout() {
       try {
-        const res = await fetch('/api/v1/logout', { method: 'POST' })
-        if (!res.ok) console.error('Logout request failed')
+        await api.post('/logout')
       } catch (err) {
         console.error('Logout error:', err)
       } finally {
@@ -97,23 +62,24 @@ export const useAuthStore = defineStore('auth', {
     },
     async checkSession() {
       try {
-        const response = await fetch('/api/v1/me')
-        if (response.ok) {
-          const data = await response.json()
-          this.user = data
-          this.isAuthenticated = true
-          localStorage.setItem('user', JSON.stringify(data))
-        } else {
-          this.user = null
-          this.isAuthenticated = false
-          localStorage.removeItem('user')
-        }
+        const data = await api.get('/me')
+        this.setUser(data)
       } catch (err) {
-        console.error('Session check failed:', err)
-        this.user = null
-        this.isAuthenticated = false
-        localStorage.removeItem('user')
+        if (err.status !== 401) {
+          console.error('Session check failed:', err)
+        }
+        this.clearUser()
       }
+    },
+    setUser(data) {
+      this.user = data
+      this.isAuthenticated = true
+      localStorage.setItem('user', JSON.stringify(data))
+    },
+    clearUser() {
+      this.user = null
+      this.isAuthenticated = false
+      localStorage.removeItem('user')
     }
   }
 })

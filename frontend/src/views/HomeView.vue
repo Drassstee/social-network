@@ -1,11 +1,13 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { usePostStore } from '../stores/posts'
+import { api } from '../api/api'
 import UserAvatar from '../components/UserAvatar.vue'
 import PostCard from '../components/PostCard.vue'
 
 const auth = useAuthStore()
-const posts = ref([])
+const postStore = usePostStore()
 const newPost = ref({
   body: '',
   privacy: 'public',
@@ -25,68 +27,41 @@ const showFeedback = (msg, type = 'info') => {
 const onFileChange = (e, type, postId = null) => {
   const file = e.target.files[0]
   if (type === 'post') postImage.value = file
-  else commentImages.value[postId] = file
 }
 
 const fetchFollowers = async () => {
   if (!auth.user?.id) return
   try {
-    const response = await fetch(`/api/v1/users/${auth.user.id}`)
-    if (response.ok) {
-      const data = await response.json()
-      followers.value = data.followers || []
-    }
+    const data = await api.get(`/users/${auth.user.id}`)
+    followers.value = data.followers || []
   } catch (e) { console.error('Failed to fetch followers:', e) }
 }
 
 onMounted(async () => {
-
   fetchFollowers()
-  try {
-    const response = await fetch('/api/v1/posts')
-    if (response.ok) {
-      const data = await response.json()
-      posts.value = data.posts || []
-    }
-  } catch (e) { console.error('Failed to fetch posts:', e) }
+  postStore.fetchPosts()
 })
-
 
 const handleCreatePost = async () => {
   try {
-    const formData = new FormData()
-    formData.append('content', newPost.value.body)
-    formData.append('privacy', newPost.value.privacy)
-    if (newPost.value.privacy === 'private') {
-      formData.append('allowed_users', JSON.stringify(newPost.value.allowed_users))
-    }
-    if (postImage.value) {
-      formData.append('image', postImage.value)
-    }
-
-    const resp = await fetch('/api/v1/posts', {
-      method: 'POST',
-      body: formData
-    })
+    await postStore.createPost(
+      newPost.value.body,
+      newPost.value.privacy,
+      0,
+      newPost.value.allowed_users,
+      postImage.value
+    )
     
-    if (resp.ok) {
-      const data = await resp.json()
-      if (data.post) {
-        data.post.author = {
-          first_name: auth.user?.first_name || 'Me',
-          last_name: auth.user?.last_name || ''
-        }
-        posts.value.unshift(data.post)
-        newPost.value.body = ''
-        newPost.value.privacy = 'public'
-        newPost.value.allowed_users = []
-        postImage.value = null
-        showFeedback('Post created!', 'success')
-      }
-    }
-  } catch (e) { console.error('Failed to create post:', e) }
+    newPost.value.body = ''
+    newPost.value.privacy = 'public'
+    newPost.value.allowed_users = []
+    postImage.value = null
+    showFeedback('Post created!', 'success')
+  } catch (e) { 
+    console.error('Failed to create post:', e)
+    showFeedback(e.message, 'error')
+  }
 }
-
 </script>
 
 <template>
@@ -145,7 +120,7 @@ const handleCreatePost = async () => {
     </div>
 
     <div class="posts-list">
-      <PostCard v-for="post in posts" :key="post.id" :post="post" />
+      <PostCard v-for="post in postStore.posts" :key="post.id" :post="post" />
     </div>
   </div>
 </template>
