@@ -22,7 +22,6 @@ type sqlGroupRepository struct {
 
 //--------------------------------------------------------------------------------------|
 
-// NewGroupRepository creates a new SQL-backed group repository.
 func NewGroupRepository(db *sql.DB) models.GroupRepo {
 	return &sqlGroupRepository{db: db}
 }
@@ -40,8 +39,6 @@ func (r *sqlGroupRepository) WithTx(tx any) models.GroupRepo {
 }
 
 //--------------------------------------------------------------------------------------|
-// Group CRUD
-//--------------------------------------------------------------------------------------|
 
 func (r *sqlGroupRepository) CreateGroup(ctx context.Context, group *models.Group) error {
 	res, err := r.db.ExecContext(ctx,
@@ -55,7 +52,7 @@ func (r *sqlGroupRepository) CreateGroup(ctx context.Context, group *models.Grou
 		return err
 	}
 	group.ID = id
-	
+
 	err = r.db.QueryRowContext(ctx, `SELECT created_at FROM groups WHERE id = ?`, id).Scan(&group.CreatedAt)
 	return err
 }
@@ -86,7 +83,7 @@ func (r *sqlGroupRepository) ListGroups(ctx context.Context, limit, offset int) 
 	}
 	defer rows.Close()
 
-	var groups []models.Group
+	groups := []models.Group{}
 	for rows.Next() {
 		var g models.Group
 		if err := rows.Scan(&g.ID, &g.CreatorID, &g.Title, &g.Description, &g.CreatedAt, &g.MemberCount); err != nil {
@@ -97,8 +94,6 @@ func (r *sqlGroupRepository) ListGroups(ctx context.Context, limit, offset int) 
 	return groups, nil
 }
 
-//--------------------------------------------------------------------------------------|
-// Membership
 //--------------------------------------------------------------------------------------|
 
 func (r *sqlGroupRepository) AddMember(ctx context.Context, groupID, userID int64, role string) error {
@@ -130,7 +125,7 @@ func (r *sqlGroupRepository) GetMembers(ctx context.Context, groupID int64) ([]m
 	}
 	defer rows.Close()
 
-	var members []models.GroupMember
+	members := []models.GroupMember{}
 	for rows.Next() {
 		var m models.GroupMember
 		if err := rows.Scan(&m.GroupID, &m.UserID, &m.Role, &m.JoinedAt, &m.Username, &m.FirstName, &m.LastName, &m.AvatarURL); err != nil {
@@ -172,8 +167,6 @@ func (r *sqlGroupRepository) GetMemberGroupIDs(ctx context.Context, userID int64
 	return ids, nil
 }
 
-//--------------------------------------------------------------------------------------|
-// Invitations
 //--------------------------------------------------------------------------------------|
 
 func (r *sqlGroupRepository) CreateInvitation(ctx context.Context, inv *models.GroupInvitation) error {
@@ -218,7 +211,7 @@ func (r *sqlGroupRepository) GetPendingInvitations(ctx context.Context, userID i
 	}
 	defer rows.Close()
 
-	var invitations []models.GroupInvitation
+	invitations := []models.GroupInvitation{}
 	for rows.Next() {
 		var inv models.GroupInvitation
 		if err := rows.Scan(&inv.ID, &inv.GroupID, &inv.InviterID, &inv.InviteeID, &inv.Status, &inv.CreatedAt,
@@ -238,8 +231,6 @@ func (r *sqlGroupRepository) UpdateInvitationStatus(ctx context.Context, id int6
 	return err
 }
 
-//--------------------------------------------------------------------------------------|
-// Join Requests
 //--------------------------------------------------------------------------------------|
 
 func (r *sqlGroupRepository) CreateJoinRequest(ctx context.Context, req *models.GroupJoinRequest) error {
@@ -279,7 +270,7 @@ func (r *sqlGroupRepository) GetPendingJoinRequests(ctx context.Context, groupID
 	}
 	defer rows.Close()
 
-	var requests []models.GroupJoinRequest
+	requests := []models.GroupJoinRequest{}
 	for rows.Next() {
 		var req models.GroupJoinRequest
 		if err := rows.Scan(&req.ID, &req.GroupID, &req.UserID, &req.Status, &req.CreatedAt, &req.Username); err != nil {
@@ -298,8 +289,6 @@ func (r *sqlGroupRepository) UpdateJoinRequestStatus(ctx context.Context, id int
 	return err
 }
 
-//--------------------------------------------------------------------------------------|
-// Events
 //--------------------------------------------------------------------------------------|
 
 func (r *sqlGroupRepository) CreateEvent(ctx context.Context, event *models.GroupEvent) error {
@@ -347,7 +336,7 @@ func (r *sqlGroupRepository) GetGroupEvents(ctx context.Context, groupID int64) 
 	}
 	defer rows.Close()
 
-	var events []models.GroupEvent
+	events := []models.GroupEvent{}
 	for rows.Next() {
 		var e models.GroupEvent
 		if err := rows.Scan(&e.ID, &e.GroupID, &e.CreatorID, &e.Title, &e.Description, &e.EventTime, &e.CreatedAt,
@@ -369,8 +358,6 @@ func (r *sqlGroupRepository) RespondToEvent(ctx context.Context, resp *models.Gr
 	return err
 }
 
-//--------------------------------------------------------------------------------------|
-// Group Messages
 //--------------------------------------------------------------------------------------|
 
 func (r *sqlGroupRepository) SaveGroupMessage(ctx context.Context, msg *models.GroupMessage) error {
@@ -397,7 +384,7 @@ func (r *sqlGroupRepository) GetGroupMessages(ctx context.Context, groupID int64
 	}
 	defer rows.Close()
 
-	var msgs []models.GroupMessage
+	msgs := []models.GroupMessage{}
 	for rows.Next() {
 		var m models.GroupMessage
 		if err := rows.Scan(&m.ID, &m.GroupID, &m.SenderID, &m.Username, &m.Body, &m.ImageURL, &m.CreatedAt); err != nil {
@@ -410,7 +397,6 @@ func (r *sqlGroupRepository) GetGroupMessages(ctx context.Context, groupID int64
 
 //--------------------------------------------------------------------------------------|
 
-// UpdateLastReadID updates the last message ID seen by a user in a group.
 func (r *sqlGroupRepository) UpdateLastReadID(ctx context.Context, groupID, userID, msgID int64) error {
 	_, err := r.db.ExecContext(ctx,
 		`UPDATE group_members SET last_read_msg_id = MAX(last_read_msg_id, ?) 
@@ -421,7 +407,6 @@ func (r *sqlGroupRepository) UpdateLastReadID(ctx context.Context, groupID, user
 
 //--------------------------------------------------------------------------------------|
 
-// GetUnreadCounts returns unread message counts for all groups the user is a member of.
 func (r *sqlGroupRepository) GetUnreadCounts(ctx context.Context, userID int64) ([]models.GroupUnreadCount, error) {
 	query := `
 		SELECT gm.group_id, COUNT(m.id) as unread_count
@@ -436,7 +421,7 @@ func (r *sqlGroupRepository) GetUnreadCounts(ctx context.Context, userID int64) 
 	}
 	defer rows.Close()
 
-	var counts []models.GroupUnreadCount
+	counts := []models.GroupUnreadCount{}
 	for rows.Next() {
 		var c models.GroupUnreadCount
 		if err := rows.Scan(&c.GroupID, &c.UnreadCount); err != nil {

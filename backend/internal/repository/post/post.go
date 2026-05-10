@@ -47,7 +47,7 @@ LIMIT ? OFFSET ?
 	}
 	defer rows.Close()
 
-	var posts []models.Post
+	posts := []models.Post{}
 	for rows.Next() {
 		var p models.Post
 		var a models.PostAuthor
@@ -159,7 +159,7 @@ ORDER BY datetime(p.created_at) DESC
 	}
 	defer rows.Close()
 
-	var posts []models.Post
+	posts := []models.Post{}
 	for rows.Next() {
 		var p models.Post
 		var a models.PostAuthor
@@ -205,7 +205,7 @@ ORDER BY datetime(p.created_at) DESC
 	}
 	defer rows.Close()
 
-	var posts []models.Post
+	posts := []models.Post{}
 	for rows.Next() {
 		var p models.Post
 		var a models.PostAuthor
@@ -278,7 +278,7 @@ ORDER BY datetime(c.created_at) ASC
 	}
 	defer rows.Close()
 
-	var comments []models.Comment
+	comments := []models.Comment{}
 	for rows.Next() {
 		var c models.Comment
 		var a models.PostAuthor

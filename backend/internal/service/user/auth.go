@@ -32,6 +32,10 @@ func (s *UserService) Register(u *models.User) (*models.UserData, error) {
 	}
 	u.Password = string(hashed)
 
+	if u.ProfileType == "" {
+		u.ProfileType = "public"
+	}
+
 	id, err := s.users.CreateUser(u)
 	if err != nil {
 		return nil, err

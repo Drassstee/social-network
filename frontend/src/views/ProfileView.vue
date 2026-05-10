@@ -35,8 +35,8 @@ watch(() => route.params.id, (newId) => fetchProfile(newId))
 
 const handleFollow = async () => {
   try {
-    const isAccepted = await profileStore.follow(route.params.id)
-    ui.showToast(isAccepted ? 'Following!' : 'Follow request sent!', 'success')
+    const status = await profileStore.follow(route.params.id)
+    ui.showToast(status === 'following' ? 'Following!' : 'Follow request sent!', 'success')
     fetchProfile(route.params.id)
   } catch (e) { console.error(e) }
 }
@@ -59,10 +59,8 @@ const togglePrivacy = async () => {
 
   try {
     await profileStore.updateProfile({ 
-      ...current,
-      profile_type: newType,
-      email: profileStore.profile.email,
-      dob: profileStore.profile.dob
+      id: profileStore.profile.user.id,
+      profile_type: newType
     })
     ui.showToast(`Profile is now ${newType}`, 'success')
     fetchProfile(route.params.id)

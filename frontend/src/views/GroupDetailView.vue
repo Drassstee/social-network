@@ -27,7 +27,7 @@ const isMember = computed(() => {
 
 const isCreator = computed(() => {
     if (!auth.user || !groupStore.currentGroup) return false
-    return Number(groupStore.currentGroup.creator_id) === Number(auth.user.id)
+    return Number(groupStore.currentGroup.creator_id) === Number(auth.user?.id)
 })
 const joinRequests = ref([])
 const inviteUserId = ref('')
@@ -55,9 +55,11 @@ watch([isMember, isCreator], ([newMember, newCreator]) => {
 
 const fetchJoinRequests = async () => {
     try {
-        joinRequests.value = await groupStore.fetchJoinRequests(route.params.id)
+        const data = await groupStore.fetchJoinRequests(route.params.id)
+        joinRequests.value = Array.isArray(data) ? data : []
     } catch (err) {
         console.error('Failed to fetch join requests:', err)
+        joinRequests.value = []
     }
 }
 

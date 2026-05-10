@@ -9,7 +9,7 @@ services:
     environment:
       - DB_PATH=/app/data/social_network.db
     volumes:
-      - db-data:/app/data
+      - ./backend/db-data:/app/data
       - ./backend/uploads:/app/uploads
     restart: always
     healthcheck:
@@ -29,6 +29,3 @@ services:
       backend:
         condition: service_healthy
     restart: always
-
-volumes:
-  db-data:

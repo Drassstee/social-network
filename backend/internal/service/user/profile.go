@@ -104,6 +104,35 @@ func (s *UserService) GetMe(id int64) (*models.UserData, error) {
 //--------------------------------------------------------------------------------------|
 
 func (s *UserService) UpdateProfile(u *models.User) error {
+	ctx := context.Background()
+	current, err := s.users.GetByID(ctx, u.ID)
+	if err != nil {
+		return err
+	}
+
+	// Merge fields: if provided in 'u', use them; otherwise keep 'current'
+	if u.Email == "" {
+		u.Email = current.Email
+	}
+	if u.FirstName == "" {
+		u.FirstName = current.FirstName
+	}
+	if u.LastName == "" {
+		u.LastName = current.LastName
+	}
+	if u.DOB == nil || u.DOB.IsZero() {
+		u.DOB = current.DOB
+	}
+	if u.Nickname == "" {
+		u.Nickname = current.Nickname
+	}
+	if u.AboutMe == "" {
+		u.AboutMe = current.AboutMe
+	}
+	if u.ProfileType == "" {
+		u.ProfileType = current.ProfileType
+	}
+
 	if err := u.ValidateData(); err != nil {
 		return fmt.Errorf("%w: %v", models.ErrInvalidData, err)
 	}

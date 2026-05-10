@@ -23,8 +23,10 @@ echo -e "${BLUE}   Social Network Control Center     ${NC}"
 echo -e "${BLUE}=======================================${NC}"
 
 # 1. Clean Environment
-print_status "Clean" "Purging previous containers and volumes..."
+print_status "Clean" "Purging previous containers, volumes, and local data..."
 docker compose down --volumes --remove-orphans --rmi local > /dev/null 2>&1
+rm -rf backend/db-data backend/uploads
+mkdir -p backend/uploads
 
 # 2. Build
 print_status "Build" "Building Docker images..."

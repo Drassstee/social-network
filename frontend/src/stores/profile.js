@@ -27,11 +27,9 @@ export const useProfileStore = defineStore('profile', {
         const data = await api.get(`/users/${id}`)
         this.profile = data
         
-        if (data.followers?.some(f => f.id === currentUserId)) {
-          this.followStatus = 'accept'
-        } else {
-          this.followStatus = 'none'
-        }
+        // Use the follow_status provided by the backend
+        this.followStatus = data.follow_status || 'none'
+        
         return data
       } catch (err) {
         this.error = err.message
@@ -44,9 +42,9 @@ export const useProfileStore = defineStore('profile', {
     async follow(targetId) {
       try {
         const data = await api.post('/follow', { following_id: Number(targetId) })
-        const isAccepted = data.message.includes('accepted') || data.message.includes('following')
-        this.followStatus = isAccepted ? 'accept' : 'pending'
-        return isAccepted
+        // Backend returns "accept" or "pending" as message
+        this.followStatus = data.message === 'accept' ? 'following' : 'pending'
+        return this.followStatus
       } catch (err) {
         console.error('Follow failed:', err)
         throw err

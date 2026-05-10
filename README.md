@@ -1,6 +1,6 @@
-# Social Network // Neural_Node_Link
+# Social Network
 
-A premium, real-time social network featuring a synthwave-inspired SPA and a robust Go backend. Built with Clean Architecture principles across the entire stack.
+A real-time social network featuring a synthwave-inspired SPA and a robust Go backend. Built with Clean Architecture principles across the entire stack.
 
 ## Architecture
 

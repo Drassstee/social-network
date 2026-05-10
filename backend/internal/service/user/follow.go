@@ -70,13 +70,13 @@ func (us *UserService) Unfollow(f models.Follow) error {
 		return fmt.Errorf("follow: %w: self-unfollowing is not allowed", models.ErrInvalidData)
 	}
 
-	exists, err := us.follows.FollowExists(f.FollowerID, f.FollowingID, "accept")
+	// Check for any existing relationship (accept or pending)
+	status, err := us.follows.GetFollowStatus(f.FollowerID, f.FollowingID)
 	if err != nil {
 		return fmt.Errorf("unfollow: %w", err)
 	}
-
-	if !exists {
-		return fmt.Errorf("unfollow: %w: not following this user", models.ErrInvalidData)
+	if status == "" {
+		return fmt.Errorf("unfollow: %w: no relationship found", models.ErrInvalidData)
 	}
 
 	err = us.follows.DeleteFollow(f)
