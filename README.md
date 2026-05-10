@@ -1,78 +1,75 @@
-# Social Network
+# Social Network // Neural_Node_Link
 
-A real-time, single-page social network application featuring private messaging, community groups, event management, and live notifications.
+A premium, real-time social network featuring a synthwave-inspired SPA and a robust Go backend. Built with Clean Architecture principles across the entire stack.
 
-## Backend Architecture
+## Architecture
 
-The backend is built with Go and strictly adheres to **Clean Architecture** principles to separate concerns, making the codebase highly maintainable and testable:
+### Backend (Go + SQLite)
+The backend adheres to **Clean Architecture** to ensure separation of concerns and testability:
+- **Domain Layer (`models/`)**: Pure business entities and interface definitions.
+- **Application Layer (`service/`)**: Orchestrates business logic and handles cross-cutting concerns.
+- **Infrastructure Layer (`repository/`)**: Direct data persistence logic.
+- **Presentation Layer (`handlers/`)**: HTTP and WebSocket entry points.
 
-*   **`cmd/`**: Contains the application entry point (`server/main.go`), responsible for wiring up dependencies and starting the server.
-*   **`db/`**: Manages the SQLite database, including connection logic and all `.sql` migration files.
-*   **`internal/`**: The core application logic, cleanly divided into layers:
-    *   **Models (Domain Layer)**: Defines entities, interfaces, and core domain errors. This is the heart of the system.
-    *   **Services (Application Layer)**: Implements business logic and orchestrates data flow between models and repositories.
-    *   **Repositories (Infrastructure Layer)**: Handles persistence logic and SQL execution.
-    *   **Handlers (Presentation Layer)**: Manages HTTP request/response cycles and interacts with Services.
+### Frontend (Vue 3 + Pinia + Vite)
+The frontend is refactored for high performance and maintainability:
+- **Store-Driven Orchestration**: All state and API logic is centralized in **Pinia** stores (`postStore`, `chatStore`, `uiStore`), decoupling the view layer from business logic.
+- **Component-Driven Design**: Reusable atomic components (`UserAvatar`, `PostCard`, `SkeletonLoader`) ensure UI consistency and DRY code.
+- **Responsive Navigation**: Features a hybrid sidebar/hamburger-menu system optimized for both desktop and mobile users.
 
 ## Project Structure
 
 ```
 social-network/
-├── .gitignore
 ├── backend/
-│   ├── cmd/
-│   │   └── server/
-│   │       └── main.go
-│   ├── db/
-│   │   ├── migrations/
-│   │   └── sqlite/
+│   ├── cmd/server/       <- Entry point
 │   ├── internal/
-│   │   ├── config/           <- Routing and app configuration
-│   │   ├── handlers/         <- HTTP Presentation layer
-│   │   ├── models/           <- Domain Layer (Entities & Interfaces)
-│   │   ├── repository/       <- Infrastructure Layer (Persistence)
-│   │   ├── service/          <- Application Layer (Business Logic)
-│   │   ├── utils/            <- Common helpers (uploader, auth, etc.)
-│   │   └── web/              <- Web utilities (JSON parsing, error mapping)
-│   ├── Dockerfile
-│   └── go.mod
-├── frontend/                 <- Vue.js 3 SPA (Vite)
-└── README.md
-```
-
-## Architectural Standards
-
-The project maintains high code quality through established patterns:
-- **Unified ID Type**: All entity identifiers are standardized as `int64` across all layers for consistency and scalability.
-- **Dependency Inversion**: High-level modules (Services) do not depend on low-level modules (Repositories); both depend on abstractions (Interfaces in Models).
-- **Clean Communication**: Real-time features are decoupled from business logic using a WebSocket Hub and a centralized Notification system.
-
-## Commands
-
-Start the application (Full Stack):
-```bash
-docker compose up --build -d
-```
-
-Stop and remove containers:
-```bash
-docker compose down
+│   │   ├── handlers/     <- Presentation
+│   │   ├── models/       <- Domain Interfaces
+│   │   ├── repository/   <- Persistence
+│   │   └── service/      <- Business Logic
+├── frontend/
+│   ├── src/
+│   │   ├── components/   <- Atomic UI units
+│   │   ├── stores/       <- Pinia State (Source of Truth)
+│   │   ├── views/        <- Layout containers
+│   │   └── api/          <- Fetch wrappers
+└── docker-compose.yml
 ```
 
 ## Core Features
 
-### Real-Time Communication
-- **WebSocket Hub**: Manages live connections with reliable timed-delivery mechanisms to prevent message loss.
-- **Unread Notifications**: Persistent sitewide tracking for missed private and group messages with visual badges.
-- **Private Messaging**: 1:1 chat with real-time delivery and image sharing support.
-- **Live Notifications**: Instant alerts for group invites, join requests, and follow activity.
+### Real-Time Hub
+- **Unified WebSocket Protocol**: Handles private messages, group chats, and global notifications.
+- **Live Sync**: Instant sitewide status updates and unread message counters.
+- **Global Toasts**: Real-time notification system that alerts users to events even when away from the chat view.
 
-### Community Groups
-- **Group Management**: Creation, membership lifecycle, and dedicated group chat rooms.
-- **Join Workflow**: Support for both direct invitations and moderated join requests (creator approval).
-- **Events**: Event scheduling with RSVP tracking ("going", "not_going").
+### Syndicate (Groups)
+- **Moderated Entry**: Creator-approval workflow for join requests and invitations.
+- **Group Intelligence**: Dedicated chat rooms and event scheduling with RSVP tracking.
 
 ### User Experience
-- **Profile Management**: Customizable profiles with sitewide avatar rendering.
-- **Responsive UI**: A modern Vue 3 interface with smooth transitions and premium toast notifications.
-- **Security**: HttpOnly/SameSite session management and encrypted password storage (bcrypt).
+- **Retro-Future Aesthetic**: A custom-built CSS design system with glassmorphism and neon accents.
+- **Skeleton Loaders**: Premium "shimmer" loading states to prevent layout shifts.
+- **Secure Auth**: Cookie-based session management with `SameSite=Strict` and bcrypt encryption.
+
+## Getting Started
+
+### Start the Containers
+```bash
+docker compose up --build -d
+```
+
+### Stop the Containers
+```bash
+docker compose down
+```
+
+### Development
+1. **Backend**: `cd backend && go run cmd/server/main.go`
+2. **Frontend**: `cd frontend && npm install && npm run dev`
+
+## Architectural Standards
+- **Dependency Inversion**: Services depend on abstractions, never on concrete repository implementations.
+- **Store Orchestration**: Views never call APIs directly; they only interact with Pinia stores.
+- **Unified Type Safety**: Standardized `int64` identifiers and snake_case JSON mapping across the full stack.
