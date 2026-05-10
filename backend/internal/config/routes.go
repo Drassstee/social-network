@@ -71,7 +71,32 @@ func SetupRoutes(h *handlers.Handler) *http.ServeMux {
 	apimux.HandleFunc("POST /chat/read", authMW(web.NewAppHandler(h.Chat.MarkAsRead)))
 	apimux.HandleFunc("GET /ws", authMW(web.NewAppHandler(h.Chat.Connect)))
 
+	// Healthcheck
+	apimux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
+
+	// API 404 Handler
+	apimux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`{"error": "Resource not found", "code": 404}`))
+	})
+
 	mux.Handle("/api/v1/", http.StripPrefix("/api/v1", apimux))
+
+	// Global 404 Handler (Root)
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"message": "Social Network API v1.0", "docs": "/api/v1/health"}`))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`{"error": "Path not found", "code": 404}`))
+	})
 
 	return mux
 }

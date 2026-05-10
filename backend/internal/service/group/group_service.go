@@ -70,16 +70,13 @@ func (s *GroupService) GetGroup(ctx context.Context, id, userID int64) (*models.
 		return nil, err
 	}
 
-	// Creator always has access
-	if group.CreatorID == userID {
-		return group, nil
-	}
-
 	isMember, err := s.Repo.IsMember(ctx, id, userID)
 	if err != nil {
 		return nil, err
 	}
-	if !isMember {
+
+	// Guard: Only creator or members can access
+	if !isMember && group.CreatorID != userID {
 		return nil, models.ErrNotMember
 	}
 
@@ -386,10 +383,10 @@ func (s *GroupService) GetGroupEvents(ctx context.Context, groupID, userID int64
 
 func (s *GroupService) RespondToEvent(ctx context.Context, eventID, userID int64, response string) error {
 	event, err := s.Repo.GetEventByID(ctx, eventID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return models.ErrEventNotFound
-	}
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.ErrEventNotFound
+		}
 		return err
 	}
 
@@ -397,7 +394,14 @@ func (s *GroupService) RespondToEvent(ctx context.Context, eventID, userID int64
 	if err != nil {
 		return err
 	}
-	if !isMember {
+
+	// Creator of the group also counts as a member for access
+	group, err := s.Repo.GetGroupByID(ctx, event.GroupID)
+	if err != nil {
+		return err
+	}
+
+	if !isMember && group.CreatorID != userID {
 		return models.ErrNotMember
 	}
 
@@ -417,11 +421,17 @@ func (s *GroupService) RespondToEvent(ctx context.Context, eventID, userID int64
 //--------------------------------------------------------------------------------------|
 
 func (s *GroupService) SendGroupMessage(ctx context.Context, groupID, senderID int64, body string, imageURL *string) (*models.GroupMessage, error) {
+	group, err := s.Repo.GetGroupByID(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+
 	isMember, err := s.Repo.IsMember(ctx, groupID, senderID)
 	if err != nil {
 		return nil, err
 	}
-	if !isMember {
+
+	if !isMember && group.CreatorID != senderID {
 		return nil, models.ErrNotMember
 	}
 

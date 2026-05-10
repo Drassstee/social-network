@@ -14,7 +14,10 @@ async function request(path, options = {}) {
 
   // If body is an object and not FormData, stringify it
   let body = options.body;
-  if (body && typeof body === 'object' && !(body instanceof FormData)) {
+  if (body instanceof FormData) {
+    // Let the browser set the Content-Type with boundary for FormData
+    delete headers['Content-Type'];
+  } else if (body && typeof body === 'object') {
     body = JSON.stringify(body);
   }
 

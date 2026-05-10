@@ -21,6 +21,7 @@ The frontend is refactored for high performance and maintainability:
 
 ```
 social-network/
+├── scripts/          <- Build & Management utils
 ├── backend/
 │   ├── cmd/server/       <- Entry point
 │   ├── internal/
@@ -53,19 +54,28 @@ social-network/
 - **Skeleton Loaders**: Premium "shimmer" loading states to prevent layout shifts.
 - **Secure Auth**: Cookie-based session management with `SameSite=Strict` and bcrypt encryption.
 
+## Management Scripts
+
+The project includes a unified management script:
+
+| Script | Command | Description |
+| :--- | :--- | :--- |
+| **Run** | `./scripts/run.sh` | **Unified process**: Cleans, builds, and starts the entire network. |
+
 ## Getting Started
 
-### Start the Containers
+### Quick Start (The One-Step)
 ```bash
+./scripts/run.sh
+```
+
+### Manual Docker Compose
+```bash
+# Standard build and run
 docker compose up --build -d
 ```
 
-### Stop the Containers
-```bash
-docker compose down
-```
-
-### Development
+### Local Development (No Docker)
 1. **Backend**: `cd backend && go run cmd/server/main.go`
 2. **Frontend**: `cd frontend && npm install && npm run dev`
 

@@ -17,9 +17,10 @@ const activeChatMessages = computed(() => {
   return chat.messages[chat.activeChatUser.id] || []
 })
 
-const selectUser = (user) => {
+const selectUser = async (user) => {
   chat.activeChatUser = user
-  chat.fetchMessages(user.id)
+  await chat.fetchMessages(user.id)
+  scrollToBottom()
 }
 
 const scrollToBottom = () => {

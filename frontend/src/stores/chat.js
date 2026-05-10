@@ -116,17 +116,22 @@ export const useChatStore = defineStore('chat', {
         }
       }
     },
+    // Internal helper for deduplicated message insertion
+    _addMessageToStore(targetMap, id, msg) {
+      if (!targetMap[id]) {
+        targetMap[id] = []
+      }
+      if (!targetMap[id].some(m => m.id === msg.id)) {
+        targetMap[id].push(msg)
+      }
+    },
     async addMessage(msg) {
       const { useAuthStore } = await import('./auth')
       const authStore = useAuthStore()
       const myID = authStore.user?.id
       
       const otherID = msg.sender_id === myID ? msg.receiver_id : msg.sender_id
-      
-      if (!this.messages[otherID]) {
-        this.messages[otherID] = []
-      }
-      this.messages[otherID].push(msg)
+      this._addMessageToStore(this.messages, otherID, msg)
 
       // Increment unread if not active chat
       if (msg.sender_id !== myID && (!this.activeChatUser || this.activeChatUser.id !== otherID)) {
@@ -137,17 +142,16 @@ export const useChatStore = defineStore('chat', {
         const { useUIStore } = await import('./ui')
         useUIStore().showToast(`NEW_MESSAGE: ${msg.body.substring(0, 20)}${msg.body.length > 20 ? '...' : ''}`, 'info')
       } else if (msg.sender_id !== myID) {
-          // If it IS the active chat, mark as read on backend
           this.markPrivateAsRead(otherID)
       }
     },
     async markPrivateAsRead(senderID) {
-        try {
-            await api.post(`/chat/read?sender_id=${senderID}`)
-            delete this.unreadCounts[`u_${senderID}`]
-        } catch (err) {
-            console.error('Failed to mark private as read:', err)
-        }
+      try {
+        await api.post(`/chat/read?sender_id=${senderID}`)
+        delete this.unreadCounts[`u_${senderID}`]
+      } catch (err) {
+        console.error('Failed to mark private as read:', err)
+      }
     },
     async uploadImage(file) {
       const formData = new FormData()
@@ -172,7 +176,7 @@ export const useChatStore = defineStore('chat', {
       }
 
       if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-          throw new Error('COMM_LINK_OFFLINE')
+        throw new Error('COMM_LINK_OFFLINE')
       }
 
       const payload = {
@@ -185,35 +189,11 @@ export const useChatStore = defineStore('chat', {
       }
       this.socket.send(JSON.stringify(payload))
     },
-    async sendGroupMessage(groupID, body, file = null) {
-      let imageURL = null
-      if (file) {
-        try {
-          imageURL = await this.uploadImage(file)
-        } catch (err) {
-          console.error('Image upload failed, message not sent', err)
-          throw err
-        }
-      }
-
-      if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-          throw new Error('COMM_LINK_OFFLINE')
-      }
-
-      const payload = {
-        type: 'group_message',
-        data: {
-          group_id: groupID,
-          body: body,
-          image_url: imageURL
-        }
-      }
-      this.socket.send(JSON.stringify(payload))
-    },
     async fetchMessages(userID) {
       try {
         const data = await api.get(`/chat/messages?user_id=${userID}&limit=50&offset=0`)
-        this.messages[userID] = data || []
+        // Reverse because backend returns newest first (DESC), but we display oldest to newest
+        this.messages[userID] = (data || []).reverse()
         
         // Clear unread
         this.markPrivateAsRead(userID)
@@ -227,13 +207,7 @@ export const useChatStore = defineStore('chat', {
       const myID = authStore.user?.id
       
       const groupID = msg.group_id
-      if (!this.groupMessages[groupID]) {
-        this.groupMessages[groupID] = []
-      }
-      
-      if (!this.groupMessages[groupID].some(m => m.id === msg.id)) {
-        this.groupMessages[groupID].push(msg)
-      }
+      this._addMessageToStore(this.groupMessages, groupID, msg)
 
       // Increment unread if not active group
       if (Number(msg.sender_id) !== Number(myID) && Number(this.activeGroupID) !== Number(groupID)) {
@@ -249,17 +223,18 @@ export const useChatStore = defineStore('chat', {
       return msg
     },
     async markGroupAsRead(groupID) {
-        try {
-            await api.post(`/groups/${groupID}/read`)
-            delete this.unreadCounts[`g_${groupID}`]
-        } catch (err) {
-            console.error('Failed to mark group as read:', err)
-        }
+      try {
+        await api.post(`/groups/${groupID}/read`)
+        delete this.unreadCounts[`g_${groupID}`]
+      } catch (err) {
+        console.error('Failed to mark group as read:', err)
+      }
     },
     async fetchGroupMessages(groupID) {
       try {
         const data = await api.get(`/groups/${groupID}/messages`)
-        this.groupMessages[groupID] = data || []
+        // Reverse because backend returns newest first (DESC), but we display oldest to newest
+        this.groupMessages[groupID] = (data || []).reverse()
         
         // Clear unread
         this.markGroupAsRead(groupID)
@@ -267,18 +242,30 @@ export const useChatStore = defineStore('chat', {
         console.error('Failed to fetch group messages:', err)
       }
     },
-    sendGroupMessage(groupID, body, imageURL = null) {
-        if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return
-
-        const payload = {
-            type: 'group_message',
-            data: {
-                group_id: groupID,
-                body: body,
-                image_url: imageURL
-            }
+    async sendGroupMessage(groupID, body, file = null) {
+      let imageURL = null
+      if (file) {
+        try {
+          imageURL = await this.uploadImage(file)
+        } catch (err) {
+          console.error('Image upload failed, message not sent', err)
+          throw err
         }
-        this.socket.send(JSON.stringify(payload))
+      }
+
+      if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+        throw new Error('COMM_LINK_OFFLINE')
+      }
+
+      const payload = {
+        type: 'group_message',
+        data: {
+          group_id: groupID,
+          body: body,
+          image_url: imageURL
+        }
+      }
+      this.socket.send(JSON.stringify(payload))
     },
     getUnreadCount(id, type = 'u') {
       return this.unreadCounts[`${type}_${id}`] || 0

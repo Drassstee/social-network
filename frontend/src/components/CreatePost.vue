@@ -28,10 +28,19 @@ const newPost = ref({
   allowed_users: []
 })
 const postImage = ref(null)
+const imagePreview = ref(null)
 const isSubmitting = ref(false)
 
 const onFileChange = (e) => {
-  postImage.value = e.target.files[0]
+  const file = e.target.files[0]
+  if (!file) return
+  postImage.value = file
+  
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    imagePreview.value = e.target.result
+  }
+  reader.readAsDataURL(file)
 }
 
 const handleCreatePost = async () => {
@@ -75,6 +84,11 @@ const handleCreatePost = async () => {
         class="textarea-retro"
         rows="3"
       ></textarea>
+      
+      <div v-if="postImage" class="image-preview-container">
+        <img :src="imagePreview" alt="Preview" class="image-preview">
+        <button @click.prevent="postImage = null" class="btn-remove">×</button>
+      </div>
       
       <div v-if="newPost.privacy === 'private'" class="allowed-users-selection">
         <label>Select followers to see this post:</label>
@@ -183,5 +197,38 @@ const handleCreatePost = async () => {
   display: flex;
   align-items: center;
   gap: 15px;
+}
+
+.image-preview-container {
+  position: relative;
+  margin-top: 15px;
+  max-width: 200px;
+  border: 2px solid var(--color-neon-cyan);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.image-preview {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.btn-remove {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: var(--color-neon-magenta);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: bold;
+  box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
 }
 </style>

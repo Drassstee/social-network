@@ -2,11 +2,13 @@
 import { ref, onMounted } from 'vue'
 import { useChatStore } from '../stores/chat'
 import { useGroupStore } from '../stores/groups'
+import { useAuthStore } from '../stores/auth'
 import { useUIStore } from '../stores/ui'
 import SkeletonLoader from '../components/SkeletonLoader.vue'
 
 const chat = useChatStore()
 const groupStore = useGroupStore()
+const auth = useAuthStore()
 const ui = useUIStore()
 const showCreateModal = ref(false)
 const newGroup = ref({
@@ -69,8 +71,14 @@ onMounted(() => {
             <div v-if="chat.getUnreadCount(group.id, 'g') > 0" class="badge">{{ chat.getUnreadCount(group.id, 'g') }}</div>
           </div>
           <p class="group-desc">{{ group.description }}</p>
-          <div class="group-actions" @click.stop>
-            <button @click.prevent="joinGroup(group.id)" class="btn-retro ghost">REQUEST_ACCESS</button>
+          <div class="group-actions">
+            <button 
+              v-if="Number(group.creator_id) !== Number(auth.user?.id)"
+              @click.prevent.stop="joinGroup(group.id)" 
+              class="btn-retro ghost"
+            >
+              REQUEST_ACCESS
+            </button>
             <button class="btn-retro mini">OPEN</button>
           </div>
         </router-link>

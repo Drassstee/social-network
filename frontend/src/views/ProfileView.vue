@@ -42,6 +42,7 @@ const handleFollow = async () => {
 }
 
 const handleUnfollow = async () => {
+  if (!window.confirm('DISCONNECT FROM THIS NODE? (UNFOLLOW)')) return
   try {
     await profileStore.unfollow(route.params.id)
     ui.showToast('Unfollowed', 'success')
@@ -53,6 +54,9 @@ const togglePrivacy = async () => {
   if (!profileStore.profile) return
   const current = profileStore.profile.user
   const newType = profileStore.profile.privacy === 'public' ? 'private' : 'public'
+  
+  if (!window.confirm(`CHANGE PROTOCOL TO ${newType.toUpperCase()}?`)) return
+
   try {
     await profileStore.updateProfile({ 
       ...current,
