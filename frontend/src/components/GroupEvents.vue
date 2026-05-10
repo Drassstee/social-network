@@ -22,10 +22,7 @@ const fetchEvents = async () => {
 
 const handleCreateEvent = async () => {
     try {
-        await groupStore.createEvent(props.groupId, {
-            ...newEvent.value,
-            event_time: new Date(newEvent.value.event_time).toISOString()
-        })
+        await groupStore.createEvent(props.groupId, newEvent.value)
         showCreateForm.value = false
         newEvent.value = { title: '', description: '', event_time: '' }
         fetchEvents()

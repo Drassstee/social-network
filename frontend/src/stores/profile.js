@@ -6,9 +6,21 @@ export const useProfileStore = defineStore('profile', {
     profile: null,
     loading: false,
     error: null,
-    followStatus: 'none'
+    followStatus: 'none',
+    myFollowers: []
   }),
   actions: {
+    async fetchMyFollowers(userId) {
+      if (!userId) return
+      try {
+        const data = await api.get(`/users/${userId}`)
+        this.myFollowers = data.followers || []
+        return this.myFollowers
+      } catch (err) {
+        console.error('Failed to fetch followers:', err)
+        throw err
+      }
+    },
     async fetchProfile(id, currentUserId) {
       this.loading = true
       try {

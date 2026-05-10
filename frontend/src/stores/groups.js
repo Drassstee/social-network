@@ -95,7 +95,11 @@ export const useGroupStore = defineStore('groups', {
     },
     async createEvent(groupId, eventData) {
         try {
-            return await api.post(`/groups/${groupId}/events`, eventData)
+            const dataToSubmit = { 
+              ...eventData,
+              event_time: new Date(eventData.event_time).toISOString()
+            }
+            return await api.post(`/groups/${groupId}/events`, dataToSubmit)
         } catch (err) {
             console.error('Failed to create event:', err)
             throw err

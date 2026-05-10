@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"social-network/internal/models"
+	"social-network/internal/utils"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -52,7 +53,7 @@ func (s *UserService) Register(u *models.User) (*models.UserData, error) {
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
 		Nickname:  u.Nickname,
-		AvatarURL: u.AvatarURL,
+		AvatarURL: utils.FormatAvatarURL(u.AvatarURL),
 		UUID:      sess.ID,
 		ExpiresAt: &sess.ExpiresAt,
 	}, nil
@@ -90,7 +91,7 @@ func (s *UserService) Login(email, password string) (*models.UserData, error) {
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
 		Nickname:  u.Nickname,
-		AvatarURL: u.AvatarURL,
+		AvatarURL: utils.FormatAvatarURL(u.AvatarURL),
 		UUID:      sess.ID,
 		ExpiresAt: &sess.ExpiresAt,
 	}, nil

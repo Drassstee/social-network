@@ -4,13 +4,17 @@ import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useGroupStore } from '../stores/groups'
 import { usePostStore } from '../stores/posts'
+import { useUIStore } from '../stores/ui'
 import GroupEvents from '../components/GroupEvents.vue'
 import GroupChat from '../components/GroupChat.vue'
+import CreatePost from '../components/CreatePost.vue'
+import PostCard from '../components/PostCard.vue'
 
 const route = useRoute()
 const auth = useAuthStore()
 const groupStore = useGroupStore()
 const postStore = usePostStore()
+const ui = useUIStore()
 
 const members = ref([])
 const activeTab = ref('posts') // 'posts', 'members', 'events', 'chat'
@@ -27,18 +31,6 @@ const isCreator = computed(() => {
 })
 const joinRequests = ref([])
 const inviteUserId = ref('')
-const feedbackMessage = ref('')
-const feedbackType = ref('info')
-
-const showFeedback = (msg, type = 'info') => {
-    feedbackMessage.value = msg
-    feedbackType.value = type
-    setTimeout(() => { feedbackMessage.value = '' }, 3000)
-}
-
-const newPostContent = ref('')
-const newPostImage = ref(null)
-const isPosting = ref(false)
 
 const fetchGroupData = async () => {
     error.value = null
@@ -72,32 +64,13 @@ const fetchJoinRequests = async () => {
 const handleJoinRequest = async () => {
     try {
         await groupStore.requestJoin(route.params.id)
-        showFeedback('Request sent to creator', 'success')
+        ui.showToast('Request sent to creator', 'success')
     } catch (err) {
         console.error('Failed to send request:', err)
-        showFeedback('Failed to send request', 'error')
+        ui.showToast('Failed to send request', 'error')
     }
 }
 
-const handleCreatePost = async () => {
-    if (!newPostContent.value && !newPostImage.value) return
-    isPosting.value = true
-    try {
-        await postStore.createPost(
-          newPostContent.value,
-          'public',
-          route.params.id,
-          [],
-          newPostImage.value
-        )
-        newPostContent.value = ''
-        newPostImage.value = null
-    } catch (err) {
-        console.error('Failed to create post:', err)
-    } finally {
-        isPosting.value = false
-    }
-}
 
 const respondToRequest = async (requestId, accept) => {
     try {
@@ -109,18 +82,15 @@ const respondToRequest = async (requestId, accept) => {
     }
 }
 
-const onFileChange = (e) => {
-    newPostImage.value = e.target.files[0]
-}
 
 const handleInvite = async (userId) => {
     try {
         await groupStore.inviteUser(groupStore.currentGroup.id, userId)
-        showFeedback('Invitation sent!', 'success')
+        ui.showToast('Invitation sent!', 'success')
         inviteUserId.value = ''
     } catch (err) {
         console.error('Failed to invite user:', err)
-        showFeedback('Failed to invite user', 'error')
+        ui.showToast('Failed to invite user', 'error')
     }
 }
 
@@ -142,9 +112,6 @@ watch(() => route.params.id, fetchGroupData)
     </div>
 
     <div class="group-detail" v-else-if="groupStore.currentGroup">
-        <div v-if="feedbackMessage" class="feedback-toast" :class="feedbackType">
-            {{ feedbackMessage }}
-        </div>
         <header class="group-header">
             <div class="group-info">
                 <h1 class="glow-text">{{ groupStore.currentGroup.title }}</h1>
@@ -169,30 +136,13 @@ watch(() => route.params.id, fetchGroupData)
         <div class="tab-content">
             <!-- Posts Tab -->
             <div v-if="activeTab === 'posts'" class="posts-tab">
-                <div v-if="isMember || isCreator" class="card-retro create-post">
-                    <textarea v-model="newPostContent" class="input-retro" placeholder="RECORD_TRANSMISSION..."></textarea>
-                    <div class="post-controls">
-                        <label class="file-label">
-                          ATTACH_FILE
-                          <input type="file" @change="onFileChange" accept="image/*" class="hidden-input" />
-                        </label>
-                        <button @click="handleCreatePost" :disabled="isPosting" class="btn-retro">TRANSMIT</button>
-                    </div>
-                    <p v-if="newPostImage" class="file-name">{{ newPostImage.name }}</p>
-                </div>
+                <CreatePost v-if="isMember || isCreator" :groupId="route.params.id" />
 
                 <div v-if="!isMember && !isCreator" class="blocked-content">
                     <p>ENCRYPTED: ONLY AUTHORIZED UNITS CAN VIEW LOGS.</p>
                 </div>
                 <div v-else class="posts-list">
-                    <div v-for="post in postStore.posts" :key="post.id" class="card-retro post-card">
-                        <div class="post-header">
-                            <strong class="author-name">{{ post.author.first_name }} {{ post.author.last_name }}</strong>
-                            <span class="post-date">{{ new Date(post.created_at).toLocaleString() }}</span>
-                        </div>
-                        <p class="post-content">{{ post.content }}</p>
-                        <img v-if="post.image_url" :src="post.image_url" class="post-image" />
-                    </div>
+                    <PostCard v-for="post in postStore.posts" :key="post.id" :post="post" />
                 </div>
             </div>
 

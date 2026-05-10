@@ -2,42 +2,35 @@
 import { ref, onMounted } from 'vue'
 import { useChatStore } from '../stores/chat'
 import { useGroupStore } from '../stores/groups'
+import { useUIStore } from '../stores/ui'
+import SkeletonLoader from '../components/SkeletonLoader.vue'
 
 const chat = useChatStore()
 const groupStore = useGroupStore()
+const ui = useUIStore()
 const showCreateModal = ref(false)
 const newGroup = ref({
   title: '',
   description: ''
 })
-const feedbackMessage = ref('')
-const feedbackType = ref('info')
-
-const showFeedback = (msg, type = 'info') => {
-  feedbackMessage.value = msg
-  feedbackType.value = type
-  setTimeout(() => { feedbackMessage.value = '' }, 3000)
-}
 
 const handleCreateGroup = async () => {
   try {
     await groupStore.createGroup(newGroup.value.title, newGroup.value.description)
     showCreateModal.value = false
     newGroup.value = { title: '', description: '' }
-    showFeedback('Syndicate initialized!', 'success')
+    ui.showToast('Syndicate initialized!', 'success')
   } catch (err) {
-    console.error('Failed to create group:', err)
-    showFeedback(err.message, 'error')
+    ui.showToast(err.message, 'error')
   }
 }
 
 const joinGroup = async (groupId) => {
   try {
     await groupStore.requestJoin(groupId)
-    showFeedback('Join request sent!', 'success')
+    ui.showToast('Join request sent!', 'success')
   } catch (err) {
-    console.error('Failed to join group:', err)
-    showFeedback(err.message, 'error')
+    ui.showToast(err.message, 'error')
   }
 }
 
@@ -48,9 +41,6 @@ onMounted(() => {
 
 <template>
   <div class="groups-view">
-    <div v-if="feedbackMessage" class="feedback-toast" :class="feedbackType">
-      {{ feedbackMessage }}
-    </div>
     <header class="view-header">
       <div class="header-content">
         <div>
@@ -61,7 +51,14 @@ onMounted(() => {
       </div>
     </header>
 
-    <div class="groups-grid">
+    <div v-if="groupStore.loading && groupStore.groups.length === 0" class="groups-grid">
+      <SkeletonLoader type="card" :count="4" />
+    </div>
+    <div v-else-if="groupStore.groups.length === 0" class="no-groups card-retro">
+      <p>STATUS_OFFLINE: NO_ACTIVE_SYNDICATES_DETECTED.</p>
+      <button @click="showCreateModal = true" class="btn-retro">INITIALIZE_FIRST_NODE</button>
+    </div>
+    <div v-else class="groups-grid">
         <router-link v-for="group in groupStore.groups" :key="group.id" :to="`/groups/${group.id}`" class="card-retro group-card">
           <div class="group-header">
             <div class="group-icon">#</div>
@@ -251,5 +248,32 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 15px;
   margin-top: 10px;
+}
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: var(--color-neon-cyan);
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.8rem;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  50% { opacity: 0.5; }
+}
+
+.no-groups {
+  text-align: center;
+  padding: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.no-groups p {
+  color: var(--color-neon-magenta);
+  font-family: 'VT323', monospace;
+  font-size: 1.5rem;
 }
 </style>

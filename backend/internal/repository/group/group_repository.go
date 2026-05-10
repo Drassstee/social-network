@@ -120,7 +120,7 @@ func (r *sqlGroupRepository) RemoveMember(ctx context.Context, groupID, userID i
 
 func (r *sqlGroupRepository) GetMembers(ctx context.Context, groupID int64) ([]models.GroupMember, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT gm.group_id, gm.user_id, gm.role, gm.joined_at, COALESCE(u.nickname, ''), u.first_name, u.last_name
+		`SELECT gm.group_id, gm.user_id, gm.role, gm.joined_at, COALESCE(u.nickname, ''), u.first_name, u.last_name, COALESCE(u.avatar_url, '')
 		 FROM group_members gm
 		 JOIN users u ON gm.user_id = u.id
 		 WHERE gm.group_id = ?
@@ -133,7 +133,7 @@ func (r *sqlGroupRepository) GetMembers(ctx context.Context, groupID int64) ([]m
 	var members []models.GroupMember
 	for rows.Next() {
 		var m models.GroupMember
-		if err := rows.Scan(&m.GroupID, &m.UserID, &m.Role, &m.JoinedAt, &m.Username, &m.FirstName, &m.LastName); err != nil {
+		if err := rows.Scan(&m.GroupID, &m.UserID, &m.Role, &m.JoinedAt, &m.Username, &m.FirstName, &m.LastName, &m.AvatarURL); err != nil {
 			return nil, err
 		}
 		members = append(members, m)

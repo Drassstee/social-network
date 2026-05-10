@@ -23,22 +23,7 @@ const handleAvatarChange = (e) => {
 }
 
 const handleRegister = async () => {
-  const payload = { ...userData.value }
-  if (payload.date_of_birth) {
-    payload.dob = new Date(payload.date_of_birth).toISOString()
-    delete payload.date_of_birth
-  }
-
-  let registrationData = payload
-  if (avatarFile.value) {
-    registrationData = new FormData()
-    for (const key in payload) {
-      registrationData.append(key, payload[key])
-    }
-    registrationData.append('avatar', avatarFile.value)
-  }
-
-  const success = await auth.register(registrationData)
+  const success = await auth.register(userData.value, avatarFile.value)
   if (success) {
     router.push('/')
   }

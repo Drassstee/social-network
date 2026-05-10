@@ -2,6 +2,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProfileStore } from '../stores/profile'
+import UserAvatar from '../components/UserAvatar.vue'
 
 const route = useRoute()
 const profileStore = useProfileStore()
@@ -42,7 +43,7 @@ watch(() => route.path, fetchList)
       </div>
       <div v-else class="users-grid">
         <router-link v-for="user in users" :key="user.id" :to="`/profile/${user.id}`" class="user-card-mini card-retro">
-          <div class="avatar-sm">{{ user.first_name[0] }}</div>
+          <UserAvatar :url="user.avatar_url" :name="user.first_name" size="small" />
           <div class="user-info-mini">
             <span class="fullname">{{ user.first_name }} {{ user.last_name }}</span>
             <span class="uid">UID_{{ user.id.toString().padStart(4, '0') }}</span>
@@ -101,20 +102,6 @@ watch(() => route.path, fetchList)
   transform: scale(1.05);
   box-shadow: 0 0 15px var(--color-neon-cyan);
   border-color: var(--color-neon-cyan);
-}
-
-.avatar-sm {
-  width: 45px;
-  height: 45px;
-  background: var(--color-dark-bg);
-  border: 1px solid var(--color-neon-magenta);
-  color: var(--color-neon-magenta);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Press Start 2P', cursive;
-  font-size: 1.2rem;
-  box-shadow: 2px 2px 0 var(--color-neon-cyan);
 }
 
 .user-info-mini {

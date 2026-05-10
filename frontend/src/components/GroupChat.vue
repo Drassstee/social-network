@@ -38,23 +38,19 @@ const onSelectEmoji = (emoji) => {
 const handleSendMessage = async () => {
     if (!newMessage.value.trim() && !imageFile.value) return
     
-    let imageURL = null
-    if (imageFile.value) {
-        try {
-            imageURL = await chatStore.uploadImage(imageFile.value)
-        } catch (err) { 
-            console.error('Upload failed:', err)
-            return
-        }
+    try {
+        await chatStore.sendGroupMessage(
+            parseInt(props.groupId), 
+            newMessage.value, 
+            imageFile.value
+        )
+        newMessage.value = ''
+        imageFile.value = null
+        showEmojiPicker.value = false
+        scrollToBottom()
+    } catch (err) {
+        console.error('Failed to send group message:', err)
     }
-
-    chatStore.sendGroupMessage(parseInt(props.groupId), newMessage.value, imageURL)
-    
-    // Reset inputs
-    newMessage.value = ''
-    imageFile.value = null
-    showEmojiPicker.value = false
-    scrollToBottom()
 }
 
 onMounted(() => {

@@ -46,21 +46,18 @@ const handleFileChange = (e) => {
 const handleSendMessage = async () => {
   if (!newMessage.value.trim() && !imageFile.value) return
   
-  let imageURL = null
-  if (imageFile.value) {
-    try {
-      imageURL = await chat.uploadImage(imageFile.value)
-    } catch (err) { 
-      console.error('Upload failed:', err)
-      return // Don't send message if upload fails
-    }
+  try {
+    await chat.sendPrivateMessage(
+      chat.activeChatUser.id, 
+      newMessage.value, 
+      imageFile.value
+    )
+    newMessage.value = ''
+    imageFile.value = null
+    showEmojiPicker.value = false
+  } catch (err) {
+    console.error('Failed to send message:', err)
   }
-
-  chat.sendMessage(chat.activeChatUser.id, newMessage.value, imageURL)
-
-  newMessage.value = ''
-  imageFile.value = null
-  showEmojiPicker.value = false
 }
 
 onMounted(() => {

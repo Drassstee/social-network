@@ -132,6 +132,10 @@ export const useChatStore = defineStore('chat', {
       if (msg.sender_id !== myID && (!this.activeChatUser || this.activeChatUser.id !== otherID)) {
         const key = `u_${otherID}`
         this.unreadCounts[key] = (this.unreadCounts[key] || 0) + 1
+        
+        // Global toast notification
+        const { useUIStore } = await import('./ui')
+        useUIStore().showToast(`NEW_MESSAGE: ${msg.body.substring(0, 20)}${msg.body.length > 20 ? '...' : ''}`, 'info')
       } else if (msg.sender_id !== myID) {
           // If it IS the active chat, mark as read on backend
           this.markPrivateAsRead(otherID)
@@ -156,13 +160,50 @@ export const useChatStore = defineStore('chat', {
         throw err
       }
     },
-    sendMessage(receiverID, body, imageURL = null) {
-      if (!this.socket || this.socket.readyState !== WebSocket.OPEN) return
+    async sendPrivateMessage(receiverID, body, file = null) {
+      let imageURL = null
+      if (file) {
+        try {
+          imageURL = await this.uploadImage(file)
+        } catch (err) {
+          console.error('Image upload failed, message not sent', err)
+          throw err
+        }
+      }
+
+      if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+          throw new Error('COMM_LINK_OFFLINE')
+      }
 
       const payload = {
         type: 'private_message',
         data: {
           receiver_id: receiverID,
+          body: body,
+          image_url: imageURL
+        }
+      }
+      this.socket.send(JSON.stringify(payload))
+    },
+    async sendGroupMessage(groupID, body, file = null) {
+      let imageURL = null
+      if (file) {
+        try {
+          imageURL = await this.uploadImage(file)
+        } catch (err) {
+          console.error('Image upload failed, message not sent', err)
+          throw err
+        }
+      }
+
+      if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+          throw new Error('COMM_LINK_OFFLINE')
+      }
+
+      const payload = {
+        type: 'group_message',
+        data: {
+          group_id: groupID,
           body: body,
           image_url: imageURL
         }
@@ -198,6 +239,10 @@ export const useChatStore = defineStore('chat', {
       if (Number(msg.sender_id) !== Number(myID) && Number(this.activeGroupID) !== Number(groupID)) {
         const key = `g_${groupID}`
         this.unreadCounts[key] = (this.unreadCounts[key] || 0) + 1
+
+        // Global toast notification
+        const { useUIStore } = await import('./ui')
+        useUIStore().showToast(`GROUP_MSG: ${msg.body.substring(0, 20)}${msg.body.length > 20 ? '...' : ''}`, 'info')
       } else if (Number(msg.sender_id) !== Number(myID)) {
           this.markGroupAsRead(groupID)
       }

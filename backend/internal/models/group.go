@@ -30,6 +30,7 @@ type GroupMember struct {
 	Username  string `json:"username,omitempty"`
 	FirstName string `json:"first_name,omitempty"`
 	LastName  string `json:"last_name,omitempty"`
+	AvatarURL string `json:"avatar_url,omitempty"`
 }
 
 //--------------------------------------------------------------------------------------|

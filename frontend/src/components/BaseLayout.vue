@@ -2,13 +2,26 @@
 import { useAuthStore } from '../stores/auth'
 import { useChatStore } from '../stores/chat'
 import { useNotificationStore } from '../stores/notifications'
-import { useRouter } from 'vue-router'
-import { onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { ref, onMounted, watch } from 'vue'
+import FeedbackToast from './FeedbackToast.vue'
+import UserAvatar from './UserAvatar.vue'
 
 const auth = useAuthStore()
 const chat = useChatStore()
 const notifStore = useNotificationStore()
 const router = useRouter()
+const route = useRoute()
+const isMenuOpen = ref(false)
+
+const toggleMenu = () => {
+  isMenuOpen.value = !isMenuOpen.value
+}
+
+// Close menu on navigation
+watch(() => route.path, () => {
+  isMenuOpen.value = false
+})
 
 const handleLogout = async () => {
   await auth.logout()
@@ -40,12 +53,16 @@ watch(() => auth.isAuthenticated, (val) => {
   <div class="layout-wrapper">
     <div class="bg-synthwave-grid"></div>
     <div class="crt-overlay"></div>
+    <FeedbackToast />
     <nav class="sidebar">
       <div class="logo">
         <h1 class="logo-text">Network</h1>
+        <button class="mobile-toggle" @click="toggleMenu">
+          {{ isMenuOpen ? '✕' : '☰' }}
+        </button>
       </div>
       
-      <div v-if="auth.isAuthenticated" class="nav-links">
+      <div v-if="auth.isAuthenticated" :class="['nav-links', { 'open': isMenuOpen }]">
         <router-link to="/" class="nav-item">
           <span class="icon">🏠</span> Feed
         </router-link>
@@ -65,8 +82,7 @@ watch(() => auth.isAuthenticated, (val) => {
         </router-link>
         
         <div class="user-profile-summary">
-          <img v-if="auth.user?.avatar_url" :src="auth.user.avatar_url" class="avatar-nav-img" />
-          <div v-else class="avatar-placeholder small">{{ auth.user?.first_name?.[0] || 'U' }}</div>
+          <UserAvatar :url="auth.user?.avatar_url" :name="auth.user?.first_name" size="small" />
           <div class="user-info-nav">
             <span class="nav-username">{{ auth.user?.first_name }}</span>
             <span class="nav-role">OPERATOR</span>
@@ -194,13 +210,6 @@ watch(() => auth.isAuthenticated, (val) => {
   background: rgba(0, 255, 255, 0.05);
 }
 
-.avatar-nav-img {
-  width: 40px;
-  height: 40px;
-  border: 2px solid var(--color-neon-magenta);
-  object-fit: cover;
-}
-
 .user-info-nav {
   display: flex;
   flex-direction: column;
@@ -239,14 +248,47 @@ watch(() => auth.isAuthenticated, (val) => {
   .sidebar {
     width: 100%;
     height: auto;
-    position: relative;
-    padding: 20px;
+    position: sticky;
+    top: 0;
+    padding: 15px 20px;
     border-right: none;
     border-bottom: 4px solid var(--color-neon-magenta);
   }
   
   .logo {
-    margin-bottom: 20px;
+    margin-bottom: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
   }
+
+  .mobile-toggle {
+    display: block;
+    background: none;
+    border: 2px solid var(--color-neon-cyan);
+    color: var(--color-neon-cyan);
+    font-size: 1.5rem;
+    padding: 5px 12px;
+    cursor: pointer;
+    box-shadow: 3px 3px 0 var(--color-neon-magenta);
+  }
+
+  .nav-links {
+    display: none;
+    padding-top: 20px;
+  }
+
+  .nav-links.open {
+    display: flex;
+  }
+
+  .user-profile-summary {
+    margin-top: 20px;
+  }
+}
+
+.mobile-toggle {
+  display: none;
 }
 </style>

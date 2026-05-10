@@ -31,11 +31,27 @@ export const useAuthStore = defineStore('auth', {
         this.loading = false
       }
     },
-    async register(userData) {
+    async register(payload, avatarFile = null) {
       this.loading = true
       this.error = null
       try {
-        const data = await api.post('/register', userData)
+        // Date transformation
+        const dataToSubmit = { ...payload }
+        if (dataToSubmit.date_of_birth) {
+          dataToSubmit.dob = new Date(dataToSubmit.date_of_birth).toISOString()
+          delete dataToSubmit.date_of_birth
+        }
+
+        let body = dataToSubmit
+        if (avatarFile) {
+          body = new FormData()
+          for (const key in dataToSubmit) {
+            body.append(key, dataToSubmit[key])
+          }
+          body.append('avatar', avatarFile)
+        }
+
+        const data = await api.post('/register', body)
         this.setUser(data)
         return true
       } catch (err) {

@@ -1,6 +1,8 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from '../stores/auth'
+import { usePostStore } from '../stores/posts'
+import { useUIStore } from '../stores/ui'
 import UserAvatar from './UserAvatar.vue'
 
 const props = defineProps({
@@ -8,6 +10,9 @@ const props = defineProps({
 })
 
 const auth = useAuthStore()
+const postStore = usePostStore()
+const ui = useUIStore()
+
 const showComments = ref(false)
 const newCommentContent = ref('')
 const commentImage = ref(null)
@@ -24,38 +29,18 @@ const handleCreateComment = async () => {
   if (!newCommentContent.value && !commentImage.value) return
 
   try {
-    const formData = new FormData()
-    formData.append('content', newCommentContent.value)
-    formData.append('post_id', props.post.id)
-    if (commentImage.value) {
-      formData.append('image', commentImage.value)
-    }
-
-    const resp = await fetch('/api/v1/comments', {
-      method: 'POST',
-      body: formData
-    })
+    await postStore.addComment(
+      props.post.id,
+      newCommentContent.value,
+      commentImage.value
+    )
     
-    if (resp.ok) {
-      const data = await resp.json()
-      if (!props.post.comments) props.post.comments = []
-      
-      // Add optimistic author data if missing from response
-      if (data && !data.author) {
-        data.author = {
-          id: auth.user.id,
-          first_name: auth.user.first_name,
-          last_name: auth.user.last_name,
-          avatar_url: auth.user.avatar_url
-        }
-      }
-      
-      props.post.comments.push(data)
-      newCommentContent.value = ''
-      commentImage.value = null
-    }
+    newCommentContent.value = ''
+    commentImage.value = null
+    ui.showToast('Comment added!', 'success')
   } catch (e) {
     console.error('Failed to create comment:', e)
+    ui.showToast(e.message, 'error')
   }
 }
 </script>

@@ -114,7 +114,16 @@ func (s *GroupService) GetMembers(ctx context.Context, groupID, userID int64) ([
 			return nil, models.ErrNotMember
 		}
 	}
-	return s.Repo.GetMembers(ctx, groupID)
+	members, err := s.Repo.GetMembers(ctx, groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range members {
+		members[i].AvatarURL = utils.FormatAvatarURL(members[i].AvatarURL)
+	}
+
+	return members, nil
 }
 
 //--------------------------------------------------------------------------------------|

@@ -1,26 +1,21 @@
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'
+import { onMounted, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useProfileStore } from '../stores/profile'
+import { useUIStore } from '../stores/ui'
 import UserAvatar from '../components/UserAvatar.vue'
 import PostCard from '../components/PostCard.vue'
+import SkeletonLoader from '../components/SkeletonLoader.vue'
 
 const route = useRoute()
 const auth = useAuthStore()
 const profileStore = useProfileStore()
+const ui = useUIStore()
 
 const isMe = computed(() => {
   return auth.user && profileStore.profile?.user?.id == auth.user.id
 })
-const feedbackMessage = ref('')
-const feedbackType = ref('info')
-
-const showFeedback = (msg, type = 'info') => {
-  feedbackMessage.value = msg
-  feedbackType.value = type
-  setTimeout(() => { feedbackMessage.value = '' }, 3000)
-}
 
 const isPrivateAndNotFollowed = computed(() => {
   if (isMe.value) return false
@@ -41,7 +36,7 @@ watch(() => route.params.id, (newId) => fetchProfile(newId))
 const handleFollow = async () => {
   try {
     const isAccepted = await profileStore.follow(route.params.id)
-    showFeedback(isAccepted ? 'Following!' : 'Follow request sent!', 'success')
+    ui.showToast(isAccepted ? 'Following!' : 'Follow request sent!', 'success')
     fetchProfile(route.params.id)
   } catch (e) { console.error(e) }
 }
@@ -49,7 +44,7 @@ const handleFollow = async () => {
 const handleUnfollow = async () => {
   try {
     await profileStore.unfollow(route.params.id)
-    showFeedback('Unfollowed', 'success')
+    ui.showToast('Unfollowed', 'success')
     fetchProfile(route.params.id)
   } catch (e) { console.error(e) }
 }
@@ -65,7 +60,7 @@ const togglePrivacy = async () => {
       email: profileStore.profile.email,
       dob: profileStore.profile.dob
     })
-    showFeedback(`Profile is now ${newType}`, 'success')
+    ui.showToast(`Profile is now ${newType}`, 'success')
     fetchProfile(route.params.id)
   } catch (e) { console.error(e) }
 }
@@ -73,10 +68,16 @@ const togglePrivacy = async () => {
 
 <template>
   <div class="profile-view">
-    <div v-if="feedbackMessage" class="feedback-toast" :class="feedbackType">
-      {{ feedbackMessage }}
+    <div v-if="profileStore.loading && !profileStore.profile" class="profile-skeleton">
+      <SkeletonLoader type="avatar" />
+      <div class="skel-meta">
+        <SkeletonLoader type="text" :count="2" />
+      </div>
+      <div class="skel-content">
+        <SkeletonLoader type="card" :count="2" />
+      </div>
     </div>
-    <div v-if="profileStore.loading" class="loading">SCANNING DATABASE...</div>
+
     <div v-else-if="profileStore.profile" class="profile-content">
       <div class="card-retro profile-header">
         <div class="profile-cover">
@@ -205,12 +206,6 @@ const togglePrivacy = async () => {
   margin-bottom: 30px;
 }
 
-.avatar-large {
-  width: 150px;
-  height: 150px;
-  font-size: 5rem;
-}
-
 .user-details {
   flex: 1;
   padding-bottom: 10px;
@@ -333,164 +328,6 @@ const togglePrivacy = async () => {
   text-align: center;
 }
 
-.post-card {
-  margin-bottom: 25px;
-}
-
-.post-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 15px;
-}
-
-.post-meta {
-  flex: 1;
-}
-
-.author-name {
-  font-size: 1.3rem;
-  color: var(--color-neon-cyan);
-}
-
-.post-date {
-  font-size: 1rem;
-  color: rgba(0, 255, 255, 0.6);
-}
-
-.privacy-badge {
-  font-size: 0.9rem;
-  background: rgba(255, 0, 255, 0.1);
-  color: var(--color-neon-magenta);
-  padding: 2px 10px;
-  border: 1px solid var(--color-neon-magenta);
-  text-transform: uppercase;
-}
-
-.post-body {
-  margin-bottom: 20px;
-  font-size: 1.3rem;
-  color: var(--color-neon-yellow);
-  line-height: 1.4;
-  padding: 15px;
-  background: rgba(0,0,0,0.3);
-}
-
-.post-image {
-  max-width: 100%;
-  max-height: 400px;
-  object-fit: contain;
-  border: 1px solid var(--color-neon-cyan);
-  margin-top: 15px;
-  display: block;
-}
-
-.post-footer {
-  border-top: 1px solid var(--color-grid-line);
-  padding-top: 15px;
-}
-
-.action-btn {
-  background: none;
-  border: none;
-  color: var(--color-neon-cyan);
-  cursor: pointer;
-  font-weight: 700;
-  font-family: 'VT323', monospace;
-  font-size: 1.2rem;
-  transition: all 0.2s;
-}
-
-.action-btn:hover {
-  color: var(--color-neon-magenta);
-  text-shadow: 0 0 5px var(--color-neon-magenta);
-}
-
-.comments-section {
-  padding-top: 20px;
-  margin-top: 15px;
-  border-top: 1px solid var(--color-grid-line);
-}
-
-.comments-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-.comment-item {
-  display: flex;
-  gap: 10px;
-}
-
-.comment-content {
-  background: rgba(0, 255, 255, 0.05);
-  border: 1px solid var(--color-neon-cyan);
-  padding: 8px 15px;
-  flex: 1;
-}
-
-.comment-author {
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: var(--color-neon-magenta);
-  display: block;
-}
-
-.comment-image {
-  max-width: 200px;
-  border: 1px solid var(--color-neon-cyan);
-  margin-top: 8px;
-}
-
-.comment-input-area {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.mini-textarea {
-  min-height: 40px;
-  font-size: 1.2rem;
-  padding: 10px;
-}
-
-.comment-actions {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 10px;
-}
-
-.comment-file-label {
-  cursor: pointer;
-  background: rgba(255, 0, 255, 0.1);
-  border: 1px solid var(--color-neon-magenta);
-  padding: 6px 12px;
-  color: var(--color-neon-magenta);
-  transition: all 0.3s;
-}
-
-.comment-file-label:hover {
-  background: var(--color-neon-magenta);
-  color: white;
-}
-
-.hidden-input {
-  display: none;
-}
-
-.file-name-mini {
-  font-size: 0.9rem;
-  color: rgba(0, 255, 255, 0.6);
-}
-
-.mini-btn {
-  padding: 5px 15px;
-  font-size: 0.9rem;
-}
-
 .private-overlay {
   padding: 60px 40px;
   text-align: center;
@@ -515,25 +352,9 @@ const togglePrivacy = async () => {
   font-size: 1.4rem;
 }
 
-.italic { font-style: italic; }
 .avatar-container-large {
   flex-shrink: 0;
   margin-top: -60px;
-}
-
-.avatar-large-img {
-  width: 150px;
-  height: 150px;
-  border: 4px solid var(--color-neon-magenta);
-  box-shadow: 0 0 20px var(--color-neon-magenta);
-  object-fit: cover;
-}
-
-.avatar-small-img {
-  width: 45px;
-  height: 45px;
-  border: 2px solid var(--color-neon-magenta);
-  object-fit: cover;
 }
 
 .loading, .error-msg {
@@ -553,5 +374,20 @@ const togglePrivacy = async () => {
   font-family: 'VT323', monospace;
   font-size: 1.5rem;
   color: var(--color-neon-cyan);
+}
+.profile-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  align-items: center;
+}
+
+.skel-meta {
+  width: 200px;
+}
+
+.skel-content {
+  width: 100%;
+  max-width: 600px;
 }
 </style>
