@@ -54,4 +54,3 @@ type PostRepo interface {
 	GetComments(postID int64) ([]Comment, error)
 	GetCommentsBatch(postIDs []int64) (map[int64][]Comment, error)
 }
-

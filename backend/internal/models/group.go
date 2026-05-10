@@ -7,7 +7,6 @@ import (
 
 //--------------------------------------------------------------------------------------|
 
-// Group represents a social group that users can create and join.
 type Group struct {
 	ID          int64     `json:"id"`
 	CreatorID   int64     `json:"creator_id"`
@@ -19,14 +18,12 @@ type Group struct {
 
 //--------------------------------------------------------------------------------------|
 
-// GroupMember represents a user's membership in a group.
 type GroupMember struct {
 	GroupID  int64     `json:"group_id"`
 	UserID   int64     `json:"user_id"`
-	Role     string    `json:"role"` // "creator" or "member"
+	Role     string    `json:"role"`
 	JoinedAt time.Time `json:"joined_at"`
 
-	// Joined fields for display purposes.
 	Username  string `json:"username,omitempty"`
 	FirstName string `json:"first_name,omitempty"`
 	LastName  string `json:"last_name,omitempty"`
@@ -35,37 +32,31 @@ type GroupMember struct {
 
 //--------------------------------------------------------------------------------------|
 
-// GroupInvitation represents an invitation from a group member to another user.
 type GroupInvitation struct {
 	ID        int64     `json:"id"`
 	GroupID   int64     `json:"group_id"`
 	InviterID int64     `json:"inviter_id"`
 	InviteeID int64     `json:"invitee_id"`
-	Status    string    `json:"status"` // "pending", "accepted", "declined"
+	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
 
-	// Joined fields for display purposes.
 	GroupTitle  string `json:"group_title,omitempty"`
 	InviterName string `json:"inviter_name,omitempty"`
 }
 
 //--------------------------------------------------------------------------------------|
 
-// GroupJoinRequest represents a request from a user to join a group.
 type GroupJoinRequest struct {
 	ID        int64     `json:"id"`
 	GroupID   int64     `json:"group_id"`
 	UserID    int64     `json:"user_id"`
-	Status    string    `json:"status"` // "pending", "accepted", "declined"
+	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
 
-	// Joined fields for display purposes.
 	Username string `json:"username,omitempty"`
 }
 
-//--------------------------------------------------------------------------------------|
-
-// GroupEvent represents an event within a group.
+// --------------------------------------------------------------------------------------|
 type GroupEvent struct {
 	ID          int64     `json:"id"`
 	GroupID     int64     `json:"group_id"`
@@ -75,25 +66,22 @@ type GroupEvent struct {
 	EventTime   time.Time `json:"event_time"`
 	CreatedAt   time.Time `json:"created_at"`
 
-	// Aggregated response counts (populated at query time).
 	GoingCount    int `json:"going_count"`
 	NotGoingCount int `json:"not_going_count"`
 }
 
 //--------------------------------------------------------------------------------------|
 
-// GroupEventResponse represents a member's RSVP to a group event.
 type GroupEventResponse struct {
 	EventID  int64  `json:"event_id"`
 	UserID   int64  `json:"user_id"`
-	Response string `json:"response"` // "going" or "not_going"
+	Response string `json:"response"`
 
 	Username string `json:"username,omitempty"`
 }
 
 //--------------------------------------------------------------------------------------|
 
-// GroupMessage represents a chat message within a group.
 type GroupMessage struct {
 	ID        int64     `json:"id"`
 	GroupID   int64     `json:"group_id"`
@@ -105,17 +93,15 @@ type GroupMessage struct {
 	Username string `json:"username,omitempty"`
 }
 
-// GroupUnreadCount represents the number of unread messages for a user in a group.
+//--------------------------------------------------------------------------------------|
+
 type GroupUnreadCount struct {
 	GroupID     int64 `json:"group_id"`
 	UnreadCount int   `json:"unread_count"`
 }
 
 //--------------------------------------------------------------------------------------|
-// Interfaces
-//--------------------------------------------------------------------------------------|
 
-// GroupRepo defines the contract for all group-related persistence.
 type GroupRepo interface {
 	// Transactions
 	WithTx(tx any) GroupRepo
@@ -157,10 +143,8 @@ type GroupRepo interface {
 	GetUnreadCounts(ctx context.Context, userID int64) ([]GroupUnreadCount, error)
 }
 
-
 //--------------------------------------------------------------------------------------|
 
-// GroupService separates groups business logic from transport.
 type GroupService interface {
 	CreateGroup(ctx context.Context, creatorID int64, title, description string) (*Group, error)
 	GetGroup(ctx context.Context, id, userID int64) (*Group, error)
@@ -181,4 +165,3 @@ type GroupService interface {
 	GetUnreadCounts(ctx context.Context, userID int64) ([]GroupUnreadCount, error)
 	MarkAsRead(ctx context.Context, groupID, userID int64) error
 }
-

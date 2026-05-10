@@ -12,10 +12,8 @@ async function request(path, options = {}) {
     ...options.headers,
   };
 
-  // If body is an object and not FormData, stringify it
   let body = options.body;
   if (body instanceof FormData) {
-    // Let the browser set the Content-Type with boundary for FormData
     delete headers['Content-Type'];
   } else if (body && typeof body === 'object') {
     body = JSON.stringify(body);
@@ -40,7 +38,6 @@ async function request(path, options = {}) {
     throw error;
   }
 
-  // Handle 204 No Content
   if (response.status === 204) {
     return null;
   }

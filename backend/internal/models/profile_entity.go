@@ -19,7 +19,6 @@ type Profile struct {
 
 //--------------------------------------------------------------------------------------|
 
-// UserProfile is used for the profile view
 type UserProfile struct {
 	ID           int64      `json:"id"`
 	FirstName    string     `json:"first_name"`

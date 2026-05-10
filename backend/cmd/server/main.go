@@ -31,11 +31,9 @@ func main() {
 
 	rep := repository.NewRepo(db)
 
-	// 3. Setup WebSocket Hub
 	hub := chatsvc.NewHub(rep.Chat, rep.User, rep.Group, rep.Follow)
 	go hub.Run(context.Background())
 
-	// Initialize Uploader
 	uploadDir := "./uploads"
 	uploadURL := "/api/v1/uploads"
 	uploader := utils.NewLocalImageUploader(uploadDir, uploadURL)
@@ -45,7 +43,6 @@ func main() {
 	hdr := handlers.NewHandler(serv, hub, uploader)
 	mux := config.SetupRoutes(hdr)
 
-	// Serve uploaded images
 	mux.Handle(uploadURL+"/", http.StripPrefix(uploadURL, http.FileServer(http.Dir(uploadDir))))
 
 	port := ":8080"

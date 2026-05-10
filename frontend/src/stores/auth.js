@@ -35,7 +35,6 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       this.error = null
       try {
-        // Date transformation
         const dataToSubmit = { ...payload }
         if (dataToSubmit.date_of_birth) {
           dataToSubmit.dob = new Date(dataToSubmit.date_of_birth).toISOString()

@@ -11,23 +11,18 @@ import (
 
 //--------------------------------------------------------------------------------------|
 
-// GroupHandler handles all group-related HTTP requests.
 type GroupHandler struct {
 	Service models.GroupService
 }
 
 //--------------------------------------------------------------------------------------|
 
-// NewGroupHandler creates a new GroupHandler.
 func NewGroupHandler(svc models.GroupService) *GroupHandler {
 	return &GroupHandler{Service: svc}
 }
 
 //--------------------------------------------------------------------------------------|
-// Group CRUD
-//--------------------------------------------------------------------------------------|
 
-// CreateGroup handles POST /api/groups.
 func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	if identity == nil {
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
@@ -52,7 +47,6 @@ func (h *GroupHandler) CreateGroup(w http.ResponseWriter, r *http.Request, ident
 
 //--------------------------------------------------------------------------------------|
 
-// GetGroup handles GET /api/groups/{id}.
 func (h *GroupHandler) GetGroup(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	groupID, err := web.PathInt64(r, "id")
 	if err != nil {
@@ -74,7 +68,6 @@ func (h *GroupHandler) GetGroup(w http.ResponseWriter, r *http.Request, identity
 
 //--------------------------------------------------------------------------------------|
 
-// ListGroups handles GET /api/groups.
 func (h *GroupHandler) ListGroups(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	limit, offset := web.GetLimitOffset(r)
 
@@ -88,10 +81,7 @@ func (h *GroupHandler) ListGroups(w http.ResponseWriter, r *http.Request, identi
 }
 
 //--------------------------------------------------------------------------------------|
-// Membership
-//--------------------------------------------------------------------------------------|
 
-// GetMembers handles GET /api/groups/{id}/members.
 func (h *GroupHandler) GetMembers(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	groupID, err := web.PathInt64(r, "id")
 	if err != nil {
@@ -113,7 +103,6 @@ func (h *GroupHandler) GetMembers(w http.ResponseWriter, r *http.Request, identi
 
 //--------------------------------------------------------------------------------------|
 
-// LeaveGroup handles POST /api/groups/{id}/leave.
 func (h *GroupHandler) LeaveGroup(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	if identity == nil {
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
@@ -133,10 +122,7 @@ func (h *GroupHandler) LeaveGroup(w http.ResponseWriter, r *http.Request, identi
 }
 
 //--------------------------------------------------------------------------------------|
-// Invitations
-//--------------------------------------------------------------------------------------|
 
-// InviteUser handles POST /api/groups/{id}/invite.
 func (h *GroupHandler) InviteUser(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	if identity == nil {
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
@@ -164,7 +150,6 @@ func (h *GroupHandler) InviteUser(w http.ResponseWriter, r *http.Request, identi
 
 //--------------------------------------------------------------------------------------|
 
-// GetPendingInvitations handles GET /api/groups/invitations.
 func (h *GroupHandler) GetPendingInvitations(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	if identity == nil {
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
@@ -181,7 +166,6 @@ func (h *GroupHandler) GetPendingInvitations(w http.ResponseWriter, r *http.Requ
 
 //--------------------------------------------------------------------------------------|
 
-// RespondToInvitation handles POST /api/groups/invitations/{id}/respond.
 func (h *GroupHandler) RespondToInvitation(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	if identity == nil {
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
@@ -208,10 +192,7 @@ func (h *GroupHandler) RespondToInvitation(w http.ResponseWriter, r *http.Reques
 }
 
 //--------------------------------------------------------------------------------------|
-// Join Requests
-//--------------------------------------------------------------------------------------|
 
-// RequestJoin handles POST /api/groups/{id}/request.
 func (h *GroupHandler) RequestJoin(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	if identity == nil {
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
@@ -232,7 +213,6 @@ func (h *GroupHandler) RequestJoin(w http.ResponseWriter, r *http.Request, ident
 
 //--------------------------------------------------------------------------------------|
 
-// GetPendingJoinRequests handles GET /api/groups/{id}/requests.
 func (h *GroupHandler) GetPendingJoinRequests(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	if identity == nil {
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
@@ -254,7 +234,6 @@ func (h *GroupHandler) GetPendingJoinRequests(w http.ResponseWriter, r *http.Req
 
 //--------------------------------------------------------------------------------------|
 
-// RespondToJoinRequest handles POST /api/groups/requests/{id}/respond.
 func (h *GroupHandler) RespondToJoinRequest(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	if identity == nil {
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
@@ -281,10 +260,7 @@ func (h *GroupHandler) RespondToJoinRequest(w http.ResponseWriter, r *http.Reque
 }
 
 //--------------------------------------------------------------------------------------|
-// Events
-//--------------------------------------------------------------------------------------|
 
-// CreateEvent handles POST /api/groups/{id}/events.
 func (h *GroupHandler) CreateEvent(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	if identity == nil {
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
@@ -327,7 +303,6 @@ func (h *GroupHandler) CreateEvent(w http.ResponseWriter, r *http.Request, ident
 
 //--------------------------------------------------------------------------------------|
 
-// GetGroupEvents handles GET /api/groups/{id}/events.
 func (h *GroupHandler) GetGroupEvents(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	groupID, err := web.PathInt64(r, "id")
 	if err != nil {
@@ -349,7 +324,6 @@ func (h *GroupHandler) GetGroupEvents(w http.ResponseWriter, r *http.Request, id
 
 //--------------------------------------------------------------------------------------|
 
-// RespondToEvent handles POST /api/groups/events/{id}/respond.
 func (h *GroupHandler) RespondToEvent(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	if identity == nil {
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
@@ -361,7 +335,7 @@ func (h *GroupHandler) RespondToEvent(w http.ResponseWriter, r *http.Request, id
 	}
 
 	var body struct {
-		Response string `json:"response"` // "going" or "not_going"
+		Response string `json:"response"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		return web.StatusError{Code: http.StatusBadRequest, Err: errors.New("invalid request body")}
@@ -376,10 +350,7 @@ func (h *GroupHandler) RespondToEvent(w http.ResponseWriter, r *http.Request, id
 }
 
 //--------------------------------------------------------------------------------------|
-// Group Messages
-//--------------------------------------------------------------------------------------|
 
-// GetGroupMessages handles GET /api/groups/{id}/messages.
 func (h *GroupHandler) GetGroupMessages(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	groupID, err := web.PathInt64(r, "id")
 	if err != nil {
@@ -403,7 +374,6 @@ func (h *GroupHandler) GetGroupMessages(w http.ResponseWriter, r *http.Request, 
 
 //--------------------------------------------------------------------------------------|
 
-// GetUnreadCounts handles GET /api/groups/unread.
 func (h *GroupHandler) GetUnreadCounts(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	if identity == nil {
 		return web.StatusError{Code: http.StatusUnauthorized, Err: errors.New("authentication required")}
@@ -420,7 +390,6 @@ func (h *GroupHandler) GetUnreadCounts(w http.ResponseWriter, r *http.Request, i
 
 //--------------------------------------------------------------------------------------|
 
-// MarkAsRead handles POST /api/groups/{id}/read.
 func (h *GroupHandler) MarkAsRead(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	groupID, err := web.PathInt64(r, "id")
 	if err != nil {
@@ -438,4 +407,3 @@ func (h *GroupHandler) MarkAsRead(w http.ResponseWriter, r *http.Request, identi
 	web.JSONResponse(w, http.StatusOK, map[string]string{"status": "ok"})
 	return nil
 }
-

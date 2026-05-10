@@ -27,7 +27,6 @@ export const useProfileStore = defineStore('profile', {
         const data = await api.get(`/users/${id}`)
         this.profile = data
         
-        // Determine follow status
         if (data.followers?.some(f => f.id === currentUserId)) {
           this.followStatus = 'accept'
         } else {

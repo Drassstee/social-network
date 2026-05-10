@@ -45,7 +45,7 @@ func (h *PostHandler) GetPosts(w http.ResponseWriter, r *http.Request, identity 
 	limit := web.QueryInt(r, "limit", 10)
 	offset := web.QueryInt(r, "offset", 0)
 	groupID, _ := strconv.ParseInt(r.URL.Query().Get("group_id"), 10, 64)
-	
+
 	requesterID := int64(0)
 	if identity != nil {
 		requesterID = identity.ID
@@ -66,7 +66,6 @@ func (h *PostHandler) CreatePost(w http.ResponseWriter, r *http.Request, identit
 		return &models.ValidationError{Field: "auth", Message: "unauthorized"}
 	}
 
-	// Support multi-part for image uploads
 	if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
 		return h.handleMultipartCreatePost(w, r, identity)
 	}
@@ -142,7 +141,7 @@ func (h *PostHandler) CreateComment(w http.ResponseWriter, r *http.Request, iden
 		}
 		content = r.FormValue("content")
 		postID, _ = strconv.ParseInt(r.FormValue("post_id"), 10, 64)
-		
+
 		file, header, err := r.FormFile("image")
 		if err == nil {
 			defer file.Close()

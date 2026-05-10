@@ -47,7 +47,6 @@ export const useGroupStore = defineStore('groups', {
     async requestJoin(groupId) {
       try {
         await api.post(`/groups/${groupId}/request`)
-        // Update local state if needed (e.g., mark as pending)
       } catch (err) {
         this.error = err.message
         throw err

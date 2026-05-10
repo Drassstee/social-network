@@ -10,7 +10,6 @@ import (
 
 //--------------------------------------------------------------------------------------|
 
-// ChatHandler handles HTTP requests for chat messages and online users.
 type ChatHandler struct {
 	Service  models.ChatService
 	Hub      *chatsvc.Hub
@@ -19,7 +18,6 @@ type ChatHandler struct {
 
 //--------------------------------------------------------------------------------------|
 
-// NewChatHandler creates a new instance of the chat handler.
 func NewChatHandler(service models.ChatService, hub *chatsvc.Hub, uploader models.ImageUploader) *ChatHandler {
 	return &ChatHandler{
 		Service:  service,
@@ -30,7 +28,6 @@ func NewChatHandler(service models.ChatService, hub *chatsvc.Hub, uploader model
 
 //--------------------------------------------------------------------------------------|
 
-// UploadImage handles the HTTP request to upload an image for a chat message.
 func (h *ChatHandler) UploadImage(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	if r.Method != http.MethodPost {
 		return web.StatusError{Code: http.StatusMethodNotAllowed, Err: errors.New("Method not allowed")}
@@ -57,7 +54,6 @@ func (h *ChatHandler) UploadImage(w http.ResponseWriter, r *http.Request, identi
 
 //--------------------------------------------------------------------------------------|
 
-// GetMessages returns a list of private messages between two users.
 func (h *ChatHandler) GetMessages(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	otherUserID := web.QueryInt64(r, "user_id", 0)
 	if otherUserID == 0 {
@@ -78,7 +74,6 @@ func (h *ChatHandler) GetMessages(w http.ResponseWriter, r *http.Request, identi
 
 //--------------------------------------------------------------------------------------|
 
-// GetChatableUsers returns a list of all users the current user can chat with, along with their online status.
 func (h *ChatHandler) GetChatableUsers(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	users, err := h.Service.GetChatableUsers(r.Context(), identity.ID)
 	if err != nil {
@@ -111,7 +106,6 @@ func (h *ChatHandler) GetChatableUsers(w http.ResponseWriter, r *http.Request, i
 
 //--------------------------------------------------------------------------------------|
 
-// GetUnreadCounts returns the unread message counts for the authenticated user.
 func (h *ChatHandler) GetUnreadCounts(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	counts, err := h.Service.GetUnreadCounts(r.Context(), identity.ID)
 	if err != nil {
@@ -124,7 +118,6 @@ func (h *ChatHandler) GetUnreadCounts(w http.ResponseWriter, r *http.Request, id
 
 //--------------------------------------------------------------------------------------|
 
-// MarkAsRead marks messages from a specific sender as read for the current user.
 func (h *ChatHandler) MarkAsRead(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	senderID := web.QueryInt64(r, "sender_id", 0)
 	if senderID == 0 {
@@ -141,9 +134,7 @@ func (h *ChatHandler) MarkAsRead(w http.ResponseWriter, r *http.Request, identit
 
 //--------------------------------------------------------------------------------------|
 
-// Connect upgrades the HTTP connection to a WebSocket connection.
 func (h *ChatHandler) Connect(w http.ResponseWriter, r *http.Request, identity *models.UserIdentity) error {
 	chatsvc.ServeWs(h.Hub, w, r, identity.ID)
 	return nil
 }
-

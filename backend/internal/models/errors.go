@@ -4,7 +4,6 @@ import "errors"
 
 //--------------------------------------------------------------------------------------|
 
-// ValidationError represents a validation failure on a specific field.
 type ValidationError struct {
 	Field   string
 	Message string
@@ -16,7 +15,6 @@ func (e *ValidationError) Error() string {
 
 //--------------------------------------------------------------------------------------|
 
-// NotFoundError indicates that a requested entity could not be found.
 type NotFoundError struct {
 	Entity string
 }
@@ -27,7 +25,6 @@ func (e *NotFoundError) Error() string {
 
 //--------------------------------------------------------------------------------------|
 
-// AuthorizationError indicates that the user lacks permission for the action.
 type AuthorizationError struct {
 	UserID int64
 }
@@ -41,7 +38,6 @@ func (e *AuthorizationError) Error() string {
 
 //--------------------------------------------------------------------------------------|
 
-// Sentinel errors used across the application.
 var (
 	// Auth & user errors.
 	ErrInvalidCredentials = errors.New("invalid credentials")

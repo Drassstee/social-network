@@ -58,20 +58,17 @@ export const useChatStore = defineStore('chat', {
     async fetchChatableUsers() {
       try {
         const data = await api.get('/chat/users')
-        this.onlineUsers = data // This actually contains all chatable users enriched with online status
+        this.onlineUsers = data
       } catch (err) {
         console.error('Failed to fetch chatable users:', err)
       }
     },
     async fetchUnreadCounts() {
         try {
-            // Private counts
             const pCounts = await api.get('/chat/unread')
             for (const [id, count] of Object.entries(pCounts)) {
                 this.unreadCounts[`u_${id}`] = count
             }
-
-            // Group counts
             const gCounts = await api.get('/groups/unread')
             if (Array.isArray(gCounts)) {
                 gCounts.forEach(c => {
@@ -108,15 +105,11 @@ export const useChatStore = defineStore('chat', {
       if (user) {
         user.is_online = data.online
       } else {
-        // If user not in list, we might need to refresh or just add if we want to show non-followers who just came online (optional)
-        // For now, let's just refresh if it's someone we don't know but we might care about
-        // Or better, just add them if online
         if (data.online) {
             this.onlineUsers.push({ id: data.user_id, username: data.username, is_online: true })
         }
       }
     },
-    // Internal helper for deduplicated message insertion
     _addMessageToStore(targetMap, id, msg) {
       if (!targetMap[id]) {
         targetMap[id] = []
@@ -133,12 +126,10 @@ export const useChatStore = defineStore('chat', {
       const otherID = msg.sender_id === myID ? msg.receiver_id : msg.sender_id
       this._addMessageToStore(this.messages, otherID, msg)
 
-      // Increment unread if not active chat
       if (msg.sender_id !== myID && (!this.activeChatUser || this.activeChatUser.id !== otherID)) {
         const key = `u_${otherID}`
         this.unreadCounts[key] = (this.unreadCounts[key] || 0) + 1
         
-        // Global toast notification
         const { useUIStore } = await import('./ui')
         useUIStore().showToast(`NEW_MESSAGE: ${msg.body.substring(0, 20)}${msg.body.length > 20 ? '...' : ''}`, 'info')
       } else if (msg.sender_id !== myID) {
@@ -192,10 +183,8 @@ export const useChatStore = defineStore('chat', {
     async fetchMessages(userID) {
       try {
         const data = await api.get(`/chat/messages?user_id=${userID}&limit=50&offset=0`)
-        // Reverse because backend returns newest first (DESC), but we display oldest to newest
         this.messages[userID] = (data || []).reverse()
         
-        // Clear unread
         this.markPrivateAsRead(userID)
       } catch (err) {
         console.error('Failed to fetch messages:', err)
@@ -209,12 +198,9 @@ export const useChatStore = defineStore('chat', {
       const groupID = msg.group_id
       this._addMessageToStore(this.groupMessages, groupID, msg)
 
-      // Increment unread if not active group
       if (Number(msg.sender_id) !== Number(myID) && Number(this.activeGroupID) !== Number(groupID)) {
         const key = `g_${groupID}`
         this.unreadCounts[key] = (this.unreadCounts[key] || 0) + 1
-
-        // Global toast notification
         const { useUIStore } = await import('./ui')
         useUIStore().showToast(`GROUP_MSG: ${msg.body.substring(0, 20)}${msg.body.length > 20 ? '...' : ''}`, 'info')
       } else if (Number(msg.sender_id) !== Number(myID)) {
@@ -233,10 +219,8 @@ export const useChatStore = defineStore('chat', {
     async fetchGroupMessages(groupID) {
       try {
         const data = await api.get(`/groups/${groupID}/messages`)
-        // Reverse because backend returns newest first (DESC), but we display oldest to newest
         this.groupMessages[groupID] = (data || []).reverse()
         
-        // Clear unread
         this.markGroupAsRead(groupID)
       } catch (err) {
         console.error('Failed to fetch group messages:', err)
